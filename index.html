@@ -1084,7 +1084,11 @@ async function startScanner() {
   const reader = document.getElementById("reader");
   reader.innerHTML = `<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
   try {
-    html5QrCode = new Html5Qrcode("reader");
+    // เปิดใช้งาน Barcode Detector API แบบ Native สำหรับ iOS 15+ เพื่อการสแกนที่เร็วและแม่นยำที่สุด
+    html5QrCode = new Html5Qrcode("reader", { 
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
+    });
+    
     const formats = [
       Html5QrcodeSupportedFormats.QR_CODE,
       Html5QrcodeSupportedFormats.CODE_128,
@@ -1096,17 +1100,48 @@ async function startScanner() {
       Html5QrcodeSupportedFormats.ITF,
       Html5QrcodeSupportedFormats.DATA_MATRIX,
     ];
-    await html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 15, qrbox: { width: 250, height: 150 }, formatsToSupport: formats, aspectRatio: 1.5, disableFlip: false },
-      onScanSuccess, () => {}
-    );
+
+    // ตั้งค่าความละเอียดสูง (HD/FullHD) แนะนำ (ideal) แทนการบังคับ (min) เพื่อป้องกันกล้องบางรุ่นเปิดไม่ได้
+    const cameraConstraints = {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 }
+    };
+
+    // ปรับขนาดกรอบ (qrbox) ให้ยืดหยุ่นตามขนาดหน้าจอของมือถือแต่ละรุ่น
+    const config = { 
+      fps: 20, 
+      qrbox: function(viewfinderWidth, viewfinderHeight) {
+        let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+        let boxWidth = Math.floor(minEdgeSize * 0.85); // กว้าง 85% ของจอ
+        return { width: boxWidth, height: Math.floor(boxWidth * 0.5) }; // อัตราส่วนแบบบาร์โค้ด
+      }, 
+      formatsToSupport: formats, 
+      aspectRatio: 1.5, 
+      disableFlip: false 
+    };
+
+    try {
+      await html5QrCode.start(cameraConstraints, config, onScanSuccess, () => {});
+    } catch (err2) {
+      // หากตั้งค่ากล้องความละเอียดสูงไม่สำเร็จ ให้ลองใช้ค่าพื้นฐาน
+      console.warn("High-res camera failed, falling back to basic camera", err2);
+      await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
+    }
+    
     isScanning = true;
     document.getElementById("btn-start").classList.add("hidden");
     document.getElementById("btn-stop").classList.remove("hidden");
   } catch(err) {
-    showError("ไม่สามารถเปิดกล้องได้");
-    reader.innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p>ลองใช้ "รูปภาพ" แทน</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
+    let errMsg = "ไม่สามารถเปิดกล้องได้";
+    if (String(err).includes("NotAllowedError") || String(err).includes("Permission")) {
+      errMsg = "กรุณาอนุญาตให้ใช้งานกล้องในเบราว์เซอร์";
+    } else if (window.location.protocol === "file:") {
+      errMsg = "เบราว์เซอร์ไม่อนุญาตให้เปิดกล้องจากไฟล์ (file://) กรุณาอัปโหลดขึ้นเซิร์ฟเวอร์ (HTTPS) หรือใช้ Localhost";
+    }
+    showError(errMsg);
+    console.error("Camera Error:", err);
+    reader.innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p>ลองใช้ "รูปภาพ" แทน</p><p style="color:red;font-size:11px;margin-top:5px;">${escHtml(errMsg)}</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
   }
 }
 
