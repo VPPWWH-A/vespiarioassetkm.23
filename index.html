@@ -47,7 +47,7 @@ body {
   font-size: 14px;
 }
 
-/* ===== TOP BAR (like image) ===== */
+/* ===== TOP BAR ===== */
 .top-bar {
   background: var(--bg-card);
   padding: 12px 16px;
@@ -227,10 +227,10 @@ body {
   width: 4px;
 }
 
-.summary-card.blue::before { background: var(--primary); }
-.summary-card.green::before { background: var(--success); }
+.summary-card.blue::before   { background: var(--primary); }
+.summary-card.green::before  { background: var(--success); }
 .summary-card.orange::before { background: var(--warning); }
-.summary-card.red::before { background: var(--danger); }
+.summary-card.red::before    { background: var(--danger);  }
 
 .card-header {
   display: flex;
@@ -239,11 +239,7 @@ body {
   margin-bottom: 8px;
 }
 
-.card-title {
-  font-size: 12px;
-  color: var(--text-dim);
-  font-weight: 600;
-}
+.card-title { font-size: 12px; color: var(--text-dim); font-weight: 600; }
 
 .card-badge {
   font-size: 10px;
@@ -252,10 +248,10 @@ body {
   font-weight: 600;
 }
 
-.card-badge.blue { background: var(--primary-bg); color: var(--primary); }
-.card-badge.green { background: var(--success-bg); color: var(--success); }
+.card-badge.blue   { background: var(--primary-bg); color: var(--primary); }
+.card-badge.green  { background: var(--success-bg); color: var(--success); }
 .card-badge.orange { background: var(--warning-bg); color: var(--warning); }
-.card-badge.red { background: var(--danger-bg); color: var(--danger); }
+.card-badge.red    { background: var(--danger-bg);  color: var(--danger);  }
 
 .card-number {
   font-size: 32px;
@@ -300,14 +296,8 @@ body {
   transition: all 0.2s;
 }
 
-.tab-btn.active {
-  background: var(--primary);
-  color: white;
-}
-
-.tab-btn:hover:not(.active) {
-  background: var(--bg);
-}
+.tab-btn.active { background: var(--primary); color: white; }
+.tab-btn:hover:not(.active) { background: var(--bg); }
 
 /* ===== DATA TABLE ===== */
 .table-container {
@@ -318,11 +308,18 @@ body {
   overflow-x: auto;
 }
 
-.table-header {
+/* 10 คอลัมน์ (ตัด "จำนวน" และ area ซ้ำออก) */
+.table-header,
+.table-row {
   display: grid;
-  grid-template-columns: 100px 80px 120px 1fr 60px 50px 80px 80px 80px 60px 80px;
+  grid-template-columns: 100px 90px 100px 1fr 70px 90px 90px 70px 70px 80px;
   gap: 8px;
   padding: 12px 16px;
+  font-size: 13px;
+  min-width: 900px;
+}
+
+.table-header {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   font-size: 11px;
@@ -330,33 +327,22 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  min-width: 950px;
 }
 
 .table-row {
-  display: grid;
-  grid-template-columns: 100px 80px 120px 1fr 60px 50px 80px 80px 80px 60px 80px;
-  gap: 8px;
-  padding: 12px 16px;
   border-bottom: 1px solid var(--border-light);
   align-items: center;
-  font-size: 13px;
   transition: background 0.15s;
-  min-width: 950px;
 }
 
-.table-row:hover {
-  background: var(--bg);
-}
-
+.table-row:hover { background: var(--bg); }
 .table-row:last-child { border-bottom: none; }
 
 .cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
 .cell-time { color: var(--text-dim); font-size: 12px; }
 .cell-code { font-weight: 700; color: var(--text); }
 .cell-name { font-weight: 600; color: var(--text); }
-.cell-sub { font-size: 11px; color: var(--text-muted); }
+.cell-sub  { font-size: 11px; color: var(--text-muted); }
 
 /* Status Badge */
 .status-badge {
@@ -370,32 +356,12 @@ body {
   letter-spacing: 0.3px;
 }
 
-.status-badge.ok {
-  background: var(--success-bg);
-  color: var(--success);
-}
+.status-badge.ok   { background: var(--success-bg); color: var(--success); }
+.status-badge.warn { background: var(--warning-bg); color: var(--warning); }
+.status-badge.bad  { background: var(--danger-bg);  color: var(--danger);  }
+.status-badge.info { background: var(--primary-bg); color: var(--primary); }
 
-.status-badge.warn {
-  background: var(--warning-bg);
-  color: var(--warning);
-}
-
-.status-badge.bad {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
-
-.status-badge.info {
-  background: var(--primary-bg);
-  color: var(--primary);
-}
-
-/* Action Buttons in Table */
-.row-actions {
-  display: flex;
-  gap: 6px;
-}
-
+/* Row action buttons */
 .row-btn {
   padding: 5px 10px;
   border: none;
@@ -409,18 +375,9 @@ body {
   transition: all 0.2s;
 }
 
-.row-btn.pdf {
-  background: var(--danger);
-  color: white;
-}
-
+.row-btn.pdf    { background: var(--danger);  color: white; }
 .row-btn.pdf:hover { background: #b91c1c; }
-
-.row-btn.detail {
-  background: var(--primary);
-  color: white;
-}
-
+.row-btn.detail { background: var(--primary); color: white; }
 .row-btn.detail:hover { background: var(--primary-light); }
 
 /* Category Tag */
@@ -462,10 +419,10 @@ body {
 .scanner-placeholder p { font-size: 13px; font-weight: 500; }
 
 .corner { position: absolute; width: 30px; height: 30px; border: 3px solid var(--primary); }
-.corner.tl { top: 16px; left: 16px; border-right: none; border-bottom: none; }
-.corner.tr { top: 16px; right: 16px; border-left: none; border-bottom: none; }
-.corner.bl { bottom: 16px; left: 16px; border-right: none; border-top: none; }
-.corner.br { bottom: 16px; right: 16px; border-left: none; border-top: none; }
+.corner.tl { top: 16px; left: 16px;  border-right: none; border-bottom: none; }
+.corner.tr { top: 16px; right: 16px; border-left:  none; border-bottom: none; }
+.corner.bl { bottom: 16px; left: 16px;  border-right: none; border-top: none; }
+.corner.br { bottom: 16px; right: 16px; border-left:  none; border-top: none; }
 
 .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .btn {
@@ -482,12 +439,12 @@ body {
   gap: 6px;
 }
 .btn:active { transform: scale(0.97); }
-.btn-primary { background: var(--primary); color: white; }
+.btn-primary   { background: var(--primary); color: white; }
 .btn-primary:hover { background: var(--primary-light); }
 .btn-secondary { background: var(--bg); color: var(--text-dim); border: 1px solid var(--border); }
-.btn-gold { background: var(--gold); color: white; }
-.btn-danger { background: var(--danger); color: white; }
-.btn-success { background: var(--success); color: white; }
+.btn-gold      { background: var(--gold);    color: white; }
+.btn-danger    { background: var(--danger);  color: white; }
+.btn-success   { background: var(--success); color: white; }
 .btn-full { grid-column: 1 / -1; }
 
 .result-card {
@@ -501,7 +458,7 @@ body {
 }
 .result-card.success { border-left: 4px solid var(--success); }
 .result-card.warning { border-left: 4px solid var(--warning); }
-.result-card.error { border-left: 4px solid var(--danger); }
+.result-card.error   { border-left: 4px solid var(--danger);  }
 
 /* ===== FORM ===== */
 .form-card {
@@ -513,7 +470,7 @@ body {
 }
 .form-header { text-align: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-light); }
 .form-header .icon { font-size: 32px; margin-bottom: 4px; }
-.form-header h2 { font-size: 15px; color: var(--warning); font-weight: 700; }
+.form-header h2  { font-size: 15px; color: var(--warning); font-weight: 700; }
 .form-header .sub { font-size: 12px; color: var(--text-muted); }
 .asset-highlight {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -524,16 +481,19 @@ body {
   margin-bottom: 12px;
 }
 .asset-highlight .label { font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-.asset-highlight .code { font-size: 20px; font-weight: 800; color: var(--text); }
+.asset-highlight .code  { font-size: 20px; font-weight: 800; color: var(--text); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .form-field { margin-bottom: 8px; }
 .form-field label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
 .form-field label .req { color: var(--danger); }
-.form-field input, .form-field select {
-  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--bg); color: var(--text); font-size: 14px; -webkit-appearance: none;
+.form-field input,
+.form-field select {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--bg); color: var(--text);
+  font-size: 14px; -webkit-appearance: none;
 }
-.form-field input:focus, .form-field select:focus { outline: none; border-color: var(--primary); }
+.form-field input:focus,
+.form-field select:focus { outline: none; border-color: var(--primary); }
 
 /* ===== LABEL ===== */
 .label-preview {
@@ -582,6 +542,7 @@ input[type="file"] { display: none; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
 /* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
@@ -619,26 +580,10 @@ input[type="file"] { display: none; }
   background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
 }
 
-.modal-title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
+.modal-title-row { display: flex; align-items: center; gap: 12px; }
 .modal-icon { font-size: 24px; }
-
-.modal-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.modal-subtitle {
-  font-size: 18px;
-  font-weight: 800;
-  color: #93c5fd;
-  letter-spacing: 0.5px;
-}
+.modal-title    { font-size: 14px; font-weight: 700; color: #fff; }
+.modal-subtitle { font-size: 18px; font-weight: 800; color: #93c5fd; letter-spacing: 0.5px; }
 
 .modal-close {
   background: rgba(255,255,255,0.15);
@@ -654,7 +599,6 @@ input[type="file"] { display: none; }
   justify-content: center;
   transition: background 0.2s;
 }
-
 .modal-close:hover { background: rgba(255,255,255,0.3); }
 
 .modal-body { padding: 20px; }
@@ -683,12 +627,7 @@ input[type="file"] { display: none; }
   margin-bottom: 4px;
 }
 
-.modal-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  word-break: break-word;
-}
+.modal-value { font-size: 14px; font-weight: 600; color: var(--text); word-break: break-word; }
 
 .modal-footer {
   padding: 12px 20px;
@@ -699,6 +638,40 @@ input[type="file"] { display: none; }
 }
 
 .modal-footer .btn { min-width: 100px; }
+
+/* Dashboard action bar */
+.dash-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dash-action-bar h3 { font-size: 16px; color: var(--text); }
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.refresh-btn.spinning .refresh-icon { display: inline-block; animation: spin 0.8s linear infinite; }
 
 </style>
 <base target="_blank">
@@ -845,10 +818,12 @@ input[type="file"] { display: none; }
 
   <!-- ===== DASHBOARD PAGE ===== -->
   <div id="page-dashboard" class="page hidden">
-    
-    <!-- Action Bar for Dashboard -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="font-size: 16px; color: var(--text);">สรุปผลการตรวจนับ</h3>
+
+    <div class="dash-action-bar">
+      <h3>สรุปผลการตรวจนับ</h3>
+      <button class="refresh-btn" id="refresh-btn" onclick="loadDashboard()">
+        <span class="refresh-icon">🔄</span> รีเฟรช
+      </button>
     </div>
 
     <!-- Summary Cards -->
@@ -859,10 +834,7 @@ input[type="file"] { display: none; }
           <span class="card-badge blue">รวม</span>
         </div>
         <div class="card-number" id="dash-total">-</div>
-        <div class="card-footer">
-          <span class="icon">📦</span>
-          <span id="dash-total-sub">รายการ</span>
-        </div>
+        <div class="card-footer"><span class="icon">📦</span><span>รายการ</span></div>
       </div>
       <div class="summary-card green">
         <div class="card-header">
@@ -870,10 +842,7 @@ input[type="file"] { display: none; }
           <span class="card-badge green">สำเร็จ</span>
         </div>
         <div class="card-number" id="dash-checked">-</div>
-        <div class="card-footer">
-          <span class="icon">✅</span>
-          <span id="dash-checked-sub">ครั้ง</span>
-        </div>
+        <div class="card-footer"><span class="icon">✅</span><span id="dash-month-label">เดือนนี้</span></div>
       </div>
       <div class="summary-card orange">
         <div class="card-header">
@@ -881,10 +850,7 @@ input[type="file"] { display: none; }
           <span class="card-badge orange">วันนี้</span>
         </div>
         <div class="card-number" id="dash-today">-</div>
-        <div class="card-footer">
-          <span class="icon">📅</span>
-          <span id="dash-today-sub">ครั้ง</span>
-        </div>
+        <div class="card-footer"><span class="icon">📅</span><span>ครั้ง</span></div>
       </div>
       <div class="summary-card red">
         <div class="card-header">
@@ -892,36 +858,33 @@ input[type="file"] { display: none; }
           <span class="card-badge red">ใหม่</span>
         </div>
         <div class="card-number" id="dash-added">-</div>
-        <div class="card-footer">
-          <span class="icon">➕</span>
-          <span id="dash-added-sub">รายการ</span>
-        </div>
+        <div class="card-footer"><span class="icon">➕</span><span>รายการ</span></div>
       </div>
     </div>
 
     <!-- Tabs -->
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="setTab('all')">รายการทั้งหมด</button>
-      <button class="tab-btn" onclick="setTab('off')">OFF</button>
-      <button class="tab-btn" onclick="setTab('com')">COM</button>
-      <button class="tab-btn" onclick="setTab('tol')">TOL</button>
-      <button class="tab-btn" onclick="setTab('vpot')">VPOT</button>
-      <button class="tab-btn" onclick="setTab('veh')">VEH</button>
+      <button class="tab-btn active" onclick="setTab('all', this)">รายการทั้งหมด</button>
+      <button class="tab-btn" onclick="setTab('off',  this)">OFF</button>
+      <button class="tab-btn" onclick="setTab('com',  this)">COM</button>
+      <button class="tab-btn" onclick="setTab('tol',  this)">TOL</button>
+      <button class="tab-btn" onclick="setTab('vpot', this)">VPOT</button>
+      <button class="tab-btn" onclick="setTab('veh',  this)">VEH</button>
     </div>
 
     <!-- Data Table -->
     <div class="table-container">
+      <!-- 10 คอลัมน์ที่ถูกต้อง -->
       <div class="table-header">
         <div class="cell">วันที่เช็ค</div>
         <div class="cell">รหัส</div>
         <div class="cell">หมวดหมู่</div>
-        <div class="cell">ชื่อทรัพย์สิน</div>
+        <div class="cell">ชื่อทรัพย์สิน / พื้นที่</div>
         <div class="cell">คลัง</div>
-        <div class="cell">จำนวน</div>
-        <div class="cell">พื้นที่</div>
         <div class="cell">วันที่ได้มา</div>
         <div class="cell">สถานะ</div>
-        <div class="cell">PDF</div>
+        <div class="cell">ผลเช็ค</div>
+        <div class="cell">Label</div>
         <div class="cell">ข้อมูล</div>
       </div>
       <div id="table-body">
@@ -991,84 +954,136 @@ input[type="file"] { display: none; }
 
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
-  <button class="active" onclick="showPage('scan')" id="nav-scan"><span class="icon">📷</span><span>สแกน</span></button>
-  <button onclick="showPage('dashboard')" id="nav-dashboard"><span class="icon">📊</span><span>สรุป</span></button>
+  <button class="active" onclick="showPage('scan')"      id="nav-scan"><span class="icon">📷</span><span>สแกน</span></button>
+  <button             onclick="showPage('dashboard')" id="nav-dashboard"><span class="icon">📊</span><span>สรุป</span></button>
 </div>
 
 <script>
-// ============================================
-// 🔴 เปลี่ยนเป็น URL จริงของคุณ
-// ============================================
-const API_URL = "https://script.google.com/macros/s/AKfycby6JZtcphYimEgzHxp4iTbantGEZHQw26qTOC0irbIrQWnfFPsSmFmxlmtTl7Z-nbPjnw/exec";
+// ============================================================
+// 🔴 ตั้งค่า URL และ Secret Key ให้ตรงกับ code.gs
+// ============================================================
+const API_URL    = "https://script.google.com/macros/s/AKfycby6JZtcphYimEgzHxp4iTbantGEZHQw26qTOC0irbIrQWnfFPsSmFmxlmtTl7Z-nbPjnw/exec";
+const API_SECRET = "VESPA2025SECRET"; // ต้องตรงกับ SECRET_KEY ใน code.gs
+
+// ===== ฟังก์ชัน helper สร้าง URL พร้อม secret key =====
+function apiUrl(params) {
+  const url = new URL(API_URL);
+  url.searchParams.set("key", API_SECRET);
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, v);
+  }
+  return url.toString();
+}
 
 let html5QrCode = null, isScanning = false, isProcessing = false;
-let currentAssetNo = "", currentTab = 'all', allAssets = [];
+let currentAssetNo = "", currentTab = "all", allAssets = [], exportHeaders = [];
 
 // ==================== NAVIGATION ====================
 function showPage(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-  document.getElementById('page-' + page).classList.remove('hidden');
-  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
-  const navBtn = document.getElementById('nav-' + page);
-  if(navBtn) navBtn.classList.add('active');
-  if(page === 'dashboard') {
-    loadDashboard(); // โหลดทุกครั้งเพื่อให้ข้อมูลล่าสุด
-  }
-  if(page === 'label') updateLabelPreview();
+  document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+  document.getElementById("page-" + page).classList.remove("hidden");
+  document.querySelectorAll(".bottom-nav button").forEach(b => b.classList.remove("active"));
+  const navBtn = document.getElementById("nav-" + page);
+  if (navBtn) navBtn.classList.add("active");
+  if (page === "dashboard") loadDashboard();
+  if (page === "label") updateLabelPreview();
 }
 
 // ==================== TABS ====================
-function setTab(tab) {
+// รับ element โดยตรงแทน event.target เพื่อความปลอดภัย
+function setTab(tab, el) {
   currentTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  if (el) el.classList.add("active");
   renderTable(allAssets);
 }
 
 // ==================== SCANNER ====================
-function setResult(html) { document.getElementById('result').innerHTML = html; }
-function showLoading(msg) { setResult(`<div class="result-card" style="padding:20px;"><div class="spinner"></div><div style="font-size:13px;color:var(--text-muted);">${msg}</div></div>`); }
+function setResult(html)     { document.getElementById("result").innerHTML = html; }
+function showLoading(msg)    { setResult(`<div class="result-card" style="padding:20px;"><div class="spinner"></div><div style="font-size:13px;color:var(--text-muted);">${msg}</div></div>`); }
+function showError(msg)      { setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">❌</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ผิดพลาด</div><div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(msg)}</div></div>`); }
+
+// ✅ Escape HTML เพื่อป้องกัน XSS จากค่าที่ scan มา
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function showSuccess(data) {
-  setResult(`<div class="result-card success"><div style="font-size:36px;margin-bottom:8px;">✅</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">พบข้อมูลทรัพย์สิน</div><div style="font-size:22px;font-weight:800;margin-top:4px;">${data.assetNo}</div><div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${data.assetName}</div><div style="display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap;"><div style="background:var(--bg-hover);padding:6px 10px;border-radius:8px;font-size:11px;"><div style="color:var(--text-muted);font-size:9px;">หมวดหมู่</div><div style="font-weight:600;">${data.category || '-'}</div></div><div style="background:var(--bg-hover);padding:6px 10px;border-radius:8px;font-size:11px;"><div style="color:var(--text-muted);font-size:9px;">พื้นที่</div><div style="font-weight:600;">${data.area || '-'}</div></div><div style="background:var(--bg-hover);padding:6px 10px;border-radius:8px;font-size:11px;"><div style="color:var(--text-muted);font-size:9px;">คลัง</div><div style="font-weight:600;">${data.warehouse || '-'}</div></div></div><span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✓ ตรวจสอบแล้ว</span></div>`);
+  setResult(`
+    <div class="result-card success">
+      <div style="font-size:36px;margin-bottom:8px;">✅</div>
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">พบข้อมูลทรัพย์สิน</div>
+      <div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(data.assetNo)}</div>
+      <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(data.assetName)}</div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:11px;">
+          <div style="color:var(--text-muted);font-size:9px;">หมวดหมู่</div>
+          <div style="font-weight:600;">${escHtml(data.category || "-")}</div>
+        </div>
+        <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:11px;">
+          <div style="color:var(--text-muted);font-size:9px;">พื้นที่</div>
+          <div style="font-weight:600;">${escHtml(data.area || "-")}</div>
+        </div>
+        <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:11px;">
+          <div style="color:var(--text-muted);font-size:9px;">คลัง</div>
+          <div style="font-weight:600;">${escHtml(data.warehouse || "-")}</div>
+        </div>
+      </div>
+      <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✓ ตรวจสอบแล้ว</span>
+    </div>`);
 }
+
 function showNotFound(assetNo) {
-  setResult(`<div class="result-card warning"><div style="font-size:36px;margin-bottom:8px;">⚠️</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ไม่พบข้อมูล</div><div style="font-size:22px;font-weight:800;margin-top:4px;color:var(--warning);">${assetNo}</div><div style="font-size:14px;color:var(--text-dim);margin-top:4px;">รหัสนี้ยังไม่มีในระบบ</div><button class="btn btn-gold" onclick="showAddForm('${assetNo}')" style="margin-top:10px;width:auto;padding:10px 20px;font-size:12px;">➕ เพิ่มข้อมูล</button></div>`);
+  const safeNo = escHtml(assetNo);
+  setResult(`
+    <div class="result-card warning">
+      <div style="font-size:36px;margin-bottom:8px;">⚠️</div>
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ไม่พบข้อมูล</div>
+      <div style="font-size:22px;font-weight:800;margin-top:4px;color:var(--warning);">${safeNo}</div>
+      <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">รหัสนี้ยังไม่มีในระบบ</div>
+      <button class="btn btn-gold" onclick="showAddForm('${safeNo}')" style="margin-top:10px;width:auto;padding:10px 20px;font-size:12px;">➕ เพิ่มข้อมูล</button>
+    </div>`);
 }
-function showError(msg) { setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">❌</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ผิดพลาด</div><div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${msg}</div></div>`); }
 
 async function onScanSuccess(decodedText) {
-  if(isProcessing) return;
+  if (isProcessing) return;
   isProcessing = true;
   const cleanCode = String(decodedText).trim().toUpperCase();
-  // หยุดการสแกนชั่วคราวเพื่อไม่ให้ trigger ซ้ำ
-  if(html5QrCode && isScanning) { try { await html5QrCode.pause(true); } catch(e){} }
+  if (html5QrCode && isScanning) { try { await html5QrCode.pause(true); } catch(e){} }
   showLoading("กำลังตรวจสอบ...");
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const response = await fetch(`${API_URL}?action=scan&assetNo=${encodeURIComponent(cleanCode)}`, { signal: controller.signal });
+    const timeout    = setTimeout(() => controller.abort(), 8000);
+    const response   = await fetch(apiUrl({ action: "scan", assetNo: cleanCode }), { signal: controller.signal });
     clearTimeout(timeout);
-    const data = await response.json();
-    if(data.status === "success") { if(data.found) showSuccess(data); else showNotFound(data.assetNo); }
-    else showError(data.message || "ไม่สามารถตรวจสอบได้");
+    const data = await response.json().catch(() => null);
+    if (!data) { showError("ข้อมูลที่ได้รับไม่ถูกต้อง"); }
+    else if (data.status === "success") {
+      if (data.found) showSuccess(data);
+      else showNotFound(data.assetNo);
+    } else {
+      showError(data.message || "ไม่สามารถตรวจสอบได้");
+    }
   } catch(err) {
-    if(err.name === 'AbortError') showError("หมดเวลา — ลองใหม่อีกครั้ง");
+    if (err.name === "AbortError") showError("หมดเวลา — ลองใหม่อีกครั้ง");
     else showError("เชื่อมต่อไม่สำเร็จ");
   }
-  // resume เร็วขึ้น (1.2s) เพื่อสแกนต่อ
   setTimeout(async () => {
     isProcessing = false;
-    if(html5QrCode && isScanning) { try { await html5QrCode.resume(); } catch(e){} }
+    if (html5QrCode && isScanning) { try { await html5QrCode.resume(); } catch(e){} }
   }, 1200);
 }
 
 async function startScanner() {
-  if(isScanning) return;
+  if (isScanning) return;
   const reader = document.getElementById("reader");
   reader.innerHTML = `<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
   try {
     html5QrCode = new Html5Qrcode("reader");
-    // เปิด format ครบทั้ง QR และ Barcode 1D
     const formats = [
       Html5QrcodeSupportedFormats.QR_CODE,
       Html5QrcodeSupportedFormats.CODE_128,
@@ -1082,13 +1097,7 @@ async function startScanner() {
     ];
     await html5QrCode.start(
       { facingMode: "environment" },
-      {
-        fps: 15,
-        qrbox: { width: 250, height: 150 },  // กว้างกว่า สำหรับ barcode
-        formatsToSupport: formats,
-        aspectRatio: 1.5,
-        disableFlip: false,
-      },
+      { fps: 15, qrbox: { width: 250, height: 150 }, formatsToSupport: formats, aspectRatio: 1.5, disableFlip: false },
       onScanSuccess, () => {}
     );
     isScanning = true;
@@ -1099,8 +1108,9 @@ async function startScanner() {
     reader.innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p>ลองใช้ "รูปภาพ" แทน</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
   }
 }
+
 async function stopScanner() {
-  if(!html5QrCode || !isScanning) return;
+  if (!html5QrCode || !isScanning) return;
   try { await html5QrCode.stop(); await html5QrCode.clear(); } catch(e){}
   html5QrCode = null; isScanning = false; isProcessing = false;
   document.getElementById("btn-start").classList.remove("hidden");
@@ -1109,49 +1119,56 @@ async function stopScanner() {
 }
 
 // ==================== ADD FORM ====================
-function showAddForm(assetNo) { currentAssetNo = assetNo; document.getElementById('add-asset-no').textContent = assetNo; showPage('add'); }
+function showAddForm(assetNo) {
+  currentAssetNo = assetNo;
+  document.getElementById("add-asset-no").textContent = assetNo;
+  showPage("add");
+}
 
 async function submitAdd() {
-  const assetName = document.getElementById('input-name').value.trim();
-  const category = document.getElementById('input-category').value;
-  const area = document.getElementById('input-area').value.trim();
-  const warehouse = document.getElementById('input-warehouse').value;
-  const acquisitionDate = document.getElementById('input-date').value;
-  const status = document.getElementById('input-status').value;
-  if(!assetName || !category || !area || !warehouse) {
+  const assetName  = document.getElementById("input-name").value.trim();
+  const category   = document.getElementById("input-category").value;
+  const area       = document.getElementById("input-area").value.trim();
+  const warehouse  = document.getElementById("input-warehouse").value;
+  const acquisitionDate = document.getElementById("input-date").value;
+  const status     = document.getElementById("input-status").value;
+
+  if (!assetName || !category || !area || !warehouse) {
     alert("กรุณากรอกข้อมูลที่จำเป็น");
     return;
   }
 
-  const saveBtn = document.querySelector('#page-add .btn-success');
-  if(saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ กำลังบันทึก...'; }
+  const saveBtn = document.querySelector("#page-add .btn-success");
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "⏳ กำลังบันทึก..."; }
 
-  const params = new URLSearchParams({ action: 'add', assetNo: currentAssetNo, assetName, category, area, warehouse, acquisitionDate, status });
-
-  // ปิดหน้าทันทีไม่รอ API — ส่ง request แบบ fire-and-forget
   const savedNo = currentAssetNo;
 
-  // reset form & nav ก่อน
-  document.getElementById('input-name').value = '';
-  document.getElementById('input-category').value = '';
-  document.getElementById('input-warehouse').value = '';
-  document.getElementById('input-area').value = 'KM23';
-  showPage('scan');
+  // Reset form
+  document.getElementById("input-name").value      = "";
+  document.getElementById("input-category").value  = "";
+  document.getElementById("input-warehouse").value = "";
+  document.getElementById("input-area").value      = "KM23";
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 บันทึก"; }
+  showPage("scan");
 
-  // แสดงผลสำเร็จใน scan page ทันที
-  setResult(`<div class="result-card success"><div style="font-size:36px;margin-bottom:8px;">✅</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">บันทึกสำเร็จ</div><div style="font-size:22px;font-weight:800;margin-top:4px;">${savedNo}</div><div style="font-size:13px;color:var(--text-dim);margin-top:4px;">กำลังส่งข้อมูลไปยัง Google Sheet...</div></div>`);
+  setResult(`<div class="result-card success"><div style="font-size:36px;margin-bottom:8px;">⏳</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">กำลังบันทึก</div><div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(savedNo)}</div><div style="font-size:13px;color:var(--text-dim);margin-top:4px;">กำลังส่งข้อมูลไปยัง Google Sheet...</div></div>`);
 
-  // ส่ง API ใน background
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const response = await fetch(`${API_URL}?${params}`, { signal: controller.signal });
+    const timeout    = setTimeout(() => controller.abort(), 15000);
+    const response   = await fetch(apiUrl({ action: "add", assetNo: savedNo, assetName, category, area, warehouse, acquisitionDate, status }), { signal: controller.signal });
     clearTimeout(timeout);
-    const data = await response.json();
-    if(data.status === "success") {
-      setResult(`<div class="result-card success"><div style="font-size:36px;margin-bottom:8px;">✅</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">บันทึกสำเร็จแล้ว</div><div style="font-size:22px;font-weight:800;margin-top:4px;">${savedNo}</div><div style="font-size:13px;color:var(--text-dim);margin-top:4px;">${assetName}</div></div>`);
+    const data = await response.json().catch(() => null);
+
+    if (!data) {
+      setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">❌</div><div style="font-size:14px;color:var(--text-dim);">บันทึกไม่สำเร็จ — ข้อมูลที่ได้รับไม่ถูกต้อง</div></div>`);
+    } else if (data.status === "success") {
+      setResult(`<div class="result-card success"><div style="font-size:36px;margin-bottom:8px;">✅</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">บันทึกสำเร็จแล้ว</div><div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(savedNo)}</div><div style="font-size:13px;color:var(--text-dim);margin-top:4px;">${escHtml(assetName)}</div></div>`);
+    } else if (data.message && data.message.includes("already exists")) {
+      // ✅ รองรับกรณี duplicate จาก GAS
+      setResult(`<div class="result-card warning"><div style="font-size:36px;margin-bottom:8px;">⚠️</div><div style="font-size:14px;color:var(--text-dim);">รหัส ${escHtml(savedNo)} มีอยู่ในระบบแล้ว</div></div>`);
     } else {
-      setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">❌</div><div style="font-size:14px;color:var(--text-dim);">บันทึกไม่สำเร็จ กรุณาลองใหม่</div></div>`);
+      setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">❌</div><div style="font-size:14px;color:var(--text-dim);">บันทึกไม่สำเร็จ — ${escHtml(data.message || "กรุณาลองใหม่")}</div></div>`);
     }
   } catch(err) {
     setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">⚠️</div><div style="font-size:14px;color:var(--text-dim);">เชื่อมต่อช้า — ข้อมูลอาจยังบันทึกอยู่ กรุณาตรวจสอบใน Google Sheet</div></div>`);
@@ -1160,180 +1177,144 @@ async function submitAdd() {
 
 // ==================== LABEL ====================
 function updateLabelPreview() {
-  const assetNo = document.getElementById('label-asset-no').value.trim().toUpperCase() || 'OFF000000';
-  const canvas = document.getElementById('label-canvas');
-  const ctx = canvas.getContext('2d');
-  
-  // Clear and setup background
-  ctx.fillStyle = '#ffffff'; 
-  ctx.fillRect(0, 0, 600, 380);
-  
-  // Outer Border
-  ctx.strokeStyle = '#000000'; 
-  ctx.lineWidth = 3; 
-  ctx.strokeRect(4, 4, 592, 372);
-  
-  // Header line
-  ctx.beginPath(); ctx.moveTo(4, 75); ctx.lineTo(596, 75); ctx.stroke();
-  
-  // Header Text: Logo
-  ctx.fillStyle = '#000000'; 
-  ctx.fillRect(20, 15, 50, 45); 
-  ctx.fillStyle = '#ffffff'; 
-  ctx.font = 'bold 30px "Segoe UI", Arial'; 
-  ctx.textAlign = 'center';
-  ctx.fillText('V', 45, 48);
-  
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#000000'; 
-  ctx.font = '900 24px "Segoe UI", Arial'; 
-  ctx.fillText('VESPIARIO', 85, 40);
-  ctx.font = '600 13px "Segoe UI", Arial'; 
-  ctx.fillText('(THAILAND) CO., LTD.', 85, 58);
-  
-  // Header Text: Property
-  ctx.textAlign = 'right';
-  ctx.font = 'italic 700 18px "Segoe UI", Arial'; 
-  ctx.fillText('Property of', 570, 40);
-  ctx.font = '600 11px "Segoe UI", Arial'; 
-  ctx.fillText('VESPIARIO (THAILAND) CO., LTD.', 570, 58);
-  
-  // Reset text align
-  ctx.textAlign = 'left';
+  const assetNo = document.getElementById("label-asset-no").value.trim().toUpperCase() || "OFF000000";
+  const canvas  = document.getElementById("label-canvas");
+  const ctx     = canvas.getContext("2d");
 
-  // Middle section: Asset No large text
-  ctx.fillStyle = '#000000'; 
-  ctx.font = '900 32px "Segoe UI", Arial'; 
-  ctx.fillText('Asset No: ' + assetNo, 30, 125);
-  
-  // Generate Real Barcode
-  const bcCanvas = document.createElement('canvas');
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, 600, 380);
+
+  ctx.strokeStyle = "#000000"; ctx.lineWidth = 3;
+  ctx.strokeRect(4, 4, 592, 372);
+
+  ctx.beginPath(); ctx.moveTo(4, 75); ctx.lineTo(596, 75); ctx.stroke();
+
+  ctx.fillStyle = "#000000"; ctx.fillRect(20, 15, 50, 45);
+  ctx.fillStyle = "#ffffff"; ctx.font = 'bold 30px "Segoe UI", Arial'; ctx.textAlign = "center";
+  ctx.fillText("V", 45, 48);
+
+  ctx.textAlign = "left"; ctx.fillStyle = "#000000";
+  ctx.font = '900 24px "Segoe UI", Arial'; ctx.fillText("VESPIARIO", 85, 40);
+  ctx.font = '600 13px "Segoe UI", Arial'; ctx.fillText("(THAILAND) CO., LTD.", 85, 58);
+
+  ctx.textAlign = "right";
+  ctx.font = 'italic 700 18px "Segoe UI", Arial'; ctx.fillText("Property of", 570, 40);
+  ctx.font = '600 11px "Segoe UI", Arial'; ctx.fillText("VESPIARIO (THAILAND) CO., LTD.", 570, 58);
+
+  ctx.textAlign = "left"; ctx.fillStyle = "#000000";
+  ctx.font = '900 32px "Segoe UI", Arial';
+  ctx.fillText("Asset No: " + assetNo, 30, 125);
+
+  const bcCanvas = document.createElement("canvas");
   try {
-    JsBarcode(bcCanvas, assetNo, {
-      format: "CODE128",
-      width: 2,
-      height: 80,
-      displayValue: false,
-      margin: 0
-    });
+    JsBarcode(bcCanvas, assetNo, { format: "CODE128", width: 2, height: 80, displayValue: false, margin: 0 });
     ctx.drawImage(bcCanvas, 30, 145);
-    
-    // Draw Barcode text
-    ctx.font = 'bold 18px monospace';
-    ctx.textAlign = 'center';
+    ctx.font = "bold 18px monospace"; ctx.textAlign = "center";
     ctx.fillText(assetNo, 30 + bcCanvas.width / 2, 145 + 80 + 20);
   } catch(e) {}
-  
-  // Generate Real QR
+
   try {
-    const qr = new QRious({
-      value: assetNo,
-      size: 180,
-      level: 'H'
-    });
+    const qr = new QRious({ value: assetNo, size: 180, level: "H" });
     ctx.drawImage(qr.canvas, 380, 110);
   } catch(e) {}
-  
-  // Footer line
+
   ctx.beginPath(); ctx.moveTo(4, 335); ctx.lineTo(596, 335); ctx.stroke();
-  
-  // Footer text
-  ctx.fillStyle = '#000000'; 
-  ctx.font = '900 24px "Segoe UI", Arial'; 
-  ctx.textAlign = 'center'; 
-  ctx.fillText('ASSET TAG', 300, 362); 
-  ctx.textAlign = 'left';
+  ctx.fillStyle = "#000000"; ctx.font = '900 24px "Segoe UI", Arial';
+  ctx.textAlign = "center"; ctx.fillText("ASSET TAG", 300, 362);
+  ctx.textAlign = "left";
 }
 
 function printLabel() {
-  const canvas = document.getElementById('label-canvas');
-  const assetNo = document.getElementById('label-asset-no').value.trim() || 'label';
-  const link = document.createElement('a');
+  const canvas  = document.getElementById("label-canvas");
+  const assetNo = document.getElementById("label-asset-no").value.trim() || "label";
+  const link    = document.createElement("a");
   link.download = `LABEL_${assetNo}.png`;
-  link.href = canvas.toDataURL('image/png');
+  link.href     = canvas.toDataURL("image/png");
   link.click();
   alert(`✅ บันทึก Label แล้ว\nไฟล์: LABEL_${assetNo}.png`);
 }
 
+function printAssetLabel(assetNo) {
+  document.getElementById("label-asset-no").value = assetNo;
+  document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+  document.getElementById("page-label").classList.remove("hidden");
+  updateLabelPreview();
+}
+
 // ==================== DASHBOARD & TABLE ====================
 function formatDate(dateVal) {
-  if(!dateVal) return '-';
+  if (!dateVal) return "-";
   const d = new Date(dateVal);
-  if(isNaN(d.getTime())) return String(dateVal);
-  return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+  if (isNaN(d.getTime())) return String(dateVal);
+  return d.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" });
 }
 
 function formatDateTime(dateVal) {
-  if(!dateVal) return '-';
+  if (!dateVal) return "-";
   const d = new Date(dateVal);
-  if(isNaN(d.getTime())) return String(dateVal);
-  return d.toLocaleString('th-TH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (isNaN(d.getTime())) return String(dateVal);
+  return d.toLocaleString("th-TH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 function getStatusBadge(status) {
   const s = String(status).toLowerCase();
-  if(s.includes('active')) return '<span class="status-badge ok">ใช้งาน</span>';
-  if(s.includes('inactive')) return '<span class="status-badge bad">ไม่ใช้งาน</span>';
-  if(s.includes('maintenance')) return '<span class="status-badge warn">ซ่อมบำรุง</span>';
-  if(s.includes('check')) return '<span class="status-badge ok">ตรวจสอบแล้ว</span>';
-  return '<span class="status-badge info">' + (status || '-') + '</span>';
+  if (s.includes("active"))      return '<span class="status-badge ok">ใช้งาน</span>';
+  if (s.includes("inactive"))    return '<span class="status-badge bad">ไม่ใช้งาน</span>';
+  if (s.includes("maintenance")) return '<span class="status-badge warn">ซ่อมบำรุง</span>';
+  if (s.includes("check"))       return '<span class="status-badge ok">ตรวจสอบแล้ว</span>';
+  return `<span class="status-badge info">${escHtml(status || "-")}</span>`;
 }
 
 function renderTable(assets) {
-  const tbody = document.getElementById('table-body');
-  if(!assets || assets.length === 0) {
+  const tbody = document.getElementById("table-body");
+  if (!assets || assets.length === 0) {
     tbody.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">ไม่มีข้อมูล</div>';
     return;
   }
 
   // Filter by tab
   let filtered = assets;
-  if(currentTab !== 'all') {
-    const tabMap = { 'off': 'OFF', 'com': 'COM', 'tol': 'TOL', 'vpot': 'VPOT', 'veh': 'VEH' };
-    const t = tabMap[currentTab] || '';
-    filtered = assets.filter(row => {
-      const cat = String(row[2]).toUpperCase().trim();
-      return cat.includes(t);
-    });
+  if (currentTab !== "all") {
+    const tabMap = { off: "OFF", com: "COM", tol: "TOL", vpot: "VPOT", veh: "VEH" };
+    const t = tabMap[currentTab] || "";
+    filtered = assets.filter(row => String(row[2]).toUpperCase().trim().includes(t));
   }
 
-  // Filter by search
-  const search = document.getElementById('search-input')?.value.trim().toUpperCase() || '';
-  if(search) {
-    filtered = filtered.filter(row => {
-      return String(row[0]).toUpperCase().includes(search) ||
-             String(row[1]).toUpperCase().includes(search) ||
-             String(row[2]).toUpperCase().includes(search);
-    });
+  // Filter by search (ค้นหาทั้ง รหัส / ชื่อ / หมวดหมู่ / พื้นที่ / คลัง)
+  const search = document.getElementById("search-input")?.value.trim().toUpperCase() || "";
+  if (search) {
+    filtered = filtered.filter(row =>
+      [0, 1, 2, 3, 4].some(i => String(row[i]).toUpperCase().includes(search))
+    );
   }
 
-  // Filter by date (ใช้ scanDate col7 ก่อน ถ้าไม่มีใช้ acquisitionDate col5)
-  const dateFrom = document.getElementById('date-from')?.value;
-  const dateTo = document.getElementById('date-to')?.value;
-  if(dateFrom || dateTo) {
-    const from = dateFrom ? new Date(dateFrom + 'T00:00:00') : null;
-    const to   = dateTo   ? new Date(dateTo   + 'T23:59:59') : null;
+  // Filter by date (scan date → acquisition date fallback)
+  const dateFrom = document.getElementById("date-from")?.value;
+  const dateTo   = document.getElementById("date-to")?.value;
+  if (dateFrom || dateTo) {
+    const from = dateFrom ? new Date(dateFrom + "T00:00:00") : null;
+    const to   = dateTo   ? new Date(dateTo   + "T23:59:59") : null;
     filtered = filtered.filter(row => {
       const raw = row[7] || row[5];
-      if(!raw) return true;
+      if (!raw) return true;
       const d = new Date(raw);
-      if(isNaN(d.getTime())) return true;
-      if(from && d < from) return false;
-      if(to   && d > to)   return false;
+      if (isNaN(d.getTime())) return true;
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
       return true;
     });
   }
 
   tbody.innerHTML = filtered.map(row => {
-    const assetNo = row[0] || '-';
-    const assetName = row[1] || '-';
-    const category = row[2] || '-';
-    const area = row[3] || '-';
-    const warehouse = row[4] || '-';
-    const acqDate = formatDate(row[5]);
-    const status = row[6] || 'Active';
-    const lastScan = formatDateTime(row[7]);
-    const lastResult = row[8] || '-';
+    const assetNo   = escHtml(row[0] || "-");
+    const assetName = escHtml(row[1] || "-");
+    const category  = escHtml(row[2] || "-");
+    const area      = escHtml(row[3] || "-");
+    const warehouse = escHtml(row[4] || "-");
+    const acqDate   = formatDate(row[5]);
+    const status    = row[6] || "Active";
+    const lastScan  = formatDateTime(row[7]);
+    const lastResult = escHtml(row[8] || "-");
 
     return `
       <div class="table-row">
@@ -1345,107 +1326,103 @@ function renderTable(assets) {
           <div class="cell-sub">${area}</div>
         </div>
         <div class="cell">${warehouse}</div>
-        <div class="cell">1</div>
-        <div class="cell">${area}</div>
         <div class="cell">${acqDate}</div>
         <div class="cell">${getStatusBadge(status)}</div>
+        <div class="cell" style="font-size:11px;color:var(--text-dim);">${lastResult}</div>
         <div class="cell">
           <button class="row-btn pdf" onclick="printAssetLabel('${assetNo}')">🖨️</button>
         </div>
         <div class="cell">
           <button class="row-btn detail" onclick="viewAssetDetail('${assetNo}')">ดูข้อมูล</button>
         </div>
-      </div>
-    `;
-  }).join('');
+      </div>`;
+  }).join("");
 }
 
-function filterTable() {
-  renderTable(allAssets);
-}
+function filterTable() { renderTable(allAssets); }
 
 function clearDateFilter() {
-  document.getElementById('date-from').value = '';
-  document.getElementById('date-to').value = '';
+  document.getElementById("date-from").value = "";
+  document.getElementById("date-to").value   = "";
   filterTable();
 }
 
-let dashboardLoaded = false;
-
 async function loadDashboard() {
-  // แสดง skeleton loading ในตาราง
-  document.getElementById('table-body').innerHTML = `
+  // Spinning refresh button
+  const btn = document.getElementById("refresh-btn");
+  if (btn) btn.classList.add("spinning");
+
+  document.getElementById("table-body").innerHTML = `
     <div style="padding:32px;text-align:center;color:var(--text-muted);">
       <div class="spinner" style="margin:0 auto 12px;"></div>
       <div style="font-size:13px;">กำลังโหลดข้อมูล...</div>
     </div>`;
 
   try {
-    // เรียกทั้งสอง API พร้อมกัน (parallel) — เร็วกว่ารอทีละตัว
     const [resp1, resp2] = await Promise.all([
-      fetch(`${API_URL}?action=dashboard`).catch(() => null),
-      fetch(`${API_URL}?action=export`).catch(() => null),
+      fetch(apiUrl({ action: "dashboard" })).catch(() => null),
+      fetch(apiUrl({ action: "export"    })).catch(() => null),
     ]);
 
-    if(resp1) {
-      const data = await resp1.json();
-      if(data.status === "ok") {
-        document.getElementById('dash-checked').textContent = data.summary.checked.toLocaleString();
-        document.getElementById('dash-today').textContent   = data.summary.todayScans.toLocaleString();
-        document.getElementById('dash-added').textContent   = data.summary.added.toLocaleString();
+    if (resp1) {
+      const data = await resp1.json().catch(() => null);
+      if (data && data.status === "ok" && data.summary) {
+        document.getElementById("dash-checked").textContent = data.summary.checked.toLocaleString();
+        document.getElementById("dash-today").textContent   = data.summary.todayScans.toLocaleString();
+        document.getElementById("dash-added").textContent   = data.summary.added.toLocaleString();
+        // แสดงชื่อเดือนใน card footer
+        if (data.summary.currentMonthName) {
+          document.getElementById("dash-month-label").textContent = data.summary.currentMonthName;
+        }
       }
     }
 
-    if(resp2) {
-      const data2 = await resp2.json();
-      if(data2.status === "ok" && data2.assets) {
-        // เรียงให้รายการที่เช็คแล้ว (มี scanDate) ขึ้นบนสุด โดยเรียงตาม scanDate ล่าสุดก่อน
+    if (resp2) {
+      const data2 = await resp2.json().catch(() => null);
+      if (data2 && data2.status === "ok" && Array.isArray(data2.assets)) {
+        exportHeaders = data2.headers || [];
         allAssets = [...data2.assets].sort((a, b) => {
           const da = a[7] ? new Date(a[7]).getTime() : 0;
           const db = b[7] ? new Date(b[7]).getTime() : 0;
-          return db - da;  // ล่าสุดขึ้นบน
+          return db - da;
         });
         renderTable(allAssets);
-        document.getElementById('dash-total').textContent = data2.total.toLocaleString();
+        document.getElementById("dash-total").textContent = data2.total.toLocaleString();
       }
     }
   } catch(err) {
     console.error(err);
-    document.getElementById('table-body').innerHTML = `<div style="padding:32px;text-align:center;color:var(--danger);">โหลดข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>`;
+    document.getElementById("table-body").innerHTML =
+      `<div style="padding:32px;text-align:center;color:var(--danger);">โหลดข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>`;
+  } finally {
+    if (btn) btn.classList.remove("spinning");
   }
 }
 
-function printAssetLabel(assetNo) {
-  document.getElementById('label-asset-no').value = assetNo;
-  // แสดง label page โดยไม่เปลี่ยน nav highlight
-  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-  document.getElementById('page-label').classList.remove('hidden');
-  updateLabelPreview();
-}
-
+// ==================== MODAL ====================
 let currentModalAssetNo = "";
 
 function viewAssetDetail(assetNo) {
   const row = allAssets.find(r => String(r[0]).trim().toUpperCase() === String(assetNo).trim().toUpperCase());
   currentModalAssetNo = assetNo;
 
-  document.getElementById('modal-asset-no').textContent = assetNo;
-  document.getElementById('modal-name').textContent      = row ? (row[1] || '-') : '-';
-  document.getElementById('modal-category').innerHTML    = row ? `<span class="cat-tag">${row[2] || '-'}</span>` : '-';
-  document.getElementById('modal-area').textContent      = row ? (row[3] || '-') : '-';
-  document.getElementById('modal-warehouse').textContent = row ? (row[4] || '-') : '-';
-  document.getElementById('modal-acq-date').textContent  = row ? formatDate(row[5]) : '-';
-  document.getElementById('modal-status').innerHTML      = row ? getStatusBadge(row[6] || 'Active') : '-';
-  document.getElementById('modal-last-scan').textContent = row ? formatDateTime(row[7]) : '-';
-  document.getElementById('modal-last-result').textContent = row ? (row[8] || '-') : '-';
+  document.getElementById("modal-asset-no").textContent     = assetNo;
+  document.getElementById("modal-name").textContent          = row ? (row[1] || "-") : "-";
+  document.getElementById("modal-category").innerHTML        = row ? `<span class="cat-tag">${escHtml(row[2] || "-")}</span>` : "-";
+  document.getElementById("modal-area").textContent          = row ? (row[3] || "-") : "-";
+  document.getElementById("modal-warehouse").textContent     = row ? (row[4] || "-") : "-";
+  document.getElementById("modal-acq-date").textContent      = row ? formatDate(row[5])     : "-";
+  document.getElementById("modal-status").innerHTML          = row ? getStatusBadge(row[6] || "Active") : "-";
+  document.getElementById("modal-last-scan").textContent     = row ? formatDateTime(row[7]) : "-";
+  document.getElementById("modal-last-result").textContent   = row ? (row[8] || "-")        : "-";
 
-  document.getElementById('modal-overlay').classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
+  document.getElementById("modal-overlay").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
 }
 
 function closeModal() {
-  document.getElementById('modal-overlay').classList.add('hidden');
-  document.body.style.overflow = '';
+  document.getElementById("modal-overlay").classList.add("hidden");
+  document.body.style.overflow = "";
 }
 
 function printModalLabel() {
@@ -1453,78 +1430,56 @@ function printModalLabel() {
   printAssetLabel(currentModalAssetNo);
 }
 
-// ==================== EXPORT ====================
+// ==================== EXPORT EXCEL ====================
 function exportExcel() {
-  if(!allAssets || allAssets.length === 0) { 
-    alert("กรุณาโหลดข้อมูลก่อน"); 
-    return; 
+  if (!allAssets || allAssets.length === 0) {
+    alert("กรุณาโหลดข้อมูลก่อน");
+    return;
   }
 
   const exportData = [];
-  
-  // ✅ กำหนด Headers เองตามโครงสร้างจริงของ allAssets
-  const HEADERS = [
-    "รหัสทรัพย์สิน", 
-    "ชื่อทรัพย์สิน", 
-    "หมวดหมู่", 
-    "พื้นที่", 
-    "คลัง", 
-    "วันที่ได้มา", 
-    "สถานะ", 
-    "เช็คล่าสุด", 
-    "ผลการเช็ค"
-  ];
 
-  // Metadata แถวบน
+  // แถว Metadata
   exportData.push(["รายงานทรัพย์สิน - VESPA THAILAND CO., LTD."]);
-  exportData.push(["วันที่ส่งออก:", new Date().toLocaleDateString('th-TH')]);
+  exportData.push(["วันที่ส่งออก:", new Date().toLocaleDateString("th-TH")]);
   exportData.push([]); // แถวว่าง
-  
-  // ✅ ใช้ Headers ที่กำหนดเอง
-  exportData.push(HEADERS);
 
-  // Loop ข้อมูล
+  // ใช้ Headers จริงจาก GAS (รวมคอลัมน์รายเดือน)
+  const hasApiHeaders = exportHeaders && exportHeaders.length > 0;
+  const FIXED_HEADERS = ["รหัสทรัพย์สิน","ชื่อทรัพย์สิน","หมวดหมู่","พื้นที่","คลัง","วันที่ได้มา","สถานะ","เช็คล่าสุด","ผลการเช็ค"];
+  const headers = hasApiHeaders ? exportHeaders : FIXED_HEADERS;
+  exportData.push(headers);
+
   allAssets.forEach(row => {
-    const newRow = [
-      row[0] || '',              // รหัสทรัพย์สิน
-      row[1] || '',              // ชื่อทรัพย์สิน
-      row[2] || '',              // หมวดหมู่
-      row[3] || '',              // พื้นที่
-      row[4] || '',              // คลัง
-      row[5] ? formatDate(row[5]) : '',      // วันที่ได้มา
-      row[6] || 'Active',        // สถานะ
-      row[7] ? formatDateTime(row[7]) : '', // เช็คล่าสุด
-      row[8] || ''               // ผลการเช็ค
-    ];
-    exportData.push(newRow);
+    if (hasApiHeaders) {
+      // ส่งออกทุกคอลัมน์ (รวมรายเดือน)
+      const newRow = row.map((cell, i) => {
+        if (i === 5 || i === 7) return cell ? formatDate(cell) : "";
+        return cell !== undefined && cell !== null ? cell : "";
+      });
+      exportData.push(newRow);
+    } else {
+      exportData.push([
+        row[0] || "", row[1] || "", row[2] || "", row[3] || "", row[4] || "",
+        row[5] ? formatDate(row[5]) : "", row[6] || "Active",
+        row[7] ? formatDateTime(row[7]) : "", row[8] || ""
+      ]);
+    }
   });
 
-  // สร้าง Workbook
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(exportData);
 
-  // กำหนดความกว้างคอลัมน์
-  ws['!cols'] = [
-    { wch: 15 }, // รหัส
-    { wch: 45 }, // ชื่อทรัพย์สิน
-    { wch: 12 }, // หมวดหมู่
-    { wch: 10 }, // พื้นที่
-    { wch: 10 }, // คลัง
-    { wch: 15 }, // วันที่ได้มา
-    { wch: 15 }, // สถานะ
-    { wch: 22 }, // เช็คล่าสุด
-    { wch: 15 }  // ผลการเช็ค
+  ws["!cols"] = [
+    { wch: 15 }, { wch: 45 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
+    { wch: 15 }, { wch: 15 }, { wch: 22 }, { wch: 15 }
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Assets");
-  XLSX.writeFile(wb, `VESPA_Asset_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.writeFile(wb, `VESPA_Asset_Report_${new Date().toISOString().split("T")[0]}.xlsx`);
 }
-
 
 // ==================== INIT ====================
-if(API_URL.includes("YOUR_SCRIPT_ID")) {
-  // showError("⚠️ ยังไม่ได้ตั้งค่า API_URL");
-}
 updateLabelPreview();
 </script>
 </body>
