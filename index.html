@@ -8,6 +8,9 @@
 <meta name="theme-color" content="#ffffff">
 <title>VESPA THAILAND - Asset Management</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <style>
 :root {
   --bg: #f1f5f9;
@@ -312,7 +315,7 @@ body {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .table-header {
@@ -327,7 +330,7 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  overflow-x: auto;
+  min-width: 950px;
 }
 
 .table-row {
@@ -339,6 +342,7 @@ body {
   align-items: center;
   font-size: 13px;
   transition: background 0.15s;
+  min-width: 950px;
 }
 
 .table-row:hover {
@@ -746,11 +750,8 @@ input[type="file"] { display: none; }
       </div>
     </div>
     <div class="btn-group">
-      <button id="btn-start" class="btn btn-primary" onclick="startScanner()">📷 เปิดกล้อง</button>
-      <button id="btn-stop" class="btn btn-danger hidden" onclick="stopScanner()">⏹️ ปิด</button>
-      <label for="qr-input" style="display:contents;"><button class="btn btn-secondary">🖼️ รูปภาพ</button></label>
-
-      <input type="file" id="qr-input" accept="image/*" capture="environment">
+      <button id="btn-start" class="btn btn-primary btn-full" onclick="startScanner()">📷 เปิดกล้องสแกน</button>
+      <button id="btn-stop" class="btn btn-danger btn-full hidden" onclick="stopScanner()">⏹️ ปิดกล้อง</button>
     </div>
     <div id="result"></div>
   </div>
@@ -776,11 +777,11 @@ input[type="file"] { display: none; }
           <label>หมวดหมู่ <span class="req">*</span></label>
           <select id="input-category">
             <option value="">เลือก</option>
-            <option value="VEH">VEH - ยานพาหนะ</option>
-            <option value="OFF">OFF - อุปกรณ์สำนักงาน</option>
-            <option value="MAC">MAC - เครื่องจักร</option>
-            <option value="FUR">FUR - เฟอร์นิเจอร์</option>
-            <option value="IT">IT - ไอที</option>
+            <option value="OFF">OFF</option>
+            <option value="COM">COM</option>
+            <option value="TOL">TOL</option>
+            <option value="VPOT">VPOT</option>
+            <option value="VEH">VEH</option>
           </select>
         </div>
         <div class="form-field">
@@ -844,6 +845,11 @@ input[type="file"] { display: none; }
 
   <!-- ===== DASHBOARD PAGE ===== -->
   <div id="page-dashboard" class="page hidden">
+    
+    <!-- Action Bar for Dashboard -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="font-size: 16px; color: var(--text);">สรุปผลการตรวจนับ</h3>
+    </div>
 
     <!-- Summary Cards -->
     <div class="summary-row">
@@ -896,10 +902,11 @@ input[type="file"] { display: none; }
     <!-- Tabs -->
     <div class="tab-bar">
       <button class="tab-btn active" onclick="setTab('all')">รายการทั้งหมด</button>
-      <button class="tab-btn" onclick="setTab('veh')">ยานพาหนะ</button>
-      <button class="tab-btn" onclick="setTab('off')">อุปกรณ์สำนักงาน</button>
-      <button class="tab-btn" onclick="setTab('mac')">เครื่องจักร</button>
-      <button class="tab-btn" onclick="setTab('it')">ไอที</button>
+      <button class="tab-btn" onclick="setTab('off')">OFF</button>
+      <button class="tab-btn" onclick="setTab('com')">COM</button>
+      <button class="tab-btn" onclick="setTab('tol')">TOL</button>
+      <button class="tab-btn" onclick="setTab('vpot')">VPOT</button>
+      <button class="tab-btn" onclick="setTab('veh')">VEH</button>
     </div>
 
     <!-- Data Table -->
@@ -1101,21 +1108,6 @@ async function stopScanner() {
   document.getElementById("reader").innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p>แตะ "เปิดกล้อง" เพื่อสแกน</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
 }
 
-document.getElementById('qr-input').addEventListener('change', async function(e) {
-  const file = e.target.files[0]; if(!file) return;
-  if(isScanning) await stopScanner(); showLoading("กำลังอ่านรูป...");
-  try {
-    const tempId = "temp-" + Date.now();
-    const tempDiv = document.createElement("div"); tempDiv.id = tempId; tempDiv.style.cssText = "position:absolute;left:-9999px;";
-    document.body.appendChild(tempDiv);
-    const tempQr = new Html5Qrcode(tempId);
-    const result = await tempQr.scanFile(file, true);
-    document.body.removeChild(tempDiv);
-    await onScanSuccess(result);
-  } catch(err) { showError("อ่านรูปไม่สำเร็จ"); }
-  e.target.value = "";
-});
-
 // ==================== ADD FORM ====================
 function showAddForm(assetNo) { currentAssetNo = assetNo; document.getElementById('add-asset-no').textContent = assetNo; showPage('add'); }
 
@@ -1167,60 +1159,90 @@ async function submitAdd() {
 }
 
 // ==================== LABEL ====================
-function generateBarcode(ctx, text, x, y, width, height) {
-  let cx = x;
-  ctx.fillStyle = '#1a1a1a';
-  for(let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
-    const barW = ((code % 3) + 1) * 2.5;
-    const spaceW = ((code % 2) + 1) * 1.5;
-    ctx.fillRect(cx, y, barW, height);
-    cx += barW + spaceW;
-  }
-  ctx.fillStyle = '#1a1a1a';
-  ctx.font = 'bold 16px "Courier New", monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(text, x + width / 2, y + height + 20);
-  ctx.textAlign = 'left';
-}
-
-function generateQR(ctx, text, x, y, size) {
-  const cellSize = Math.floor(size / 25);
-  for(let r = 0; r < 25; r++) {
-    for(let c = 0; c < 25; c++) {
-      let isBlack = false;
-      if ((r < 7 && c < 7) || (r < 7 && c > 17) || (r > 17 && c < 7)) {
-        if (r === 0 || r === 6 || c === 0 || c === 6) isBlack = true;
-        if (r >= 2 && r <= 4 && c >= 2 && c <= 4) isBlack = true;
-      } else if (r === 6 || c === 6 || r === 18 || c === 18) {
-        isBlack = (r + c) % 2 === 0;
-      } else {
-        const hash = text.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
-        isBlack = ((hash + r * 7 + c * 13) & 0xFF) > 128;
-      }
-      if(isBlack) ctx.fillRect(x + c * cellSize, y + r * cellSize, cellSize, cellSize);
-    }
-  }
-}
-
 function updateLabelPreview() {
   const assetNo = document.getElementById('label-asset-no').value.trim().toUpperCase() || 'OFF000000';
   const canvas = document.getElementById('label-canvas');
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#f0ede5'; ctx.fillRect(0, 0, 600, 380);
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.strokeRect(4, 4, 592, 372);
-  ctx.beginPath(); ctx.moveTo(4, 70); ctx.lineTo(596, 70); ctx.stroke();
-  ctx.fillStyle = '#1a1a1a'; ctx.fillRect(20, 15, 45, 40);
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Arial'; ctx.fillText('V', 32, 43);
-  ctx.fillStyle = '#1a1a1a'; ctx.font = 'bold 24px Arial'; ctx.fillText('VESPIARIO', 75, 35);
-  ctx.font = '12px Arial'; ctx.fillText('(THAILAND) CO.,LTD', 75, 52);
-  ctx.font = 'bold 18px Arial'; ctx.fillText('Property of', 350, 35);
-  ctx.font = '11px Arial'; ctx.fillText('VESPIARIO (THAILAND) CO.,LTD.', 350, 52);
-  ctx.fillStyle = '#1a1a1a'; ctx.font = 'bold 18px Arial'; ctx.fillText(assetNo, 30, 105);
-  generateBarcode(ctx, assetNo, 30, 120, 260, 90);
-  ctx.fillStyle = '#1a1a1a'; generateQR(ctx, assetNo, 350, 95, 220);
-  ctx.beginPath(); ctx.moveTo(4, 340); ctx.lineTo(596, 340); ctx.stroke();
-  ctx.fillStyle = '#1a1a1a'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center'; ctx.fillText('Asset Tag', 300, 365); ctx.textAlign = 'left';
+  
+  // Clear and setup background
+  ctx.fillStyle = '#ffffff'; 
+  ctx.fillRect(0, 0, 600, 380);
+  
+  // Outer Border
+  ctx.strokeStyle = '#000000'; 
+  ctx.lineWidth = 3; 
+  ctx.strokeRect(4, 4, 592, 372);
+  
+  // Header line
+  ctx.beginPath(); ctx.moveTo(4, 75); ctx.lineTo(596, 75); ctx.stroke();
+  
+  // Header Text: Logo
+  ctx.fillStyle = '#000000'; 
+  ctx.fillRect(20, 15, 50, 45); 
+  ctx.fillStyle = '#ffffff'; 
+  ctx.font = 'bold 30px "Segoe UI", Arial'; 
+  ctx.textAlign = 'center';
+  ctx.fillText('V', 45, 48);
+  
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#000000'; 
+  ctx.font = '900 24px "Segoe UI", Arial'; 
+  ctx.fillText('VESPIARIO', 85, 40);
+  ctx.font = '600 13px "Segoe UI", Arial'; 
+  ctx.fillText('(THAILAND) CO., LTD.', 85, 58);
+  
+  // Header Text: Property
+  ctx.textAlign = 'right';
+  ctx.font = 'italic 700 18px "Segoe UI", Arial'; 
+  ctx.fillText('Property of', 570, 40);
+  ctx.font = '600 11px "Segoe UI", Arial'; 
+  ctx.fillText('VESPIARIO (THAILAND) CO., LTD.', 570, 58);
+  
+  // Reset text align
+  ctx.textAlign = 'left';
+
+  // Middle section: Asset No large text
+  ctx.fillStyle = '#000000'; 
+  ctx.font = '900 32px "Segoe UI", Arial'; 
+  ctx.fillText('Asset No: ' + assetNo, 30, 125);
+  
+  // Generate Real Barcode
+  const bcCanvas = document.createElement('canvas');
+  try {
+    JsBarcode(bcCanvas, assetNo, {
+      format: "CODE128",
+      width: 2,
+      height: 80,
+      displayValue: false,
+      margin: 0
+    });
+    ctx.drawImage(bcCanvas, 30, 145);
+    
+    // Draw Barcode text
+    ctx.font = 'bold 18px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(assetNo, 30 + bcCanvas.width / 2, 145 + 80 + 20);
+  } catch(e) {}
+  
+  // Generate Real QR
+  try {
+    const qr = new QRious({
+      value: assetNo,
+      size: 180,
+      level: 'H'
+    });
+    ctx.drawImage(qr.canvas, 380, 110);
+  } catch(e) {}
+  
+  // Footer line
+  ctx.beginPath(); ctx.moveTo(4, 335); ctx.lineTo(596, 335); ctx.stroke();
+  
+  // Footer text
+  ctx.fillStyle = '#000000'; 
+  ctx.font = '900 24px "Segoe UI", Arial'; 
+  ctx.textAlign = 'center'; 
+  ctx.fillText('ASSET TAG', 300, 362); 
+  ctx.textAlign = 'left';
 }
 
 function printLabel() {
@@ -1267,8 +1289,12 @@ function renderTable(assets) {
   // Filter by tab
   let filtered = assets;
   if(currentTab !== 'all') {
-    const tabMap = { 'veh': 'VEH', 'off': 'OFF', 'mac': 'MAC', 'it': 'IT', 'fur': 'FUR' };
-    filtered = assets.filter(row => String(row[2]).toUpperCase() === tabMap[currentTab]);
+    const tabMap = { 'off': 'OFF', 'com': 'COM', 'tol': 'TOL', 'vpot': 'VPOT', 'veh': 'VEH' };
+    const t = tabMap[currentTab] || '';
+    filtered = assets.filter(row => {
+      const cat = String(row[2]).toUpperCase().trim();
+      return cat.includes(t);
+    });
   }
 
   // Filter by search
@@ -1431,22 +1457,46 @@ function printModalLabel() {
 function exportExcel() {
   if(!allAssets || allAssets.length === 0) { alert("กรุณาโหลดข้อมูลก่อน"); return; }
 
-  let csv = "\uFEFF";
-  csv += "รายงานทรัพย์สิน - VESPA THAILAND CO., LTD.\n";
-  csv += "วันที่ส่งออก," + new Date().toLocaleDateString('th-TH') + "\n\n";
-  csv += "รหัส,ชื่อทรัพย์สิน,หมวดหมู่,พื้นที่,คลัง,วันที่ได้มา,สถานะ,เช็คล่าสุด,ผลลัพธ์\n";
+  const exportData = [];
+  
+  // Header
+  exportData.push(["รายงานทรัพย์สิน - VESPA THAILAND CO., LTD."]);
+  exportData.push(["วันที่ส่งออก:", new Date().toLocaleDateString('th-TH')]);
+  exportData.push([]);
+  
+  // Table Headers
+  exportData.push(window.rawHeaders);
 
   allAssets.forEach(row => {
-    const acqDate = row[5] ? formatDate(row[5]) : '';
-    const lastScan = row[7] ? formatDateTime(row[7]) : '';
-    csv += `${row[0] || ''},${row[1] || ''},${row[2] || ''},${row[3] || ''},${row[4] || ''},${acqDate},${row[6] || ''},${lastScan},${row[8] || ''}\n`;
+    const newRow = [...row];
+    newRow[5] = newRow[5] ? formatDate(newRow[5]) : ''; // วันที่ได้มา
+    newRow[7] = newRow[7] ? formatDateTime(newRow[7]) : ''; // วันที่เช็คล่าสุด
+    exportData.push(newRow);
   });
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `VESPA_Asset_Report_${new Date().toISOString().split('T')[0]}.csv`;
-  link.click();
+  // Create workbook and worksheet
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(exportData);
+
+  // Set column widths dynamically
+  const colWidths = [
+    { wch: 15 }, // รหัส
+    { wch: 45 }, // ชื่อทรัพย์สิน
+    { wch: 12 }, // หมวดหมู่
+    { wch: 10 }, // พื้นที่
+    { wch: 10 }, // คลัง
+    { wch: 15 }, // วันที่ได้มา
+    { wch: 15 }, // สถานะ
+    { wch: 22 }  // เช็คล่าสุด
+  ];
+  // Add width for all dynamically generated month columns
+  for(let i = 8; i < window.rawHeaders.length; i++) {
+    colWidths.push({ wch: 15 });
+  }
+  ws['!cols'] = colWidths;
+
+  XLSX.utils.book_append_sheet(wb, ws, "Assets");
+  XLSX.writeFile(wb, `VESPA_Asset_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 // ==================== INIT ====================
