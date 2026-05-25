@@ -726,6 +726,7 @@ input[type="file"] { display: none; }
     <div class="btn-group">
       <button id="btn-start" class="btn btn-primary btn-full" onclick="startScanner()">📷 เปิดกล้องสแกน</button>
       <button id="btn-stop" class="btn btn-danger btn-full hidden" onclick="stopScanner()">⏹️ ปิดกล้อง</button>
+      <button class="btn btn-gold btn-full" onclick="openManualAddModal()" style="margin-top:4px;">➕ เพิ่มทรัพย์สิน (Manual) / ถ่ายรูป</button>
     </div>
     <div id="result"></div>
   </div>
@@ -949,6 +950,67 @@ input[type="file"] { display: none; }
     <div class="modal-footer">
       <button class="btn btn-danger" onclick="printModalLabel()">🖨️ พิมพ์ Label</button>
       <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL ADD MODAL -->
+<div id="modal-manual-add" class="modal-overlay hidden" onclick="closeManualAddModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header" style="background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%);">
+      <div class="modal-title-row">
+        <span class="modal-icon">📸</span>
+        <div>
+          <div class="modal-title">เพิ่มทรัพย์สินใหม่ (Manual)</div>
+          <div class="modal-subtitle" style="color:#fef3c7;font-size:12px;font-weight:400;margin-top:2px;">ถ่ายรูปและเพิ่มข้อมูลเข้าระบบ</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeManualAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label>ชื่อทรัพย์สิน <span class="req">*</span></label>
+        <input type="text" id="manual-name" placeholder="เช่น เก้าอี้สำนักงานสีดำ">
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>หมวดหมู่</label>
+          <select id="manual-category">
+            <option value="">เลือก</option>
+            <option value="OFF">OFF</option>
+            <option value="COM">COM</option>
+            <option value="TOL">TOL</option>
+            <option value="VPOT">VPOT</option>
+            <option value="VEH">VEH</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>พื้นที่</label>
+          <input type="text" id="manual-area" value="KM23">
+        </div>
+      </div>
+      <div class="form-field">
+        <label>หมายเหตุ</label>
+        <input type="text" id="manual-remarks" placeholder="เช่น สติ๊กเกอร์บาร์โค้ดหลุดหาย">
+      </div>
+      
+      <!-- Upload Image Section -->
+      <div style="margin-top:12px;border:1px dashed var(--border);padding:16px;border-radius:8px;text-align:center;">
+        <input type="file" id="manual-image" accept="image/*" capture="environment" onchange="previewManualImage(event)">
+        <div id="manual-preview-container" class="hidden">
+          <img id="manual-image-preview" style="max-width:100%;max-height:200px;border-radius:8px;margin-bottom:8px;">
+          <button class="btn btn-secondary btn-full" onclick="document.getElementById('manual-image').click()" style="padding:6px;font-size:12px;">🔄 ถ่ายใหม่ / เปลี่ยนรูป</button>
+        </div>
+        <div id="manual-upload-placeholder">
+          <button class="btn btn-primary" onclick="document.getElementById('manual-image').click()" style="margin:0 auto;width:auto;padding:10px 20px;">📷 เปิดกล้องถ่ายรูป</button>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">(จำเป็นต้องมีรูปภาพ)</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success" id="btn-manual-submit" onclick="submitManualAdd()">💾 บันทึกและอัปโหลด</button>
+      <button class="btn btn-secondary" onclick="closeManualAddModal()">ยกเลิก</button>
     </div>
   </div>
 </div>
@@ -1502,6 +1564,99 @@ function exportExcel() {
 
   XLSX.utils.book_append_sheet(wb, ws, "Assets");
   XLSX.writeFile(wb, `VESPA_Asset_Report_${new Date().toISOString().split("T")[0]}.xlsx`);
+}
+
+// ==================== MANUAL ADD (UPLOAD IMAGE) ====================
+let manualImageBase64 = null;
+
+function openManualAddModal() {
+  document.getElementById("modal-manual-add").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeManualAddModal() {
+  document.getElementById("modal-manual-add").classList.add("hidden");
+  document.body.style.overflow = "";
+  // Reset form
+  document.getElementById("manual-name").value = "";
+  document.getElementById("manual-category").value = "";
+  document.getElementById("manual-remarks").value = "";
+  document.getElementById("manual-image").value = "";
+  manualImageBase64 = null;
+  document.getElementById("manual-preview-container").classList.add("hidden");
+  document.getElementById("manual-upload-placeholder").classList.remove("hidden");
+  const btn = document.getElementById("btn-manual-submit");
+  btn.disabled = false;
+  btn.textContent = "💾 บันทึกและอัปโหลด";
+}
+
+function previewManualImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // กำจัดส่วนหัว data:image/jpeg;base64, ออกเพื่อให้เหลือแต่ข้อมูล base64 เพียวๆ
+    const base64String = e.target.result.split(',')[1];
+    manualImageBase64 = base64String;
+    
+    document.getElementById("manual-image-preview").src = e.target.result;
+    document.getElementById("manual-upload-placeholder").classList.add("hidden");
+    document.getElementById("manual-preview-container").classList.remove("hidden");
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitManualAdd() {
+  const assetName = document.getElementById("manual-name").value.trim();
+  const category  = document.getElementById("manual-category").value;
+  const area      = document.getElementById("manual-area").value.trim();
+  const remarks   = document.getElementById("manual-remarks").value.trim();
+
+  if (!assetName) {
+    alert("กรุณากรอกชื่อทรัพย์สิน");
+    return;
+  }
+  if (!manualImageBase64) {
+    alert("กรุณาถ่ายรูปทรัพย์สินด้วยครับ");
+    return;
+  }
+
+  const btn = document.getElementById("btn-manual-submit");
+  btn.disabled = true;
+  btn.textContent = "⏳ กำลังอัปโหลด...";
+
+  try {
+    const payload = {
+      image: manualImageBase64,
+      assetName: assetName,
+      category: category,
+      area: area,
+      remarks: remarks
+    };
+
+    // ใช้ API_URL (อันเดียวกับ code.gs ตัวเต็มของคุณ)
+    const response = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await response.json().catch(() => null);
+    
+    if (data && data.status === "success") {
+      alert("✅ อัปโหลดและบันทึกข้อมูลเรียบร้อยแล้ว\\n(รหัสอ้างอิง: " + data.tempId + ")");
+      closeManualAddModal();
+    } else {
+      alert("❌ บันทึกไม่สำเร็จ: " + (data ? data.message : "ไม่มีข้อความตอบกลับ"));
+      btn.disabled = false;
+      btn.textContent = "💾 บันทึกและอัปโหลด";
+    }
+  } catch (error) {
+    alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ: " + error.toString());
+    console.error(error);
+    btn.disabled = false;
+    btn.textContent = "💾 บันทึกและอัปโหลด";
+  }
 }
 
 // ==================== INIT ====================
