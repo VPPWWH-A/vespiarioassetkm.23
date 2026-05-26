@@ -2281,7 +2281,7 @@ function closeConfirmUnregModal() {
 async function submitConfirmUnreg(tempId) {
   const btn = document.getElementById("btn-confirm-unreg-submit");
   const originalText = btn.innerHTML;
-  btn.innerHTML = "⏳ รอสักครู่...";
+  btn.innerHTML = "⏳ กำลังดำเนินการ...";
   btn.disabled = true;
 
   try {
@@ -2290,9 +2290,25 @@ async function submitConfirmUnreg(tempId) {
     const data = await res.json();
     if (data.status === "success") {
       closeConfirmUnregModal();
+      
+      const cachedAsset = allUnregAssets.find(row => String(row[0]).trim() === tempId);
       // Remove from allUnregAssets locally
       allUnregAssets = allUnregAssets.filter(row => String(row[0]).trim() !== tempId);
       renderUnregTable();
+      
+      if (window.isFromScannerChain && cachedAsset) {
+        window.isFromScannerChain = false;
+        showSuccess({
+          assetNo: tempId,
+          assetName: cachedAsset[1],
+          category: cachedAsset[2],
+          warehouse: cachedAsset[3],
+          area: cachedAsset[4],
+          isUnregistered: true
+        });
+      } else {
+        setTimeout(() => alert("✅ ยืนยันข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว"), 100);
+      }
     } else {
       alert("❌ เกิดข้อผิดพลาด: " + data.message);
     }
@@ -2882,24 +2898,26 @@ async function submitManualAdd() {
     const data = await response.json().catch(() => null);
     
     if (data && data.status === "success") {
-      // ปิด Modal
       closeManualAddModal();
-      
-      // แสดงข้อความสำเร็จแบบสวยงามผ่าน Result Card ของระบบ
       setResult(`
         <div class="result-card success">
           <div style="font-size:36px;margin-bottom:8px;">✅</div>
           <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">บันทึกสำเร็จ</div>
           <div style="font-size:22px;font-weight:800;margin-top:4px;color:var(--success);">${data.tempId}</div>
-          <div style="font-size:13px;color:var(--text-dim);margin-top:4px;">อัปโหลดรูปและข้อมูลเรียบร้อยแล้ว</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">กำลังรีเฟรชหน้าจอ...</div>
         </div>
       `);
       
-      // หน่วงเวลา 1.5 วินาที แล้วบังคับรีเฟรชหน้าเว็บ
+      const newUnregRow = [
+        data.tempId, assetName, category, group, zone, remarks, new Date().toISOString(), data.fileUrl || "", "Pending"
+      ];
+      if (typeof allUnregAssets !== 'undefined') {
+        allUnregAssets.unshift(newUnregRow);
+      }
+      
       setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+        window.isFromScannerChain = true;
+        openConfirmUnregModal(data.tempId);
+      }, 500);
 
     } else {
       alert("❌ บันทึกไม่สำเร็จ: " + (data ? data.message : "ไม่มีข้อความตอบกลับ"));
