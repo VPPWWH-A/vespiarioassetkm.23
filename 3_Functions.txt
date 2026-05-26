@@ -1,0 +1,574 @@
+// ==========================================
+// 3_Functions.gs: โค้ดทำงานแยกตามระบบ (Logic)
+// ==========================================
+
+function getCurrentMonthColName() {
+  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const d = new Date();
+  return `เช็ค ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ----------------------------------------------------
+// ระบบแสกน (Scan)
+// ----------------------------------------------------
+function handleScan(e) {
+  const { assetSheet, logSheet } = getSheets();
+  const assetNo = String(e.parameter.assetNo).trim().toUpperCase();
+  const data = assetSheet.getDataRange().getValues();
+  const headers = data[0];
+  const now = new Date();
+  const monthColName = getCurrentMonthColName();
+
+  for (let i = 1; i < data.length; i++) {
+    const currentAsset = String(data[i][0]).trim().toUpperCase();
+
+    if (currentAsset === assetNo) {
+      // 🚀 Batch update columns H & I (8, 9)
+      assetSheet.getRange(i + 1, 8, 1, 2).setValues([[now, "Count"]]);
+      
+      let monthColIndex = headers.indexOf(monthColName);
+      if (monthColIndex === -1) {
+        monthColIndex = headers.length;
+        assetSheet.getRange(1, monthColIndex + 1).setValue(monthColName);
+      }
+      
+      assetSheet.getRange(i + 1, monthColIndex + 1).setValue("Count");
+      logSheet.appendRow([now, assetNo, "Count", "Mobile"]);
+
+      return outputJSON({
+        status: "success", found: true, assetNo: assetNo,
+        assetName: data[i][1], category: data[i][2],
+        area: data[i][3], warehouse: data[i][4],
+        acquisitionDate: data[i][5], assetStatus: data[i][6]
+      });
+    }
+  }
+
+  return outputJSON({ status: "success", found: false, assetNo: assetNo, message: "Asset not found" });
+}
+
+// ----------------------------------------------------
+// ระบบเพิ่มสินทรัพย์แบบปกติ (Add)
+// ----------------------------------------------------
+function handleAdd(e) {
+  const { assetSheet, logSheet } = getSheets();
+  const assetNo = String(e.parameter.assetNo).trim().toUpperCase();
+  const assetName = String(e.parameter.assetName || "").trim();
+  const category = String(e.parameter.category || "").trim();
+  const area = String(e.parameter.area || "").trim();
+  const warehouse = String(e.parameter.warehouse || "").trim();
+  const acquisitionDate = String(e.parameter.acquisitionDate || "").trim();
+  const assetStatus = String(e.parameter.status || "Active").trim();
+  const now = new Date();
+
+  assetSheet.appendRow([assetNo, assetName, category, area, warehouse, acquisitionDate, assetStatus, now, "Added via Mobile", "", ""]);
+  logSheet.appendRow([now, assetNo, "Added via Mobile", "Mobile"]);
+
+  return outputJSON({ status: "success", message: "Asset added successfully", assetNo: assetNo, row: assetSheet.getLastRow() });
+}
+
+// ----------------------------------------------------
+// ระบบแดชบอร์ด (Dashboard)
+// ----------------------------------------------------
+function handleDashboard(e) {
+  const { assetSheet, logSheet } = getSheets();
+  const totalAssets = assetSheet.getLastRow() - 1;
+  const assetData = assetSheet.getDataRange().getValues();
+  const headers = assetData[0] || [];
+  
+  const currentMonthName = getCurrentMonthColName();
+  let currentMonthIndex = headers.indexOf(currentMonthName);
+  if (currentMonthIndex === -1) currentMonthIndex = headers.length;
+
+  let checked = 0;
+  for (let i = 1; i < assetData.length; i++) {
+    if (assetData[i][currentMonthIndex] === "Count" || assetData[i][currentMonthIndex] === "Checked") checked++;
+  }
+
+  const logData = logSheet.getDataRange().getValues();
+  let todayScans = 0, notFound = 0, added = 0;
+  const todayStr = new Date().toDateString();
+  
+  for (let i = 1; i < logData.length; i++) {
+    const status = String(logData[i][2]);
+    if (status.includes("Not Found")) notFound++;
+    if (status.includes("Added")) added++;
+    
+    if (new Date(logData[i][0]).toDateString() === todayStr) todayScans++;
+  }
+
+  return outputJSON({
+    status: "ok",
+    summary: { totalAssets, checked, notFound, added, todayScans, currentMonthName, currentMonthIndex }
+  });
+}
+
+// ----------------------------------------------------
+// ระบบดาวน์โหลด (Export)
+// ----------------------------------------------------
+function handleExport(e) {
+  const { assetSheet, unregSheet } = getSheets();
+  const data = assetSheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  const assets = data.slice(1);
+
+  const unregData = unregSheet.getDataRange().getValues();
+  const unregHeaders = unregData[0] || [];
+  const unregAssets = unregData.slice(1);
+
+  return outputJSON({ 
+    status: "ok", 
+    headers: headers, 
+    assets: assets, 
+    total: assets.length,
+    unregHeaders: unregHeaders,
+    unregAssets: unregAssets
+  });
+}
+
+// ----------------------------------------------------
+// ระบบอัปโหลดรูปภาพแบบ Manual (Upload) - โดนเรียกจาก doPost
+// ----------------------------------------------------
+function handleUpload(e) {
+  const data = JSON.parse(e.postData.contents);
+  const base64Data = data.image;
+  const reqAssetNo = String(data.assetNo || "").trim();
+  const assetName = String(data.assetName || "").trim();
+  const category = String(data.category || "").trim();
+  const warehouse = String(data.warehouse || "").trim();
+  const area = String(data.area || "").trim();
+  const remarks = String(data.remarks || "").trim();
+  
+  const now = new Date();
+  const tempId = reqAssetNo ? reqAssetNo : ("TEMP-" + now.getTime().toString().slice(-6));
+  const fileName = tempId + "_" + assetName + ".jpg";
+  
+  const decodedData = Utilities.base64Decode(base64Data);
+  const blob = Utilities.newBlob(decodedData, MimeType.JPEG, fileName);
+  const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+  const file = folder.createFile(blob);
+  const fileUrl = file.getUrl();
+  
+  const { unregSheet, logSheet } = getSheets();
+  unregSheet.appendRow([tempId, assetName, category, warehouse, area, remarks, now, fileUrl, "Pending"]);
+  logSheet.appendRow([now, tempId, "Added to Unregistered", "Mobile"]);
+  
+  return outputJSON({ status: "success", tempId: tempId, message: "บันทึกเรียบร้อย", fileUrl: fileUrl });
+}
+
+// ----------------------------------------------------
+// ระบบยืนยันรายการสินค้านอกระบบ (Confirm Unregistered)
+// ----------------------------------------------------
+function handleConfirmUnreg(e) {
+  const tempId = String(e.parameter.tempId).trim();
+  const { ss, assetSheet, logSheet, unregSheet } = getSheets();
+  const unregData = unregSheet.getDataRange().getValues();
+  const now = new Date();
+  
+  let rowIndex = -1;
+  let rowData = null;
+  
+  // Find the row by Temp ID (Column A)
+  for (let i = 1; i < unregData.length; i++) {
+    if (String(unregData[i][0]).trim() === tempId) {
+      rowIndex = i + 1; // 1-based index
+      rowData = unregData[i];
+      break;
+    }
+  }
+  
+  if (rowIndex > -1) {
+    const remarkText = String(rowData[5] || "").trim();
+    const imageLink = String(rowData[7] || "").trim();
+    
+    // Check for duplicate in ASSETS_MASTER
+    const masterData = assetSheet.getDataRange().getValues();
+    let isDuplicate = false;
+    for (let j = 1; j < masterData.length; j++) {
+      if (String(masterData[j][0]).trim().toUpperCase() === tempId.toUpperCase()) {
+        isDuplicate = true;
+        break;
+      }
+    }
+
+    if (isDuplicate) {
+      // Already exists, mark as Duplicate
+      unregSheet.getRange(rowIndex, 9).setValue("Duplicate");
+      return outputJSON({
+        status: "success",
+        message: "สินค้านี้มีในระบบแล้ว (ข้ามการเพิ่มซ้ำ)",
+        assetNo: tempId
+      });
+    }
+
+    // Ensure Month Column Exists
+    const headers = assetSheet.getDataRange().getValues()[0] || [];
+    const monthColName = getCurrentMonthColName();
+    let monthColIndex = headers.indexOf(monthColName);
+    
+    if (monthColIndex === -1) {
+      monthColIndex = headers.length;
+      assetSheet.getRange(1, monthColIndex + 1).setValue(monthColName);
+    }
+    
+    // Prepare Row Data
+    const newRow = [
+      tempId,           // A: Asset No
+      rowData[1],       // B: Name
+      rowData[2],       // C: Category
+      rowData[4],       // D: Area
+      rowData[3],       // E: Warehouse
+      now,              // F: Acquisition Date
+      "Active",         // G: Status
+      now,              // H: Last Scan Date
+      "Count",          // I: Last Result (Mapped to Count)
+      remarkText ? remarkText + " (⚠️ เพิ่มจากสินค้านอกระบบ)" : "⚠️ เพิ่มจากสินค้านอกระบบ", // J: Remark
+      imageLink         // K: Image Link
+    ];
+    
+    while (newRow.length <= monthColIndex) newRow.push("");
+    newRow[monthColIndex] = "Count"; // Set Count in the dynamic month column
+
+    // Append to MASTER
+    assetSheet.appendRow(newRow);
+    logSheet.appendRow([now, tempId, "Confirmed & Counted", "Dashboard"]);
+    
+    // Mark as Confirmed in UNREGISTERED_ASSETS
+    unregSheet.getRange(rowIndex, 9).setValue("Confirmed");
+    
+    logSheet.appendRow([now, tempId, "Confirmed & Added to Master", "Dashboard"]);
+    
+    return outputJSON({
+      status: "success",
+      message: "Confirmed and moved to Master successfully",
+      assetNo: tempId
+    });
+  } else {
+    return outputJSON({
+      status: "error",
+      message: "Asset not found in Unregistered list"
+    });
+  }
+}
+
+// ==========================================
+// ยืนยันรายการสินค้านอกระบบทั้งหมด (Confirm ALL Unregistered)
+// ==========================================
+function handleConfirmAllUnreg(e) {
+  const { ss, assetSheet, logSheet, unregSheet } = getSheets();
+  const unregData = unregSheet.getDataRange().getValues();
+  const masterData = assetSheet.getDataRange().getValues();
+  const now = new Date();
+  
+  if (unregData.length <= 1) {
+    return outputJSON({ status: "error", message: "ไม่มีข้อมูลให้ยืนยัน" });
+  }
+
+  const masterIds = {};
+  for (let j = 1; j < masterData.length; j++) {
+    masterIds[String(masterData[j][0]).trim().toUpperCase()] = true;
+  }
+
+  const headers = masterData[0] || [];
+  const monthColName = getCurrentMonthColName();
+  let monthColIndex = headers.indexOf(monthColName);
+  
+  if (monthColIndex === -1) {
+    monthColIndex = headers.length;
+    assetSheet.getRange(1, monthColIndex + 1).setValue(monthColName);
+  }
+
+  const newRows = [];
+  let addedCount = 0;
+  let rowsToDelete = [];
+  
+  for (let i = unregData.length - 1; i >= 1; i--) {
+    let rowData = unregData[i];
+    let tempId = String(rowData[0]).trim();
+    let status = String(rowData[8] || "").trim().toUpperCase();
+    
+    if (status === "CONFIRMED" || status === "DUPLICATE" || masterIds[tempId.toUpperCase()]) {
+      continue;
+    }
+    
+    const remarkText = String(rowData[5] || "").trim();
+    const finalRemark = remarkText ? remarkText + " (⚠️ เพิ่มจากสินค้านอกระบบ)" : "⚠️ เพิ่มจากสินค้านอกระบบ";
+    const imageLink = String(rowData[7] || "").trim();
+    
+    const newRow = [
+      tempId, rowData[1], rowData[2], rowData[4], rowData[3], 
+      now, "Active", now, "Count", finalRemark, imageLink
+    ];
+    while (newRow.length <= monthColIndex) newRow.push("");
+    newRow[monthColIndex] = "Count";
+    
+    newRows.unshift(newRow);
+    rowsToDelete.push(i + 1);
+    addedCount++;
+    masterIds[tempId.toUpperCase()] = true;
+  }
+  
+  if (newRows.length > 0) {
+    assetSheet.getRange(assetSheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+    for (let i = 0; i < rowsToDelete.length; i++) {
+      unregSheet.getRange(rowsToDelete[i], 9).setValue("Confirmed");
+    }
+    logSheet.appendRow([now, "BATCH", "Confirmed " + addedCount + " items from Unregistered", "Mobile"]);
+  }
+  
+  return outputJSON({ status: "success", message: "ยืนยันข้อมูลสำเร็จ " + addedCount + " รายการ", addedCount: addedCount });
+}
+
+// ==========================================
+// ระบบลบรายการสินค้านอกระบบ (Delete Unregistered)
+// ==========================================
+function handleDeleteUnreg(e) {
+  const tempId = String(e.parameter.tempId).trim();
+  const { unregSheet, logSheet } = getSheets();
+  const unregData = unregSheet.getDataRange().getValues();
+  
+  let rowIndex = -1;
+  let fileUrl = "";
+  
+  for (let i = 1; i < unregData.length; i++) {
+    if (String(unregData[i][0]).trim() === tempId) {
+      rowIndex = i + 1;
+      fileUrl = String(unregData[i][7] || "").trim(); // Column H is image URL
+      break;
+    }
+  }
+  
+  if (rowIndex > -1) {
+    // 1. Delete image from Drive if URL exists
+    if (fileUrl) {
+      try {
+        const match = fileUrl.match(/[-\w]{25,}/);
+        if (match) {
+          const fileId = match[0];
+          DriveApp.getFileById(fileId).setTrashed(true);
+        }
+      } catch (err) {
+        // Ignore drive deletion error
+      }
+    }
+    
+    // 2. Delete row from sheet
+    unregSheet.deleteRow(rowIndex);
+    
+    // 3. Log it
+    const now = new Date();
+    logSheet.appendRow([now, tempId, "Deleted from Unregistered", "Dashboard"]);
+    
+    return outputJSON({
+      status: "success",
+      message: "ลบข้อมูลและรูปภาพเรียบร้อยแล้ว",
+      assetNo: tempId
+    });
+  } else {
+    return outputJSON({
+      status: "error",
+      message: "ไม่พบข้อมูลที่ต้องการลบในระบบ"
+    });
+  }
+}
+
+// ==========================================
+// ระบบอัปเดตตำแหน่ง/รูปภาพสินทรัพย์ (Update Asset)
+// ==========================================
+function handleUpdateAsset(e) {
+  const assetNo = String(e.parameter.assetNo).trim().toUpperCase();
+  const newWarehouse = e.parameter.warehouse || "";
+  const newArea = e.parameter.area || "";
+  const newImageLink = e.parameter.imageLink || "";
+  
+  const { assetSheet } = getSheets();
+  const data = assetSheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim().toUpperCase() === assetNo) {
+      const row = i + 1;
+      let rowData = data[i];
+      if (newArea) rowData[3] = newArea;
+      if (newWarehouse) rowData[4] = newWarehouse;
+      if (newImageLink) {
+        const oldImageLink = rowData[10];
+        if (oldImageLink) {
+          try {
+            const match = String(oldImageLink).match(/[-\w]{25,}/);
+            if (match) {
+              DriveApp.getFileById(match[0]).setTrashed(true);
+            }
+          } catch(err) {}
+        }
+        rowData[10] = newImageLink;
+      }
+      
+      // Sanitize undefined/null values for setValues API safety
+      rowData = rowData.map(function(val) { return (val === undefined || val === null) ? "" : val; });
+
+      // 🚀 Batch update the entire row
+      assetSheet.getRange(row, 1, 1, rowData.length).setValues([rowData]);
+      
+      return outputJSON({ status: "success", message: "อัปเดตข้อมูลเรียบร้อย", assetNo: assetNo });
+    }
+  }
+  return outputJSON({ status: "error", message: "ไม่พบสินทรัพย์ในระบบ" });
+}
+
+function handleUpdateAssetPOST(data) {
+  const assetNo = String(data.assetNo || "").trim().toUpperCase();
+  const newWarehouse = String(data.warehouse || "").trim();
+  const newArea = String(data.area || "").trim();
+  const base64Image = data.image || "";
+  const isScan = data.isScan === true;
+  const isUnregistered = data.isUnregistered === true;
+  const now = new Date();
+  
+  let newImageLink = "";
+  if (base64Image) {
+    try {
+      const assetName = String(data.assetName || "").trim();
+      const fileName = assetNo + "_" + assetName + ".jpg";
+      const decodedData = Utilities.base64Decode(base64Image);
+      const blob = Utilities.newBlob(decodedData, MimeType.JPEG, fileName);
+      const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+      const file = folder.createFile(blob);
+      newImageLink = file.getUrl();
+    } catch(err) {}
+  }
+  
+  const { assetSheet, logSheet, unregSheet } = getSheets();
+  const sheetData = assetSheet.getDataRange().getValues();
+  const headers = sheetData[0];
+  const monthColName = getCurrentMonthColName();
+  let monthColIndex = headers.indexOf(monthColName);
+  
+  if (isUnregistered) {
+    const unregData = unregSheet.getDataRange().getValues();
+    let unregRowIndex = -1;
+    let unregRowData = null;
+    for (let i = 1; i < unregData.length; i++) {
+      if (String(unregData[i][0]).trim().toUpperCase() === assetNo) {
+        unregRowIndex = i + 1;
+        unregRowData = unregData[i];
+        break;
+      }
+    }
+    
+    if (unregRowIndex > -1) {
+      let isDuplicate = false;
+      for (let j = 1; j < sheetData.length; j++) {
+        if (String(sheetData[j][0]).trim().toUpperCase() === assetNo) {
+          isDuplicate = true; break;
+        }
+      }
+      
+      if (isDuplicate) {
+        unregSheet.getRange(unregRowIndex, 9).setValue("Duplicate");
+        return outputJSON({ status: "error", message: "สินค้านี้มีในระบบหลักแล้ว ไม่สามารถเพิ่มซ้ำได้" });
+      }
+      
+      const remarkText = String(unregRowData[5] || "").trim();
+      const finalRemark = remarkText ? remarkText + " (⚠️ เพิ่มจากสินค้านอกระบบ)" : "⚠️ เพิ่มจากสินค้านอกระบบ";
+      const imageLink = newImageLink || String(unregRowData[7] || "").trim();
+      
+      if (newImageLink && unregRowData[7]) {
+        try {
+          const match = String(unregRowData[7]).match(/[-\w]{25,}/);
+          if (match) DriveApp.getFileById(match[0]).setTrashed(true);
+        } catch(err) {}
+      }
+      
+      const newRow = [
+        assetNo, unregRowData[1], unregRowData[2], 
+        newArea || unregRowData[4], newWarehouse || unregRowData[3], 
+        now, "Active", now, "Count", finalRemark, imageLink
+      ];
+      
+      if (monthColIndex === -1) {
+        monthColIndex = headers.length;
+        assetSheet.getRange(1, monthColIndex + 1).setValue(monthColName);
+      }
+      while (newRow.length <= monthColIndex) newRow.push("");
+      newRow[monthColIndex] = "Count";
+      
+      assetSheet.appendRow(newRow);
+      unregSheet.getRange(unregRowIndex, 9).setValue("Confirmed");
+      logSheet.appendRow([now, assetNo, "Confirmed & Counted from Scan", "Mobile"]);
+      
+      return outputJSON({ status: "success", message: "เพิ่มเข้าระบบและนับสต๊อกเรียบร้อย", assetNo: assetNo, imageUrl: imageLink });
+    } else {
+      return outputJSON({ status: "error", message: "ไม่พบข้อมูลในสินค้านอกระบบ" });
+    }
+  }
+
+  for (let i = 1; i < sheetData.length; i++) {
+    if (String(sheetData[i][0]).trim().toUpperCase() === assetNo) {
+      const row = i + 1;
+      let rowData = sheetData[i];
+      
+      // Update location
+      if (newArea) rowData[3] = newArea;
+      if (newWarehouse) rowData[4] = newWarehouse;
+      if (newImageLink) {
+        const oldImageLink = rowData[10];
+        if (oldImageLink) {
+          try {
+            const match = String(oldImageLink).match(/[-\w]{25,}/);
+            if (match) {
+              DriveApp.getFileById(match[0]).setTrashed(true);
+            }
+          } catch(err) {}
+        }
+        rowData[10] = newImageLink;
+      }
+      
+      // Update scan fields
+      if (isScan) {
+        rowData[7] = now;       // Last Scan
+        rowData[8] = "Count";   // Last Result
+        
+        // Handle dynamic month column
+        if (monthColIndex === -1) {
+          monthColIndex = headers.length;
+          assetSheet.getRange(1, monthColIndex + 1).setValue(monthColName);
+        }
+        rowData[monthColIndex] = "Count";
+      }
+      
+      // 🚀 Single batch update for the entire row!
+      // If monthColIndex is beyond current rowData length, extend it
+      while (rowData.length <= monthColIndex) rowData.push("");
+      
+      // Sanitize undefined/null values for setValues API safety
+      rowData = rowData.map(function(val) { return (val === undefined || val === null) ? "" : val; });
+
+      assetSheet.getRange(row, 1, 1, rowData.length).setValues([rowData]);
+      
+      if (isScan) {
+        logSheet.appendRow([now, assetNo, "Count (Optimized)", "Mobile"]);
+      }
+      
+      return outputJSON({ 
+        status: "success", 
+        message: "อัปเดตเรียบร้อย", 
+        assetNo: assetNo,
+        imageUrl: newImageLink
+      });
+    }
+  }
+  
+  return outputJSON({ status: "error", message: "ไม่พบสินทรัพย์ในระบบ" });
+}
+
+// ==========================================
+// ฟังก์ชันล้างสิทธิ์ (รันแค่ครั้งเดียวในหน้า Editor)
+// ==========================================
+function forceAuthorize() {
+  const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("UNREGISTERED_ASSETS");
+  console.log(`✅ DriveApp OK! (โฟลเดอร์: ${folder.getName()})`);
+  console.log(`✅ SpreadsheetApp OK! (ชีต: ${ss.getName()})`);
+  console.log("🎉 สิทธิ์ครบถ้วน พร้อมใช้งาน 100%");
+}
