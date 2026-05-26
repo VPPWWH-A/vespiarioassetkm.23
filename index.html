@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="./manifest.json">
 <title>VESPA THAILAND - Asset Management</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
@@ -825,6 +826,7 @@ input[type="file"] { display: none; }
       <button id="btn-stop" class="btn btn-danger btn-full hidden" onclick="stopScanner()">⏹️ ปิดกล้อง</button>
       <button class="btn btn-primary btn-full" onclick="openManualAddModal()" style="margin-top:4px;">➕ สินค้าบาร์โค้ดเสียหาย / สแกนไม่ได้</button>
       <button class="btn btn-secondary btn-full" onclick="window.location.reload()" style="margin-top:4px;">🔄 รีเฟรชแอป</button>
+      <button class="btn btn-gold btn-full" onclick="showInstallModal()" style="margin-top:4px; font-weight: bold;">📲 นำแอปลงหน้าจอหลัก (Install)</button>
     </div>
     <div id="result"></div>
   </div>
@@ -1201,6 +1203,41 @@ input[type="file"] { display: none; }
   </div>
 </div>
 
+<!-- Modal Install App -->
+<div id="modal-install" class="modal-overlay hidden" onclick="closeInstallModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header" style="background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);">
+      <div class="modal-title-row">
+        <span class="modal-icon">📲</span>
+        <div>
+          <div class="modal-title" style="color:white;">นำแอปลงหน้าจอหลัก</div>
+          <div class="modal-subtitle" style="color:#fef08a;font-size:12px;font-weight:400;margin-top:2px;">เพื่อการใช้งานที่สะดวกรวดเร็วแบบแอปพลิเคชัน</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeInstallModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <div style="font-size:14px;color:var(--text);line-height:1.6;">
+        <p style="font-weight:bold;margin-bottom:8px;color:var(--primary);">📱 สำหรับผู้ใช้ iPhone / iPad (Safari)</p>
+        <ol style="margin-left:20px;margin-bottom:15px;">
+          <li>แตะไอคอน <strong>Share (แชร์)</strong> ตรงแถบด้านล่างของหน้าจอ</li>
+          <li>เลื่อนหาแล้วเลือก <strong>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</strong></li>
+          <li>กดปุ่ม <strong>"เพิ่ม" (Add)</strong> มุมขวาบน</li>
+        </ol>
+        <p style="font-weight:bold;margin-bottom:8px;color:var(--primary);">📱 สำหรับผู้ใช้ Android (Chrome / อื่นๆ)</p>
+        <ol style="margin-left:20px;margin-bottom:15px;">
+          <li>แตะไอคอน <strong>เมนู (3 จุด)</strong> ที่มุมขวาบน</li>
+          <li>เลื่อนหาแล้วเลือก <strong>"เพิ่มลงในหน้าจอหลัก" (Add to Home screen)</strong></li>
+          <li>กดปุ่ม <strong>"เพิ่ม" (Add)</strong></li>
+        </ol>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" style="width:100%;" onclick="closeInstallModal()">ปิดหน้าต่าง</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Confirm Unreg -->
 <div id="modal-confirm-unreg" class="modal-overlay hidden" onclick="closeConfirmUnregModal()">
   <div class="modal-box" onclick="event.stopPropagation()">
@@ -1315,6 +1352,18 @@ input[type="file"] { display: none; }
 </div>
 
 <script>
+// ============================================================
+// PWA & Install Prompt Setup
+// ============================================================
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed: ', err));
+}
+
 // ============================================================
 // 🔴 ตั้งค่า URL และ Secret Key ให้ตรงกับ code.gs
 // ============================================================
@@ -2430,6 +2479,20 @@ function viewUnregAssetDetail(tempId) {
 function closeModal() {
   document.getElementById("modal-overlay").classList.add("hidden");
   document.body.style.overflow = "";
+}
+
+function showInstallModal() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      deferredPrompt = null;
+    });
+  } else {
+    document.getElementById("modal-install").classList.remove("hidden");
+  }
+}
+function closeInstallModal() {
+  document.getElementById("modal-install").classList.add("hidden");
 }
 
 function printModalLabel() {
