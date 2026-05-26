@@ -760,20 +760,23 @@ input[type="file"] { display: none; }
           </select>
         </div>
         <div class="form-field">
-          <label>คลัง <span class="req">*</span></label>
-          <select id="input-warehouse">
+          <label>คลัง / โซนหลัก <span class="req">*</span></label>
+          <select id="input-warehouse" onchange="updateAddZones()">
             <option value="">เลือก</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="D">D</option>
+            <option value="Warehouse A">Warehouse A</option>
+            <option value="Warehouse B">Warehouse B</option>
+            <option value="WHD">WHD</option>
+            <option value="Office">Office</option>
+            <option value="HR">HR</option>
           </select>
         </div>
       </div>
       <div class="form-row">
         <div class="form-field">
-          <label>พื้นที่ <span class="req">*</span></label>
-          <input type="text" id="input-area" value="KM23">
+          <label>พื้นที่ย่อย <span class="req">*</span></label>
+          <select id="input-area">
+            <option value="">โปรดเลือกโซนหลักก่อน</option>
+          </select>
         </div>
         <div class="form-field">
           <label>วันที่ได้มา</label>
@@ -972,21 +975,34 @@ input[type="file"] { display: none; }
         <label>ชื่อทรัพย์สิน <span class="req">*</span></label>
         <input type="text" id="manual-name" placeholder="เช่น เก้าอี้สำนักงานสีดำ">
       </div>
+      <div class="form-field">
+        <label>หมวดหมู่ทรัพย์สิน</label>
+        <select id="manual-category">
+          <option value="">เลือก</option>
+          <option value="OFF">OFF</option>
+          <option value="COM">COM</option>
+          <option value="TOL">TOL</option>
+          <option value="VPOT">VPOT</option>
+          <option value="VEH">VEH</option>
+        </select>
+      </div>
       <div class="form-row">
         <div class="form-field">
-          <label>หมวดหมู่</label>
-          <select id="manual-category">
+          <label>คลัง / โซนหลัก</label>
+          <select id="manual-loc-group" onchange="updateManualZones()">
             <option value="">เลือก</option>
-            <option value="OFF">OFF</option>
-            <option value="COM">COM</option>
-            <option value="TOL">TOL</option>
-            <option value="VPOT">VPOT</option>
-            <option value="VEH">VEH</option>
+            <option value="Warehouse A">Warehouse A</option>
+            <option value="Warehouse B">Warehouse B</option>
+            <option value="WHD">WHD</option>
+            <option value="Office">Office</option>
+            <option value="HR">HR</option>
           </select>
         </div>
         <div class="form-field">
-          <label>พื้นที่</label>
-          <input type="text" id="manual-area" value="KM23">
+          <label>พื้นที่ย่อย</label>
+          <select id="manual-area">
+            <option value="">โปรดเลือกโซนหลักก่อน</option>
+          </select>
         </div>
       </div>
       <div class="form-field">
@@ -1025,7 +1041,7 @@ input[type="file"] { display: none; }
 // ============================================================
 // 🔴 ตั้งค่า URL และ Secret Key ให้ตรงกับ code.gs
 // ============================================================
-const API_URL    = "https://script.google.com/macros/s/AKfycby6JZtcphYimEgzHxp4iTbantGEZHQw26qTOC0irbIrQWnfFPsSmFmxlmtTl7Z-nbPjnw/exec";
+const API_URL    = "https://script.google.com/macros/s/AKfycbzji7bEWa6sauFw1l21Su6GEDkYw7rAiBaiSzdnMuPHanmmW9atThQ0v9C8PsLvuYkxfw/exec";
 const API_SECRET = "VESPA2025SECRET"; // ต้องตรงกับ SECRET_KEY ใน code.gs
 
 // ===== ฟังก์ชัน helper สร้าง URL พร้อม secret key =====
@@ -1610,7 +1626,8 @@ function previewManualImage(event) {
 async function submitManualAdd() {
   const assetName = document.getElementById("manual-name").value.trim();
   const category  = document.getElementById("manual-category").value;
-  const area      = document.getElementById("manual-area").value.trim();
+  const group     = document.getElementById("manual-loc-group").value;
+  const zone      = document.getElementById("manual-area").value;
   const remarks   = document.getElementById("manual-remarks").value.trim();
 
   if (!assetName) {
@@ -1631,7 +1648,8 @@ async function submitManualAdd() {
       image: manualImageBase64,
       assetName: assetName,
       category: category,
-      area: area,
+      warehouse: group, // ส่งโซนหลักไปที่คอลัมน์ Warehouse
+      area: zone,       // ส่งพื้นที่ย่อยไปที่คอลัมน์ Area
       remarks: remarks
     };
 
@@ -1644,8 +1662,25 @@ async function submitManualAdd() {
     const data = await response.json().catch(() => null);
     
     if (data && data.status === "success") {
-      alert("✅ อัปโหลดและบันทึกข้อมูลเรียบร้อยแล้ว\\n(รหัสอ้างอิง: " + data.tempId + ")");
+      // ปิด Modal
       closeManualAddModal();
+      
+      // แสดงข้อความสำเร็จแบบสวยงามผ่าน Result Card ของระบบ
+      setResult(`
+        <div class="result-card success">
+          <div style="font-size:36px;margin-bottom:8px;">✅</div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">บันทึกสำเร็จ</div>
+          <div style="font-size:22px;font-weight:800;margin-top:4px;color:var(--success);">${data.tempId}</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-top:4px;">อัปโหลดรูปและข้อมูลเรียบร้อยแล้ว</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">กำลังรีเฟรชหน้าจอ...</div>
+        </div>
+      `);
+      
+      // หน่วงเวลา 1.5 วินาที แล้วบังคับรีเฟรชหน้าเว็บ
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
     } else {
       alert("❌ บันทึกไม่สำเร็จ: " + (data ? data.message : "ไม่มีข้อความตอบกลับ"));
       btn.disabled = false;
@@ -1658,6 +1693,35 @@ async function submitManualAdd() {
     btn.textContent = "💾 บันทึกและอัปโหลด";
   }
 }
+
+// ==================== LOCATION DROPDOWN LOGIC ====================
+const LOCATION_DATA = {
+  "Warehouse A": ["โซน A01-A03", "โซน A04-A06", "โซน OB-1-12 WH.A", "โซน PDI", "โซน SPW", "ห้องทำงาน TRS"],
+  "Warehouse B": ["Longspan E-F-G", "Selective B01-B16", "Selective B19-B31", "โซน Helmet", "ห้องทำงาน WH.B", "ห้องประชุม B1", "ห้องประชุม B2", "ห้องประชุม B3", "โซน OB-1-11 WH.B", "Cool Room"],
+  "WHD": ["โซน WHD Overflow", "โซน WHD Selective"],
+  "Office": ["ห้องประชุม A1", "ห้องประชุม A2", "ห้องผู้บริหาร A3", "ห้องผู้บริหาร A4", "ห้องผู้บริหาร A5", "ห้องผู้บริหาร A6"],
+  "HR": ["ห้องบุคคล"]
+};
+
+function updateZones(groupSelectId, zoneSelectId) {
+  const group = document.getElementById(groupSelectId).value;
+  const zoneSelect = document.getElementById(zoneSelectId);
+  zoneSelect.innerHTML = '<option value="">เลือกพื้นที่ย่อย</option>';
+  
+  if (LOCATION_DATA[group]) {
+    LOCATION_DATA[group].forEach(zone => {
+      const opt = document.createElement('option');
+      opt.value = zone;
+      opt.textContent = zone;
+      zoneSelect.appendChild(opt);
+    });
+  } else {
+    zoneSelect.innerHTML = '<option value="">โปรดเลือกโซนหลักก่อน</option>';
+  }
+}
+
+function updateManualZones() { updateZones('manual-loc-group', 'manual-area'); }
+function updateAddZones() { updateZones('input-warehouse', 'input-area'); }
 
 // ==================== INIT ====================
 updateLabelPreview();
