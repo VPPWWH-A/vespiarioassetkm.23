@@ -2279,6 +2279,23 @@ function closeConfirmUnregModal() {
 }
 
 async function submitConfirmUnreg(tempId) {
+  if (window.isFromScannerChain) {
+    window.isFromScannerChain = false;
+    const cachedAsset = allUnregAssets.find(row => String(row[0]).trim() === tempId);
+    closeConfirmUnregModal();
+    if (cachedAsset) {
+      showSuccess({
+        assetNo: tempId,
+        assetName: cachedAsset[1],
+        category: cachedAsset[2],
+        warehouse: cachedAsset[3],
+        area: cachedAsset[4],
+        isUnregistered: true
+      });
+    }
+    return;
+  }
+
   const btn = document.getElementById("btn-confirm-unreg-submit");
   const originalText = btn.innerHTML;
   btn.innerHTML = "⏳ กำลังดำเนินการ...";
@@ -2295,20 +2312,7 @@ async function submitConfirmUnreg(tempId) {
       // Remove from allUnregAssets locally
       allUnregAssets = allUnregAssets.filter(row => String(row[0]).trim() !== tempId);
       renderUnregTable();
-      
-      if (window.isFromScannerChain && cachedAsset) {
-        window.isFromScannerChain = false;
-        showSuccess({
-          assetNo: tempId,
-          assetName: cachedAsset[1],
-          category: cachedAsset[2],
-          warehouse: cachedAsset[3],
-          area: cachedAsset[4],
-          isUnregistered: true
-        });
-      } else {
-        setTimeout(() => alert("✅ ยืนยันข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว"), 100);
-      }
+      setTimeout(() => alert("✅ ยืนยันข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว"), 100);
     } else {
       alert("❌ เกิดข้อผิดพลาด: " + data.message);
     }
