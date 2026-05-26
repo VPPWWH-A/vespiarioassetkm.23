@@ -1048,7 +1048,7 @@ input[type="file"] { display: none; }
     <div class="table-container hidden" id="table-unreg-container">
       <div style="padding: 12px; background: white; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
         <div style="font-weight: 700; color: var(--text);">รายการสินค้าที่รอการยืนยัน (Unregistered)</div>
-        <button id="btn-confirm-all" class="btn btn-success" onclick="confirmAllUnreg()" style="padding: 6px 12px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">✅ ยืนยันแบบ ALL (เฉพาะรหัสไม่ซ้ำ)</button>
+        <button id="btn-confirm-all" class="btn btn-success" onclick="confirmAllUnreg()" style="padding: 6px 12px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">✅ Approve ALL</button>
       </div>
       <div class="table-header unreg">
         <div class="cell">วันที่เพิ่ม</div>
@@ -1182,11 +1182,7 @@ input[type="file"] { display: none; }
           </select>
         </div>
       </div>
-      <div class="form-field">
-        <label>หมายเหตุ <span class="req">*</span></label>
-        <input type="text" id="manual-remarks" placeholder="เช่น สติ๊กเกอร์บาร์โค้ดหลุดหาย">
       </div>
-      
       <!-- Upload Image Section -->
       <div style="margin-top:12px;border:1px dashed var(--border);padding:16px;border-radius:8px;text-align:center;">
         <input type="file" id="manual-image" accept="image/*" capture="environment" onchange="previewManualImage(event)">
@@ -2818,8 +2814,7 @@ async function submitManualAdd() {
   const category  = document.getElementById("manual-category").value;
   const group     = document.getElementById("manual-loc-group").value;
   const zone      = document.getElementById("manual-area").value;
-  const remarks   = document.getElementById("manual-remarks").value.trim();
-
+  const remarks   = "";
   if (!assetName) {
     alert("กรุณากรอกชื่อทรัพย์สิน");
     return;
@@ -2834,10 +2829,6 @@ async function submitManualAdd() {
   }
   if (!zone) {
     alert("กรุณาเลือกพื้นที่ย่อย");
-    return;
-  }
-  if (!remarks) {
-    alert("กรุณากรอกหมายเหตุ (เช่น อธิบายสภาพบาร์โค้ด)");
     return;
   }
   if (!manualImageBase64) {
