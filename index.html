@@ -696,7 +696,11 @@ input[type="file"] { display: none; }
 }
 .modal-close:hover { background: rgba(255,255,255,0.3); }
 
-.modal-body { padding: 20px; }
+.modal-body { 
+  padding: 20px; 
+  max-height: 70vh; 
+  overflow-y: auto;
+}
 
 .modal-grid {
   display: grid;
@@ -777,9 +781,8 @@ input[type="file"] { display: none; }
 <div class="top-bar">
   <div class="top-bar-inner">
     <div class="brand">
-      <div class="brand-icon">🏢</div>
       <div class="brand-text">
-        <div class="name">VESPA THAILAND CO., LTD.</div>
+        <div class="name">VPPW (THAILAND) CO., LTD.</div>
         <div class="sub">ทะเบียนทรัพย์สิน — KM.23</div>
       </div>
     </div>
@@ -945,6 +948,16 @@ input[type="file"] { display: none; }
         <div class="card-number" id="dash-total">-</div>
         <div class="card-footer"><span class="icon">📦</span><span>รายการ</span></div>
       </div>
+      
+      <div class="summary-card red">
+        <div class="card-header">
+          <span class="card-title">ยังไม่ได้นับ</span>
+          <span class="card-badge red">ค้าง</span>
+        </div>
+        <div class="card-number" id="dash-pending">-</div>
+        <div class="card-footer"><span class="icon">⏳</span><span>รายการ</span></div>
+      </div>
+
       <div class="summary-card green">
         <div class="card-header">
           <span class="card-title">ตรวจสอบแล้ว</span>
@@ -953,21 +966,25 @@ input[type="file"] { display: none; }
         <div class="card-number" id="dash-checked">-</div>
         <div class="card-footer"><span class="icon">✅</span><span id="dash-month-label">เดือนนี้</span></div>
       </div>
+
       <div class="summary-card orange">
         <div class="card-header">
-          <span class="card-title">สแกนวันนี้</span>
-          <span class="card-badge orange">วันนี้</span>
+          <span class="card-title">ความคืบหน้า</span>
+          <span class="card-badge orange">%</span>
         </div>
-        <div class="card-number" id="dash-today">-</div>
-        <div class="card-footer"><span class="icon">📅</span><span>ครั้ง</span></div>
-      </div>
-      <div class="summary-card red">
-        <div class="card-header">
-          <span class="card-title">ยังไม่ได้นับ</span>
-          <span class="card-badge red">ค้าง</span>
+        <div style="margin-top: 15px;">
+          <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:800; margin-bottom:6px;">
+            <span style="color:var(--success);" id="dash-pct-checked">0%</span>
+            <span style="color:var(--danger);" id="dash-pct-pending">0%</span>
+          </div>
+          <div style="width:100%; height:12px; background:var(--danger); border-radius:6px; overflow:hidden;">
+            <div id="dash-progress-bar" style="width:0%; height:100%; background:var(--success); transition:width 0.8s ease;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; color:var(--text-muted); margin-top:8px;">
+            <span>ตรวจแล้ว</span>
+            <span>ยังไม่ได้นับ</span>
+          </div>
         </div>
-        <div class="card-number" id="dash-pending">-</div>
-        <div class="card-footer"><span class="icon">⏳</span><span>รายการ</span></div>
       </div>
     </div>
 
@@ -991,8 +1008,16 @@ input[type="file"] { display: none; }
       <button class="tab-btn" onclick="setTab('tol',  this)">เครื่องมือช่าง (TOL)</button>
       <button class="tab-btn" onclick="setTab('vpot', this)">อุปกรณ์ VPOT (VPOT)</button>
       <button class="tab-btn" onclick="setTab('veh',  this)">ยานพาหนะ (VEH)</button>
-      <button class="tab-btn" onclick="setTab('pending', this)" style="color:var(--warning)">ยังไม่ได้นับ</button>
-      <button class="tab-btn" onclick="setTab('unreg', this)" style="color:var(--danger)">NEW ITEMS (นอกระบบ)</button>
+    </div>
+
+    <!-- Warehouse Filter -->
+    <div class="tab-bar" id="warehouse-filter-bar" style="margin-top:0; border-top:1px solid var(--border-light); padding-top:6px; gap:4px;">
+      <button class="tab-btn wh-btn active" onclick="setWarehouse('all', this)" style="font-size:11px; padding:6px 10px;">🏢 ทั้งหมด</button>
+      <button class="tab-btn wh-btn" onclick="setWarehouse('WH-A', this)" style="font-size:11px; padding:6px 10px;">WH-A</button>
+      <button class="tab-btn wh-btn" onclick="setWarehouse('WH-B', this)" style="font-size:11px; padding:6px 10px;">WH-B</button>
+      <button class="tab-btn wh-btn" onclick="setWarehouse('WHD', this)" style="font-size:11px; padding:6px 10px;">WHD</button>
+      <button class="tab-btn wh-btn" onclick="setWarehouse('Office', this)" style="font-size:11px; padding:6px 10px;">Office</button>
+      <button class="tab-btn wh-btn" onclick="setWarehouse('HR', this)" style="font-size:11px; padding:6px 10px;">HR</button>
     </div>
 
     <!-- Data Table -->
@@ -1175,6 +1200,113 @@ input[type="file"] { display: none; }
   </div>
 </div>
 
+<!-- Modal Confirm Unreg -->
+<div id="modal-confirm-unreg" class="modal-overlay hidden" onclick="closeConfirmUnregModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header" style="background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);">
+      <div class="modal-title-row">
+        <span class="modal-icon">✅</span>
+        <div>
+          <div class="modal-title">ยืนยันเพิ่มข้อมูลเข้าสู่ระบบ</div>
+          <div class="modal-subtitle" style="color:#dcfce7;font-size:12px;font-weight:400;margin-top:2px;">ตรวจสอบข้อมูลก่อนบันทึก</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeConfirmUnregModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg); padding:12px; border-radius:8px; margin-bottom:16px;">
+        <div style="margin-bottom:8px;"><strong>Temp ID:</strong> <span id="confirm-unreg-id"></span></div>
+        <div style="margin-bottom:8px;"><strong>ชื่อทรัพย์สิน:</strong> <span id="confirm-unreg-name"></span></div>
+        <div style="margin-bottom:8px;"><strong>หมวดหมู่:</strong> <span id="confirm-unreg-cat"></span></div>
+        <div style="margin-bottom:8px;"><strong>คลัง / พื้นที่:</strong> <span id="confirm-unreg-wh"></span></div>
+        <div style="margin-bottom:8px;color:var(--danger)"><strong>หมายเหตุ:</strong> <span id="confirm-unreg-remark"></span></div>
+      </div>
+      <p id="confirm-unreg-text" style="margin:0; color:var(--text-dim); text-align:center; font-size:13px;">ระบบจะตรวจสอบข้อมูลก่อนเพิ่มเข้าระบบ<br>ยืนยันการทำรายการ?</p>
+      <div id="confirm-unreg-duplicate-warning" class="hidden" style="margin-top:12px; padding:10px; background:#fee2e2; border:1px solid #f87171; border-radius:8px; color:#b91c1c; text-align:center; font-size:13px;">
+        ⚠️ <b>คำเตือน:</b> รหัสสินค้านี้มีในระบบแล้ว ไม่สามารถเพิ่มซ้ำได้
+      </div>
+    </div>
+    <div class="modal-footer" id="modal-confirm-unreg-footer">
+      <button class="btn btn-success" id="btn-confirm-unreg-submit">✅ ยืนยันข้อมูล</button>
+      <button class="btn btn-secondary" onclick="closeConfirmUnregModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Scan Confirm -->
+<div id="modal-scan-confirm" class="modal-overlay hidden" onclick="closeScanConfirmModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header" style="background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);">
+      <div class="modal-title-row">
+        <span class="modal-icon">✅</span>
+        <div>
+          <div class="modal-title">ยืนยันการนับสต๊อก</div>
+          <div class="modal-subtitle" id="scan-confirm-assetno" style="color:#dcfce7;font-size:16px;font-weight:800;margin-top:2px;"></div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeScanConfirmModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Asset Info -->
+      <div class="modal-grid">
+        <div class="modal-field">
+          <div class="modal-label">ชื่อทรัพย์สิน</div>
+          <div class="modal-value" id="scan-confirm-name"></div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">หมวดหมู่</div>
+          <div class="modal-value" id="scan-confirm-cat"></div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">พื้นที่</div>
+          <div class="modal-value" id="scan-confirm-area"></div>
+        </div>
+        <div class="modal-field">
+          <div class="modal-label">คลัง</div>
+          <div class="modal-value" id="scan-confirm-wh"></div>
+        </div>
+      </div>
+
+      <div style="margin:16px 0 8px; font-size:13px; font-weight:700; color:var(--primary);">📍 อัปเดตตำแหน่ง (ถ้าต้องการ)</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>คลัง / โซนหลัก</label>
+          <select id="scan-update-warehouse" onchange="updateScanZones()">
+            <option value="">ไม่เปลี่ยน</option>
+            <option value="Warehouse A">Warehouse A</option>
+            <option value="Warehouse B">Warehouse B</option>
+            <option value="WHD">WHD</option>
+            <option value="Office">Office</option>
+            <option value="HR">HR</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>พื้นที่ย่อย</label>
+          <select id="scan-update-area">
+            <option value="">ไม่เปลี่ยน</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin:12px 0 8px; font-size:13px; font-weight:700; color:var(--primary);">📷 แนบรูปภาพ (ถ้าต้องการ)</div>
+      <div style="border:1px dashed var(--border);padding:12px;border-radius:8px;text-align:center;">
+        <input type="file" id="scan-update-image" accept="image/*" capture="environment" onchange="previewScanImage(event)">
+        <div id="scan-img-preview-container" class="hidden">
+          <img id="scan-img-preview" style="max-width:100%;max-height:150px;border-radius:8px;margin-bottom:6px;">
+          <button class="btn btn-secondary" onclick="document.getElementById('scan-update-image').click()" style="padding:4px 10px;font-size:11px;">🔄 เปลี่ยนรูป</button>
+        </div>
+        <div id="scan-img-placeholder">
+          <button class="btn btn-primary" onclick="document.getElementById('scan-update-image').click()" style="margin:0 auto;width:auto;padding:8px 16px;font-size:12px;">📷 ถ่ายรูป / เลือกรูป</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success" id="btn-scan-confirm" onclick="confirmScanCount()">✅ ยืนยันนับสต๊อก</button>
+      <button class="btn btn-secondary" onclick="closeScanConfirmModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <button class="active" onclick="showPage('scan')"      id="nav-scan"><span class="icon">📷</span><span>สแกน</span></button>
@@ -1201,9 +1333,12 @@ function apiUrl(params) {
 let html5QrCode = null, isScanning = false, isProcessing = false;
 let currentAssetNo = "", currentTab = "all", allAssets = [], exportHeaders = [];
 let allUnregAssets = [], exportUnregHeaders = [];
+let currentPage = "scan";
+let currentWarehouse = "all";
 
 // ==================== NAVIGATION ====================
 function showPage(page) {
+  currentPage = page;
   document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
   document.getElementById("page-" + page).classList.remove("hidden");
   document.querySelectorAll(".bottom-nav button").forEach(b => b.classList.remove("active"));
@@ -1259,6 +1394,15 @@ function setTab(tab, el) {
   }
 }
 
+function setWarehouse(wh, el) {
+  currentWarehouse = wh;
+  document.querySelectorAll(".wh-btn").forEach(b => b.classList.remove("active"));
+  if (el) el.classList.add("active");
+  if (currentPillar === 'count') {
+    renderTable(allAssets);
+  }
+}
+
 // ==================== SCANNER ====================
 function setResult(html)     { document.getElementById("result").innerHTML = html; }
 function showLoading(msg)    { setResult(`<div class="result-card" style="padding:20px;"><div class="spinner"></div><div style="font-size:13px;color:var(--text-muted);">${msg}</div></div>`); }
@@ -1273,29 +1417,120 @@ function escHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+let pendingScanData = null;
+
 function showSuccess(data) {
+  pendingScanData = data;
   setResult(`
     <div class="result-card success">
       <div style="font-size:36px;margin-bottom:8px;">✅</div>
       <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">พบข้อมูลทรัพย์สิน</div>
       <div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(data.assetNo)}</div>
-      <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(data.assetName)}</div>
-      <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap;">
-        <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:11px;">
-          <div style="color:var(--text-muted);font-size:9px;">หมวดหมู่</div>
-          <div style="font-weight:600;">${escHtml(data.category || "-")}</div>
-        </div>
-        <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:11px;">
-          <div style="color:var(--text-muted);font-size:9px;">พื้นที่</div>
-          <div style="font-weight:600;">${escHtml(data.area || "-")}</div>
-        </div>
-        <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:11px;">
-          <div style="color:var(--text-muted);font-size:9px;">คลัง</div>
-          <div style="font-weight:600;">${escHtml(data.warehouse || "-")}</div>
-        </div>
-      </div>
       <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✓ นับแล้ว (Count)</span>
     </div>`);
+
+  // Populate modal
+  document.getElementById("scan-confirm-assetno").textContent = data.assetNo;
+  document.getElementById("scan-confirm-name").textContent = data.assetName || "-";
+  document.getElementById("scan-confirm-cat").textContent = data.category || "-";
+  document.getElementById("scan-confirm-area").textContent = data.area || "-";
+  document.getElementById("scan-confirm-wh").textContent = data.warehouse || "-";
+
+  // Reset update fields
+  document.getElementById("scan-update-warehouse").value = "";
+  document.getElementById("scan-update-area").innerHTML = '<option value="">ไม่เปลี่ยน</option>';
+  document.getElementById("scan-update-image").value = "";
+  document.getElementById("scan-img-preview-container").classList.add("hidden");
+  document.getElementById("scan-img-placeholder").style.display = "";
+  
+  const btn = document.getElementById("btn-scan-confirm");
+  btn.disabled = false;
+  btn.innerHTML = "✅ ยืนยันนับสต๊อก";
+
+  document.getElementById("modal-scan-confirm").classList.remove("hidden");
+}
+
+function closeScanConfirmModal() {
+  document.getElementById("modal-scan-confirm").classList.add("hidden");
+}
+
+function previewScanImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById("scan-img-preview").src = e.target.result;
+    document.getElementById("scan-img-preview-container").classList.remove("hidden");
+    document.getElementById("scan-img-placeholder").style.display = "none";
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateScanZones() { updateZones('scan-update-warehouse', 'scan-update-area'); }
+
+async function confirmScanCount() {
+  if (!pendingScanData) return;
+  const btn = document.getElementById("btn-scan-confirm");
+  btn.disabled = true;
+  btn.innerHTML = "⏳ กำลังบันทึก...";
+
+  const newWarehouse = document.getElementById("scan-update-warehouse").value;
+  const newArea = document.getElementById("scan-update-area").value;
+  const fileInput = document.getElementById("scan-update-image");
+  const hasImage = fileInput.files && fileInput.files[0];
+  const hasLocationUpdate = newWarehouse || newArea;
+
+  try {
+    // Upload image if selected
+    let imageUrl = "";
+    if (hasImage) {
+      const file = fileInput.files[0];
+      const base64 = await new Promise((resolve) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result.split(",")[1]);
+        r.readAsDataURL(file);
+      });
+      const uploadRes = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: base64,
+          assetNo: pendingScanData.assetNo,
+          assetName: pendingScanData.assetName || "",
+          category: pendingScanData.category || "",
+          warehouse: newWarehouse || pendingScanData.warehouse || "",
+          area: newArea || pendingScanData.area || "",
+          remarks: "Scan Update"
+        })
+      });
+      const uploadData = await uploadRes.json().catch(() => null);
+      if (uploadData && uploadData.fileUrl) imageUrl = uploadData.fileUrl;
+    }
+
+    // Update location & image if needed
+    if (hasLocationUpdate || imageUrl) {
+      const params = { action: "updateAsset", assetNo: pendingScanData.assetNo };
+      if (newWarehouse) params.warehouse = newWarehouse;
+      if (newArea) params.area = newArea;
+      if (imageUrl) params.imageLink = imageUrl;
+      await fetch(apiUrl(params));
+    }
+
+    closeScanConfirmModal();
+    setResult(`
+      <div class="result-card success">
+        <div style="font-size:36px;margin-bottom:8px;">✅</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">นับสต๊อกสำเร็จ</div>
+        <div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(pendingScanData.assetNo)}</div>
+        <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(pendingScanData.assetName)}</div>
+        ${hasLocationUpdate ? '<div style="font-size:12px;color:var(--primary);margin-top:6px;">📍 อัปเดตตำแหน่งแล้ว</div>' : ''}
+        ${imageUrl ? '<div style="font-size:12px;color:var(--primary);margin-top:4px;">📷 อัปโหลดรูปแล้ว</div>' : ''}
+      </div>`);
+  } catch (err) {
+    alert("Error: " + err.message);
+    btn.disabled = false;
+    btn.innerHTML = "✅ ยืนยันนับสต๊อก";
+  }
 }
 
 function showNotFound(assetNo) {
@@ -1630,23 +1865,41 @@ function renderTable(assets) {
     return;
   }
 
-  // Filter by tab
+  // Filter by tab (category)
   let filtered = assets;
   if (currentTab === "pending") {
     const now = new Date();
     const curMonth = now.getMonth();
     const curYear = now.getFullYear();
     filtered = assets.filter(row => {
-      if (!row[7]) return true; // No scan date = pending
+      if (!row[7]) return true;
       const d = new Date(row[7]);
       if (isNaN(d.getTime())) return true;
-      // Pending if the last scan was not in the current month/year
       return d.getMonth() !== curMonth || d.getFullYear() !== curYear;
     });
   } else if (currentTab !== "all") {
     const tabMap = { off: "OFF", com: "COM", tol: "TOL", vpot: "VPOT", veh: "VEH" };
     const t = tabMap[currentTab] || "";
     filtered = assets.filter(row => String(row[2]).toUpperCase().trim().includes(t));
+  }
+
+  // Filter by warehouse
+  if (currentWarehouse !== "all") {
+    const whMap = {
+      "WH-A": ["warehouse a", "a"],
+      "WH-B": ["warehouse b", "b"],
+      "WHD":  ["whd"],
+      "Office": ["office"],
+      "HR":   ["hr"]
+    };
+    const keywords = whMap[currentWarehouse] || [];
+    filtered = filtered.filter(row => {
+      const wh = String(row[4]).trim();
+      return keywords.some(kw => {
+        if (kw === "a" || kw === "b") return wh.toUpperCase() === kw.toUpperCase();
+        return wh.toLowerCase().includes(kw);
+      });
+    });
   }
 
   // Filter by search (ค้นหาทั้ง รหัส / ชื่อ / หมวดหมู่ / พื้นที่ / คลัง)
@@ -1793,17 +2046,78 @@ function renderUnregTable() {
         <div class="cell" style="color:var(--danger);font-size:11px;">${remarks}</div>
         <div class="cell" style="display: flex; gap: 4px; justify-content: flex-end;">
           <button class="row-btn detail" onclick="viewUnregAssetDetail('${tempId}')">ดูข้อมูล</button>
-          <button class="row-btn" style="background:var(--success);color:white;border:none;" onclick="confirmUnregAsset('${tempId}')">✅ ยืนยัน</button>
+          <button class="row-btn" style="background:var(--success);color:white;border:none;" onclick="openConfirmUnregModal('${tempId}')">✅ ยืนยัน</button>
         </div>
       </div>`;
   }).join("");
 }
 
-async function confirmUnregAsset(tempId) {
-  if (!confirm(`คุณต้องการยืนยันรหัส ${tempId} เพื่อย้ายเข้าสู่ ASSETS_MASTER ถาวรใช่หรือไม่?`)) return;
+function openConfirmUnregModal(tempId) {
+  const row = allUnregAssets.find(r => String(r[0]).trim() === tempId);
+  if (!row) return;
+  
+  document.getElementById("confirm-unreg-id").textContent = row[0] || "-";
+  document.getElementById("confirm-unreg-name").textContent = row[1] || "-";
+  document.getElementById("confirm-unreg-cat").textContent = row[2] || "-";
+  document.getElementById("confirm-unreg-wh").textContent = (row[3] || "-") + " / " + (row[4] || "-");
+  document.getElementById("confirm-unreg-remark").textContent = row[5] || "-";
+  
+  const footerDiv = document.getElementById("modal-confirm-unreg-footer");
+  const warnDiv = document.getElementById("confirm-unreg-duplicate-warning");
+  const textP = document.getElementById("confirm-unreg-text");
+  
+  // Check against frontend allAssets
+  const isDuplicate = allAssets && allAssets.some(m => String(m[0]).trim().toUpperCase() === tempId.toUpperCase());
+  
+  if (isDuplicate) {
+    footerDiv.innerHTML = `
+      <button class="btn btn-danger" style="flex:1;" onclick="deleteUnregAsset('${tempId}')">🗑️ ลบข้อมูล</button>
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeConfirmUnregModal()">ยกเลิก</button>
+    `;
+    warnDiv.classList.remove("hidden");
+    if(textP) textP.classList.add("hidden");
+  } else {
+    footerDiv.innerHTML = `
+      <button class="btn btn-success" style="flex:1;" id="btn-confirm-unreg-submit" onclick="submitConfirmUnreg('${tempId}')">✅ ยืนยันข้อมูล</button>
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeConfirmUnregModal()">ยกเลิก</button>
+    `;
+    warnDiv.classList.add("hidden");
+    if(textP) textP.classList.remove("hidden");
+  }
+  
+  document.getElementById("modal-confirm-unreg").classList.remove("hidden");
+}
 
-  // Loading UI on that button could be complex, we just use a simple overlay or let user wait
-  const btn = event.target;
+async function deleteUnregAsset(tempId) {
+  if (!confirm(`คุณต้องการลบข้อมูล ${tempId} ใช่หรือไม่? (รูปภาพใน Drive จะถูกลบด้วย)`)) return;
+  
+  const footerDiv = document.getElementById('modal-confirm-unreg-footer');
+  footerDiv.innerHTML = `<div class="spinner" style="margin:0 auto;"></div><span style="font-size:13px; margin-left:8px; color:var(--text-muted);">กำลังลบข้อมูล...</span>`;
+  
+  try {
+    const res = await fetch(apiUrl({ action: "deleteUnreg", tempId: tempId }));
+    const data = await res.json();
+    if (data.status === "success") {
+      closeConfirmUnregModal();
+      allUnregAssets = allUnregAssets.filter(row => String(row[0]).trim() !== tempId);
+      renderUnregTable();
+      setTimeout(() => alert("🗑️ ลบข้อมูลเรียบร้อยแล้ว"), 50);
+    } else {
+      alert("Error: " + data.message);
+      closeConfirmUnregModal();
+    }
+  } catch (err) {
+    alert("Error: " + err.message);
+    closeConfirmUnregModal();
+  }
+}
+
+function closeConfirmUnregModal() {
+  document.getElementById("modal-confirm-unreg").classList.add("hidden");
+}
+
+async function submitConfirmUnreg(tempId) {
+  const btn = document.getElementById("btn-confirm-unreg-submit");
   const originalText = btn.innerHTML;
   btn.innerHTML = "⏳ รอสักครู่...";
   btn.disabled = true;
@@ -1813,18 +2127,16 @@ async function confirmUnregAsset(tempId) {
     const res = await fetch(url);
     const data = await res.json();
     if (data.status === "success") {
-      alert("✅ " + data.message);
+      closeConfirmUnregModal();
       // Remove from allUnregAssets locally
       allUnregAssets = allUnregAssets.filter(row => String(row[0]).trim() !== tempId);
       renderUnregTable();
-      // Update dash counts (Pending will naturally update next reload)
     } else {
       alert("❌ เกิดข้อผิดพลาด: " + data.message);
-      btn.innerHTML = originalText;
-      btn.disabled = false;
     }
   } catch (err) {
     alert("❌ การเชื่อมต่อผิดพลาด: " + err.message);
+  } finally {
     btn.innerHTML = originalText;
     btn.disabled = false;
   }
@@ -1836,16 +2148,18 @@ function clearDateFilter() {
   filterTable();
 }
 
-async function loadDashboard() {
+async function loadDashboard(isSilent = false) {
   // Spinning refresh button
   const btn = document.getElementById("refresh-btn");
   if (btn) btn.classList.add("spinning");
 
-  document.getElementById("table-body").innerHTML = `
-    <div style="padding:32px;text-align:center;color:var(--text-muted);">
-      <div class="spinner" style="margin:0 auto 12px;"></div>
-      <div style="font-size:13px;">กำลังโหลดข้อมูล...</div>
-    </div>`;
+  if (!isSilent) {
+    document.getElementById("table-body").innerHTML = `
+      <div style="padding:32px;text-align:center;color:var(--text-muted);">
+        <div class="spinner" style="margin:0 auto 12px;"></div>
+        <div style="font-size:13px;">กำลังโหลดข้อมูล...</div>
+      </div>`;
+  }
 
   try {
     const [resp1, resp2] = await Promise.all([
@@ -1857,11 +2171,29 @@ async function loadDashboard() {
       const data = await resp1.json().catch(() => null);
       if (data && data.status === "ok" && data.summary) {
         document.getElementById("dash-checked").textContent = data.summary.checked.toLocaleString();
-        document.getElementById("dash-today").textContent   = data.summary.todayScans.toLocaleString();
         
         const pending = Math.max(0, data.summary.totalAssets - data.summary.checked);
         const pendingEl = document.getElementById("dash-pending");
         if (pendingEl) pendingEl.textContent = pending.toLocaleString();
+        
+        // Update Progress Bar
+        const t = data.summary.totalAssets;
+        const c = data.summary.checked;
+        if (t > 0) {
+          let checkedPct = Math.round((c / t) * 100);
+          if (checkedPct > 100) checkedPct = 100;
+          let pendingPct = Math.round((pending / t) * 100);
+          if (pendingPct < 0) pendingPct = 0;
+          
+          document.getElementById("dash-pct-checked").textContent = checkedPct + "%";
+          document.getElementById("dash-pct-pending").textContent = pendingPct + "%";
+          document.getElementById("dash-progress-bar").style.width = checkedPct + "%";
+        } else {
+          document.getElementById("dash-pct-checked").textContent = "0%";
+          document.getElementById("dash-pct-pending").textContent = "0%";
+          document.getElementById("dash-progress-bar").style.width = "0%";
+        }
+
         // แสดงชื่อเดือนใน card footer
         if (data.summary.currentMonthName) {
           document.getElementById("dash-month-label").textContent = data.summary.currentMonthName;
@@ -1906,6 +2238,13 @@ async function loadDashboard() {
   }
 }
 
+// Auto-Refresh Real-Time Dashboard (Every 30 Seconds)
+setInterval(() => {
+  if (currentPage === "dashboard") {
+    loadDashboard(true);
+  }
+}, 30000);
+
 // ==================== MODAL ====================
 let currentModalAssetNo = "";
 
@@ -1941,10 +2280,10 @@ function viewAssetDetail(assetNo) {
   document.getElementById("modal-warehouse").textContent     = row ? (row[4] || "-") : "-";
   let lastResultText = row ? (row[8] || "-") : "-";
   let remarkText = row ? (row[9] || "") : "";
-  let imageLink = "";
+  let imageLink = row ? (row[10] || "") : "";  // Column K: Image Link
 
-  // Legacy fallback: Extract image from Result
-  if (lastResultText.includes("(Image: ")) {
+  // Legacy fallback: Extract image from Result (old data)
+  if (!imageLink && lastResultText.includes("(Image: ")) {
     const imgMatch = lastResultText.match(/\(Image:\s*(https?:\/\/[^\)]+)\)/);
     if (imgMatch) {
       imageLink = imgMatch[1];
@@ -1952,8 +2291,8 @@ function viewAssetDetail(assetNo) {
     }
   }
 
-  // Extract image from Remark
-  if (remarkText.includes("(Image: ")) {
+  // Legacy fallback: Extract image from Remark (old data)
+  if (!imageLink && remarkText.includes("(Image: ")) {
     const imgMatch = remarkText.match(/\(Image:\s*(https?:\/\/[^\)]+)\)/);
     if (imgMatch) {
       imageLink = imgMatch[1];
