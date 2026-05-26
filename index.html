@@ -972,6 +972,10 @@ input[type="file"] { display: none; }
     </div>
     <div class="modal-body">
       <div class="form-field">
+        <label>รหัสทรัพย์สิน (กรณีสแกนแล้วไม่พบในระบบ)</label>
+        <input type="text" id="manual-asset-no" placeholder="เช่น OFF00123 หรือเว้นว่างให้ระบบสร้างรหัสชั่วคราว">
+      </div>
+      <div class="form-field">
         <label>ชื่อทรัพย์สิน <span class="req">*</span></label>
         <input type="text" id="manual-name" placeholder="เช่น เก้าอี้สำนักงานสีดำ">
       </div>
@@ -1056,6 +1060,7 @@ function apiUrl(params) {
 
 let html5QrCode = null, isScanning = false, isProcessing = false;
 let currentAssetNo = "", currentTab = "all", allAssets = [], exportHeaders = [];
+let allUnregAssets = [], exportUnregHeaders = [];
 
 // ==================== NAVIGATION ====================
 function showPage(page) {
@@ -1112,7 +1117,7 @@ function showSuccess(data) {
           <div style="font-weight:600;">${escHtml(data.warehouse || "-")}</div>
         </div>
       </div>
-      <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✓ ตรวจสอบแล้ว</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✓ นับแล้ว (Count)</span>
     </div>`);
 }
 
@@ -1121,10 +1126,10 @@ function showNotFound(assetNo) {
   setResult(`
     <div class="result-card warning">
       <div style="font-size:36px;margin-bottom:8px;">⚠️</div>
-      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ไม่พบข้อมูล</div>
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ไม่พบข้อมูลในระบบ (NEW ITEM)</div>
       <div style="font-size:22px;font-weight:800;margin-top:4px;color:var(--warning);">${safeNo}</div>
-      <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">รหัสนี้ยังไม่มีในระบบ</div>
-      <button class="btn btn-gold" onclick="showAddForm('${safeNo}')" style="margin-top:10px;width:auto;padding:10px 20px;font-size:12px;">➕ เพิ่มข้อมูล</button>
+      <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">รหัสนี้เกินจากระบบ (Over from system)</div>
+      <button class="btn btn-gold" onclick="showAddForm('${safeNo}')" style="margin-top:10px;width:auto;padding:10px 20px;font-size:12px;">📸 ถ่ายรูปและเพิ่มข้อมูล</button>
     </div>`);
 }
 
@@ -1223,9 +1228,7 @@ async function stopScanner() {
 
 // ==================== ADD FORM ====================
 function showAddForm(assetNo) {
-  currentAssetNo = assetNo;
-  document.getElementById("add-asset-no").textContent = assetNo;
-  showPage("add");
+  openManualAddModal(assetNo);
 }
 
 async function submitAdd() {
@@ -1365,6 +1368,7 @@ function getStatusBadge(status) {
   if (s.includes("inactive"))    return '<span class="status-badge bad">ไม่ใช้งาน</span>';
   if (s.includes("maintenance")) return '<span class="status-badge warn">ซ่อมบำรุง</span>';
   if (s.includes("check"))       return '<span class="status-badge ok">ตรวจสอบแล้ว</span>';
+  if (s.includes("count"))       return '<span class="status-badge ok">นับแล้ว (Count)</span>';
   return `<span class="status-badge info">${escHtml(status || "-")}</span>`;
 }
 
@@ -1484,6 +1488,8 @@ async function loadDashboard() {
       const data2 = await resp2.json().catch(() => null);
       if (data2 && data2.status === "ok" && Array.isArray(data2.assets)) {
         exportHeaders = data2.headers || [];
+        exportUnregHeaders = data2.unregHeaders || [];
+        allUnregAssets = data2.unregAssets || [];
         allAssets = [...data2.assets].sort((a, b) => {
           const da = a[7] ? new Date(a[7]).getTime() : 0;
           const db = b[7] ? new Date(b[7]).getTime() : 0;
@@ -1579,21 +1585,52 @@ function exportExcel() {
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Assets");
+
+  // --- NEW Asset Sheet ---
+  const unregExportData = [];
+  unregExportData.push(["รายงานทรัพย์สินใหม่ (ที่ยังไม่ได้ลงทะเบียน) - VESPA THAILAND CO., LTD."]);
+  unregExportData.push(["วันที่ส่งออก:", new Date().toLocaleDateString("th-TH")]);
+  unregExportData.push([]);
+
+  const FIXED_UNREG_HEADERS = ["Temp ID", "Asset Name", "Category", "Warehouse", "Area", "Remarks", "Date Added", "Image Link"];
+  const uHeaders = (exportUnregHeaders && exportUnregHeaders.length > 0) ? exportUnregHeaders : FIXED_UNREG_HEADERS;
+  unregExportData.push(uHeaders);
+
+  if (allUnregAssets && allUnregAssets.length > 0) {
+    allUnregAssets.forEach(row => {
+      const newRow = row.map((cell, i) => {
+        if (i === 6) return cell ? formatDateTime(cell) : ""; // Date Added
+        return cell !== undefined && cell !== null ? cell : "";
+      });
+      unregExportData.push(newRow);
+    });
+  }
+
+  const wsUnreg = XLSX.utils.aoa_to_sheet(unregExportData);
+  wsUnreg["!cols"] = [
+    { wch: 15 }, { wch: 40 }, { wch: 12 }, { wch: 15 }, { wch: 15 },
+    { wch: 30 }, { wch: 22 }, { wch: 60 }
+  ];
+  XLSX.utils.book_append_sheet(wb, wsUnreg, "NEW Asset");
+  // --- End NEW Asset Sheet ---
+
   XLSX.writeFile(wb, `VESPA_Asset_Report_${new Date().toISOString().split("T")[0]}.xlsx`);
 }
 
 // ==================== MANUAL ADD (UPLOAD IMAGE) ====================
 let manualImageBase64 = null;
 
-function openManualAddModal() {
+function openManualAddModal(prefillAssetNo = "") {
   document.getElementById("modal-manual-add").classList.remove("hidden");
   document.body.style.overflow = "hidden";
+  document.getElementById("manual-asset-no").value = (typeof prefillAssetNo === 'string' ? prefillAssetNo : "");
 }
 
 function closeManualAddModal() {
   document.getElementById("modal-manual-add").classList.add("hidden");
   document.body.style.overflow = "";
   // Reset form
+  document.getElementById("manual-asset-no").value = "";
   document.getElementById("manual-name").value = "";
   document.getElementById("manual-category").value = "";
   document.getElementById("manual-remarks").value = "";
@@ -1624,6 +1661,7 @@ function previewManualImage(event) {
 }
 
 async function submitManualAdd() {
+  const assetNo   = document.getElementById("manual-asset-no").value.trim();
   const assetName = document.getElementById("manual-name").value.trim();
   const category  = document.getElementById("manual-category").value;
   const group     = document.getElementById("manual-loc-group").value;
@@ -1646,6 +1684,7 @@ async function submitManualAdd() {
   try {
     const payload = {
       image: manualImageBase64,
+      assetNo: assetNo,
       assetName: assetName,
       category: category,
       warehouse: group, // ส่งโซนหลักไปที่คอลัมน์ Warehouse
