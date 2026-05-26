@@ -2319,7 +2319,7 @@ function viewAssetDetail(assetNo) {
     }
   }
 
-  let lastResultText = String(row ? (row[8] || "-") : "-").trim();
+  lastResultText = String(lastResultText).trim();
 
   if (lastResultText.includes("Confirmed from Unregistered") || lastResultText.includes("Unregistered")) {
     lastResultText = "สินค้านอกระบบ";
