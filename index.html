@@ -1733,10 +1733,25 @@ function showNotFound(assetNo) {
   setTimeout(() => { showAddForm(rawNo); }, 500);
 }
 
-async function onScanSuccess(decodedText) {
+function decodeThaiKeyboard(str) {
+  const th = "ๅ/-ภถุึคตจขชๆไำพะัีรนยบลฃฟหกดเ้่าสวงผปแอิืทมใฝ๑๒๓๔ู฿๕๖๗๘๙๐\"ฎฑธํ๊ณฯญฐฅฤฆฏโฌ็๋ษศซฉฮฺ์ฒฬฦ";
+  const en = "1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+  let result = "";
+  for(let i=0; i<str.length; i++) {
+    let char = str[i];
+    let idx = th.indexOf(char);
+    result += (idx !== -1) ? en[idx] : char;
+  }
+  return result;
+}
+
+async function onScanSuccess(decodedText, isHandheld = false) {
   if (isProcessing) return;
   isProcessing = true;
-  const cleanCode = String(decodedText).trim().toUpperCase();
+  
+  // แปลงภาษาไทยกลับเป็นอังกฤษ (กรณีลืมเปลี่ยนภาษาที่เครื่องตอนสแกน)
+  let cleanCode = decodeThaiKeyboard(String(decodedText)).trim().toUpperCase();
+  
   if (html5QrCode && isScanning) { try { await html5QrCode.pause(true); } catch(e){} }
   // #region agent log
   dbgLog('index.html:onScanSuccess:entry', 'scan started', { cleanCode, cacheSize: allAssets.length, unregSize: allUnregAssets.length }, 'H1-H2');
@@ -1765,8 +1780,8 @@ async function onScanSuccess(decodedText) {
     // Note: We keep a delay before resuming scanner to prevent double scans
     setTimeout(async () => {
       isProcessing = false;
-      if (html5QrCode && isScanning) { try { await html5QrCode.resume(); } catch(e){} }
-    }, 1500);
+      if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
+    }, isHandheld ? 100 : 1500);
   } else {
     // Check if it exists in Unregistered assets first
     if (allUnregAssets) {
@@ -1784,8 +1799,8 @@ async function onScanSuccess(decodedText) {
         
         setTimeout(async () => {
           isProcessing = false;
-          if (html5QrCode && isScanning) { try { await html5QrCode.resume(); } catch(e){} }
-        }, 1500);
+          if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
+        }, isHandheld ? 100 : 1500);
         return;
       }
     }
@@ -3135,7 +3150,7 @@ document.getElementById('handheld-input').addEventListener('keydown', function(e
     e.preventDefault();
     const code = this.value.trim();
     if (code) {
-      onScanSuccess(code);
+      onScanSuccess(code, true);
       this.value = ''; // เคลียร์ช่องเพื่อสแกนรอบต่อไป
     }
   }
