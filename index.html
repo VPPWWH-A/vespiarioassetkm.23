@@ -1380,6 +1380,66 @@ function apiUrl(params) {
   return url.toString();
 }
 
+// #region agent log
+function dbgLog(location, message, data, hypothesisId, runId) {
+  const entry = { sessionId: '730ebd', location, message, data, timestamp: Date.now(), hypothesisId, runId: runId || 'post-fix' };
+  try {
+    const k = '__debug_730ebd';
+    const arr = JSON.parse(sessionStorage.getItem(k) || '[]');
+    arr.push(entry);
+    if (arr.length > 80) arr.shift();
+    sessionStorage.setItem(k, JSON.stringify(arr));
+  } catch (e) {}
+  fetch('http://127.0.0.1:7593/ingest/c5d61986-e57e-424b-a37c-105524717e6f', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '730ebd' }, body: JSON.stringify(entry) }).catch(() => {});
+}
+// #endregion
+
+function isAlreadyCounted(data) {
+  if (data.isUnregistered) return false;
+  const lr = String(data.lastResult || "").trim();
+  return lr === "Count" || lr === "Checked";
+}
+
+/** Read-only server lookup: lookup API, or export search if GAS not updated yet. Never uses scan. */
+async function fetchAssetLookup(cleanCode) {
+  const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: cleanCode }));
+  const lookupData = await lookupRes.json().catch(() => null);
+  if (lookupData && lookupData.status === "success") {
+    dbgLog('index.html:fetchAssetLookup', 'lookup ok', { cleanCode, found: !!lookupData.found, via: 'lookup' }, 'H1');
+    return lookupData;
+  }
+  const needsExportFallback = !lookupData
+    || (lookupData.status === "error" && String(lookupData.message || "").toLowerCase().includes("invalid"));
+  if (!needsExportFallback) {
+    dbgLog('index.html:fetchAssetLookup', 'lookup failed', { cleanCode, message: lookupData && lookupData.message }, 'H1');
+    return lookupData;
+  }
+  dbgLog('index.html:fetchAssetLookup', 'export fallback', { cleanCode }, 'H1');
+  const expRes = await fetch(apiUrl({ action: "export" }));
+  const exp = await expRes.json().catch(() => null);
+  if (!exp || exp.status !== "ok" || !Array.isArray(exp.assets)) {
+    return { status: "error", message: "ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้" };
+  }
+  const row = exp.assets.find(r => String(r[0]).trim().toUpperCase() === cleanCode);
+  if (!row) {
+    const unregRow = (exp.unregAssets || []).find(r => String(r[0]).trim().toUpperCase() === cleanCode);
+    if (unregRow) {
+      return {
+        status: "success", found: true, isUnregistered: true,
+        assetNo: unregRow[0], assetName: unregRow[1], category: unregRow[2],
+        warehouse: unregRow[3], area: unregRow[4]
+      };
+    }
+    return { status: "success", found: false, assetNo: cleanCode };
+  }
+  return {
+    status: "success", found: true,
+    assetNo: row[0], assetName: row[1], category: row[2],
+    area: row[3], warehouse: row[4], acquisitionDate: row[5],
+    assetStatus: row[6], lastScan: row[7], lastResult: row[8]
+  };
+}
+
 let html5QrCode = null, isScanning = false, isProcessing = false;
 let currentAssetNo = "", currentTab = "all", allAssets = [], exportHeaders = [];
 let allUnregAssets = [], exportUnregHeaders = [];
@@ -1471,12 +1531,15 @@ let pendingScanData = null;
 
 function showSuccess(data) {
   pendingScanData = data;
-  let statusText = "พบข้อมูลทรัพย์สิน";
-  let badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✓ นับแล้ว (Count)</span>`;
-  
+  let statusText = "พบข้อมูลทรัพย์สิน — รอยืนยันการนับ";
+  let badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dbeafe;color:var(--primary);">⏳ รอยืนยันการนับ</span>`;
+
   if (data.isUnregistered) {
     statusText = "พบสินค้านอกระบบ (รอการยืนยัน)";
     badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#fef9c3;color:#854d0e;">⚠️ สินค้านอกระบบ (NEW)</span>`;
+  } else if (isAlreadyCounted(data)) {
+    statusText = "พบข้อมูลทรัพย์สิน (นับแล้วในรอบนี้)";
+    badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✓ นับแล้ว (Count)</span>`;
   }
 
   setResult(`
@@ -1528,6 +1591,9 @@ function updateScanZones() { updateZones('scan-update-warehouse', 'scan-update-a
 
 async function confirmScanCount() {
   if (!pendingScanData) return;
+  // #region agent log
+  dbgLog('index.html:confirmScanCount:entry', 'confirm scan', { assetNo: pendingScanData.assetNo, isUnregistered: !!pendingScanData.isUnregistered }, 'H1-H4');
+  // #endregion
   const btn = document.getElementById("btn-scan-confirm");
   btn.disabled = true;
   btn.innerHTML = "⏳ กำลังบันทึก...";
@@ -1567,6 +1633,9 @@ async function confirmScanCount() {
     });
     
     const uploadData = await uploadRes.json().catch(() => null);
+    // #region agent log
+    dbgLog('index.html:confirmScanCount:response', 'updateAsset response', { assetNo: pendingScanData.assetNo, status: uploadData && uploadData.status, message: uploadData && uploadData.message }, 'H1-H4');
+    // #endregion
     if (!uploadData || uploadData.status === "error") {
       throw new Error(uploadData ? uploadData.message : "การตอบกลับไม่ถูกต้อง");
     }
@@ -1593,12 +1662,15 @@ async function confirmScanCount() {
       allAssets.push(newRow);
       
       // Remove from allUnregAssets locally or mark as confirmed
-      const unregIdx = allUnregAssets.findIndex(row => String(row[0]).trim().toUpperCase() === pendingScanData.assetNo);
+      const unregIdx = allUnregAssets.findIndex(row => String(row[0]).trim().toUpperCase() === String(pendingScanData.assetNo).trim().toUpperCase());
       if (unregIdx > -1) {
         allUnregAssets[unregIdx][8] = "Confirmed";
       }
     } else {
-      const assetIdx = allAssets.findIndex(row => String(row[0]).trim().toUpperCase() === pendingScanData.assetNo);
+      const assetIdx = allAssets.findIndex(row => String(row[0]).trim().toUpperCase() === String(pendingScanData.assetNo).trim().toUpperCase());
+      // #region agent log
+      dbgLog('index.html:confirmScanCount:localUpdate', 'local cache update', { assetNo: pendingScanData.assetNo, assetIdx }, 'H4');
+      // #endregion
       if (assetIdx > -1) {
         allAssets[assetIdx][7] = new Date().toISOString();
         allAssets[assetIdx][8] = "Count";
@@ -1627,16 +1699,22 @@ async function confirmScanCount() {
 
 function showNotFound(assetNo) {
   const safeNo = escHtml(assetNo);
+  const rawNo = String(assetNo).trim().toUpperCase();
+  // #region agent log
+  dbgLog('index.html:showNotFound', 'asset not found', { raw: rawNo, escaped: safeNo }, 'H3');
+  // #endregion
   setResult(`
     <div class="result-card warning">
       <div style="font-size:36px;margin-bottom:8px;">⚠️</div>
       <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ไม่พบข้อมูลในระบบ (NEW ITEM)</div>
       <div style="font-size:22px;font-weight:800;margin-top:4px;color:var(--warning);">${safeNo}</div>
       <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">รหัสนี้เกินจากระบบ (Over from system)</div>
-      <button class="btn btn-gold" onclick="showAddForm('${safeNo}')" style="margin-top:10px;width:auto;padding:10px 20px;font-size:12px;">📸 ถ่ายรูปและเพิ่มข้อมูล</button>
+      <button class="btn btn-gold" id="btn-notfound-add" style="margin-top:10px;width:auto;padding:10px 20px;font-size:12px;">📸 ถ่ายรูปและเพิ่มข้อมูล</button>
     </div>`);
+  const addBtn = document.getElementById("btn-notfound-add");
+  if (addBtn) addBtn.onclick = () => showAddForm(rawNo);
 
-  setTimeout(() => { showAddForm(safeNo); }, 500);
+  setTimeout(() => { showAddForm(rawNo); }, 500);
 }
 
 async function onScanSuccess(decodedText) {
@@ -1644,11 +1722,17 @@ async function onScanSuccess(decodedText) {
   isProcessing = true;
   const cleanCode = String(decodedText).trim().toUpperCase();
   if (html5QrCode && isScanning) { try { await html5QrCode.pause(true); } catch(e){} }
+  // #region agent log
+  dbgLog('index.html:onScanSuccess:entry', 'scan started', { cleanCode, cacheSize: allAssets.length, unregSize: allUnregAssets.length }, 'H1-H2');
+  // #endregion
   
   // 🚀 Instant Local Search (Performance Optimization)
   const localMatch = allAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode);
   
   if (localMatch) {
+    // #region agent log
+    dbgLog('index.html:onScanSuccess:local', 'local cache hit', { cleanCode, lastResult: localMatch[8], lastScan: localMatch[7] }, 'H2');
+    // #endregion
     const data = {
       assetNo: localMatch[0],
       assetName: localMatch[1],
@@ -1656,7 +1740,9 @@ async function onScanSuccess(decodedText) {
       area: localMatch[3],
       warehouse: localMatch[4],
       acquisitionDate: localMatch[5],
-      assetStatus: localMatch[6]
+      assetStatus: localMatch[6],
+      lastResult: localMatch[8],
+      lastScan: localMatch[7]
     };
     showSuccess(data);
     
@@ -1688,35 +1774,47 @@ async function onScanSuccess(decodedText) {
       }
     }
 
-    // 🔍 Fallback to Live Query if not found locally (Fixes out-of-sync or uninitialized cache)
+    // 🔍 Fallback: read-only lookup (export if lookup API not deployed yet)
     showLoading("ไม่พบในเครื่อง กำลังตรวจสอบกับเซิร์ฟเวอร์แบบเรียลไทม์...");
     try {
-      const response = await fetch(apiUrl({ action: "scan", assetNo: cleanCode }));
-      const data = await response.json().catch(() => null);
+      const data = await fetchAssetLookup(cleanCode);
       if (data && data.status === "success" && data.found) {
-        // Cache it locally so subsequent scans are instant
-        const newAssetRow = [
-          data.assetNo,
-          data.assetName,
-          data.category,
-          data.area,
-          data.warehouse,
-          data.acquisitionDate,
-          data.assetStatus,
-          new Date().toISOString(),
-          "Count"
-        ];
-        allAssets.push(newAssetRow);
-        
-        showSuccess({
-          assetNo: data.assetNo,
-          assetName: data.assetName,
-          category: data.category,
-          area: data.area,
-          warehouse: data.warehouse,
-          acquisitionDate: data.acquisitionDate,
-          assetStatus: data.assetStatus
-        });
+        if (data.isUnregistered) {
+          showSuccess({
+            assetNo: data.assetNo,
+            assetName: data.assetName,
+            category: data.category,
+            warehouse: data.warehouse,
+            area: data.area,
+            isUnregistered: true
+          });
+        } else {
+          const newAssetRow = [
+            data.assetNo,
+            data.assetName,
+            data.category,
+            data.area,
+            data.warehouse,
+            data.acquisitionDate,
+            data.assetStatus,
+            data.lastScan || "",
+            data.lastResult || ""
+          ];
+          allAssets.push(newAssetRow);
+          showSuccess({
+            assetNo: data.assetNo,
+            assetName: data.assetName,
+            category: data.category,
+            area: data.area,
+            warehouse: data.warehouse,
+            acquisitionDate: data.acquisitionDate,
+            assetStatus: data.assetStatus,
+            lastResult: data.lastResult,
+            lastScan: data.lastScan
+          });
+        }
+      } else if (data && data.status === "error") {
+        showError(data.message || "ไม่สามารถตรวจสอบกับเซิร์ฟเวอร์ได้");
       } else {
         showNotFound(cleanCode);
       }
@@ -2142,10 +2240,10 @@ function renderUnregTable() {
     return;
   }
 
-  // Filter out Confirmed or Duplicate items for the UI table
+  // Filter out Duplicate items for the UI table
   let baseData = allUnregAssets.filter(row => {
     const status = String(row[8] || "").trim().toUpperCase();
-    return status !== "CONFIRMED" && status !== "DUPLICATE";
+    return status !== "DUPLICATE";
   });
 
   if (baseData.length === 0) {
@@ -2195,6 +2293,8 @@ function renderUnregTable() {
     const safeWarehouse = escHtml(warehouse).replace(/'/g, "\\'");
     const safeRemarks = escHtml(remarks).replace(/'/g, "\\'");
 
+    const isConfirmed = String(row[8] || "").trim().toUpperCase() === "CONFIRMED";
+    
     return `
       <div class="table-row unreg">
         <div class="cell cell-time">${dateAdded}</div>
@@ -2208,7 +2308,10 @@ function renderUnregTable() {
         <div class="cell" style="color:var(--danger);font-size:11px;">${remarks}</div>
         <div class="cell" style="display: flex; gap: 4px; justify-content: flex-end;">
           <button class="row-btn detail" onclick="viewUnregAssetDetail('${tempId}')">ดูข้อมูล</button>
-          <button class="row-btn" style="background:var(--success);color:white;border:none;" onclick="openConfirmUnregModal('${tempId}')">✅ ยืนยัน</button>
+          ${isConfirmed ? 
+            `<span class="status-badge ok" style="padding:4px 8px;font-size:11px;">✅ เพิ่มแล้ว</span>` : 
+            `<button class="row-btn" style="background:var(--success);color:white;border:none;" onclick="openConfirmUnregModal('${tempId}')">✅ ยืนยัน</button>`
+          }
         </div>
       </div>`;
   }).join("");
@@ -2309,8 +2412,11 @@ async function submitConfirmUnreg(tempId) {
       closeConfirmUnregModal();
       
       const cachedAsset = allUnregAssets.find(row => String(row[0]).trim() === tempId);
-      // Remove from allUnregAssets locally
-      allUnregAssets = allUnregAssets.filter(row => String(row[0]).trim() !== tempId);
+      // Mark as confirmed locally instead of removing
+      const idx = allUnregAssets.findIndex(row => String(row[0]).trim() === tempId);
+      if (idx > -1) {
+        allUnregAssets[idx][8] = "Confirmed";
+      }
       renderUnregTable();
       setTimeout(() => alert("✅ ยืนยันข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว"), 100);
     } else {
