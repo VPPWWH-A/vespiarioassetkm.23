@@ -1248,6 +1248,8 @@ input[type="file"] { display: none; }
   </div>
 </div>
 
+ 
+
 <!-- Modal Install App -->
 <div id="modal-install" class="modal-overlay hidden" onclick="closeInstallModal()">
   <div class="modal-box" onclick="event.stopPropagation()">
@@ -1448,10 +1450,10 @@ if ('serviceWorker' in navigator) {
 }
 
 // ============================================================
-// 🔴 ตั้งค่า URL และ Secret Key ให้ตรงกับ code.gs
+// 🔴 ตั้งค่า URL และ Secret Key
 // ============================================================
 const API_URL    = "https://script.google.com/macros/s/AKfycbzji7bEWa6sauFw1l21Su6GEDkYw7rAiBaiSzdnMuPHanmmW9atThQ0v9C8PsLvuYkxfw/exec";
-const API_SECRET = "VESPA2025SECRET"; // ต้องตรงกับ SECRET_KEY ใน code.gs
+const API_SECRET = "VESPA2025SECRET"; // รหัสผ่านสำหรับเชื่อมต่อ Backend
 
 // ===== ฟังก์ชัน helper สร้าง URL พร้อม secret key =====
 function apiUrl(params) {
@@ -2372,7 +2374,9 @@ function renderTable(assets) {
     });
   }
 
-  tbody.innerHTML = filtered.map(row => {
+  const fragment = document.createDocumentFragment();
+  
+  filtered.forEach(row => {
     const assetNo   = escHtml(row[0] || "-");
     const assetName = escHtml(row[1] || "-");
     const category  = escHtml(row[2] || "-");
@@ -2391,27 +2395,31 @@ function renderTable(assets) {
     }
     const lastResult = escHtml(displayResult);
 
-    return `
-      <div class="table-row">
-        <div class="cell cell-time">${lastScan}</div>
-        <div class="cell cell-code">${assetNo}</div>
-        <div class="cell"><span class="cat-tag">${category}</span></div>
-        <div class="cell">
-          <div class="cell-name">${assetName}</div>
-          <div class="cell-sub">${area}</div>
-        </div>
-        <div class="cell">${warehouse}</div>
-        <div class="cell">${acqDate}</div>
-        <div class="cell">${getStatusBadge(status)}</div>
-        <div class="cell" style="font-size:11px;color:var(--text-dim);">${lastResult}</div>
-        <div class="cell">
-          <button class="row-btn pdf" onclick="printAssetLabel('${assetNo}')">🖨️</button>
-        </div>
-        <div class="cell">
-          <button class="row-btn detail" onclick="viewAssetDetail('${assetNo}')">ดูข้อมูล</button>
-        </div>
+    const div = document.createElement("div");
+    div.className = "table-row";
+    div.innerHTML = `
+      <div class="cell cell-time">${lastScan}</div>
+      <div class="cell cell-code">${assetNo}</div>
+      <div class="cell"><span class="cat-tag">${category}</span></div>
+      <div class="cell">
+        <div class="cell-name">${assetName}</div>
+        <div class="cell-sub">${area}</div>
+      </div>
+      <div class="cell">${warehouse}</div>
+      <div class="cell">${acqDate}</div>
+      <div class="cell">${getStatusBadge(status)}</div>
+      <div class="cell" style="font-size:11px;color:var(--text-dim);">${lastResult}</div>
+      <div class="cell">
+        <button class="row-btn pdf" onclick="printAssetLabel('${assetNo}')">🖨️</button>
+      </div>
+      <div class="cell">
+        <button class="row-btn detail" onclick="viewAssetDetail('${assetNo}')">ดูข้อมูล</button>
       </div>`;
-  }).join("");
+    fragment.appendChild(div);
+  });
+  
+  tbody.innerHTML = "";
+  tbody.appendChild(fragment);
 }
 
 function filterTable() { 
@@ -3256,6 +3264,7 @@ function updateAddZones() { updateZones('input-warehouse', 'input-area'); }
 
 // ==================== INIT ====================
 updateLabelPreview();
+
 // 🚀 โหลดข้อมูลทั้งหมดเก็บไว้ในเครื่องเบื้องหลังทันทีที่เปิดแอป (Silent Background Load)
 loadDashboard(true);
 
