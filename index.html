@@ -1609,6 +1609,49 @@ function closeScanConfirmModal() {
   }
 }
 
+async function compressImageToBase64(file, maxSizeMB = 0.3) { // ปรับเป็น 0.3MB (300KB) เพื่อให้เร็วที่สุด
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1024; // ลดขนาดแกนยาวสุดเหลือ 1024px
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        let quality = 0.6; // เริ่มต้นที่คุณภาพ 60% เพื่อความไว
+        let base64String = canvas.toDataURL("image/jpeg", quality);
+        let sizeMB = (base64String.length * 0.75) / (1024 * 1024);
+        while (sizeMB > maxSizeMB && quality > 0.1) {
+          quality -= 0.15;
+          if (quality < 0.1) quality = 0.1;
+          width = Math.round(width * 0.8);
+          height = Math.round(height * 0.8);
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          base64String = canvas.toDataURL("image/jpeg", quality);
+          sizeMB = (base64String.length * 0.75) / (1024 * 1024);
+        }
+        resolve(base64String.split(",")[1]);
+      };
+      img.onerror = reject;
+      img.src = event.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function previewScanImage(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1642,11 +1685,7 @@ async function confirmScanCount() {
     let base64 = "";
     if (hasImage) {
       const file = fileInput.files[0];
-      base64 = await new Promise((resolve) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result.split(",")[1]);
-        r.readAsDataURL(file);
-      });
+      base64 = await compressImageToBase64(file);
     }
 
     // 🚀 Single POST request for everything (Count mark, Location update, Image upload)
@@ -2995,14 +3034,13 @@ function previewManualImage(event) {
   if (!file) return;
   
   const reader = new FileReader();
-  reader.onload = function(e) {
-    // กำจัดส่วนหัว data:image/jpeg;base64, ออกเพื่อให้เหลือแต่ข้อมูล base64 เพียวๆ
-    const base64String = e.target.result.split(',')[1];
-    manualImageBase64 = base64String;
-    
+  reader.onload = async function(e) {
     document.getElementById("manual-image-preview").src = e.target.result;
     document.getElementById("manual-upload-placeholder").classList.add("hidden");
     document.getElementById("manual-preview-container").classList.remove("hidden");
+    
+    // บีบอัดรูปภาพก่อนนำไปอัปโหลดให้มีขนาดไม่เกิน 1.5MB
+    manualImageBase64 = await compressImageToBase64(file);
   };
   reader.readAsDataURL(file);
 }
