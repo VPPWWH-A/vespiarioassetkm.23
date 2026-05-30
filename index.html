@@ -932,9 +932,10 @@ input[type="file"] { display: none; }
       <div class="form-field">
         <label>สถานะ</label>
         <select id="input-status">
-          <option value="Active">ใช้งาน</option>
-          <option value="Inactive">ไม่ใช้งาน</option>
-          <option value="Maintenance">ซ่อมบำรุง</option>
+          <option value="ใช้งานอยู่">ใช้งานอยู่</option>
+          <option value="ไม่ได้ใช้งาน">ไม่ได้ใช้งาน</option>
+          <option value="ชำรุดเสียหาย">ชำรุดเสียหาย</option>
+          <option value="ซ่อมบำรุง">ซ่อมบำรุง</option>
         </select>
       </div>
       <div class="btn-group" style="margin-top:12px;">
@@ -1412,6 +1413,16 @@ input[type="file"] { display: none; }
           </select>
         </div>
       </div>
+      <div class="form-field" style="margin-top:8px;">
+        <label>สถานะ (ถ้าต้องการเปลี่ยน)</label>
+        <select id="scan-update-status">
+          <option value="">ไม่เปลี่ยน</option>
+          <option value="ใช้งานอยู่">ใช้งานอยู่</option>
+          <option value="ไม่ได้ใช้งาน">ไม่ได้ใช้งาน</option>
+          <option value="ชำรุดเสียหาย">ชำรุดเสียหาย</option>
+          <option value="ซ่อมบำรุง">ซ่อมบำรุง</option>
+        </select>
+      </div>
 
       <div style="margin:12px 0 8px; font-size:13px; font-weight:700; color:var(--primary);">📷 แนบรูปภาพ (ถ้าต้องการ)</div>
       <div style="border:1px dashed var(--border);padding:12px;border-radius:8px;text-align:center;">
@@ -1667,6 +1678,7 @@ function showSuccess(data) {
   // Reset update fields
   document.getElementById("scan-update-warehouse").value = "";
   document.getElementById("scan-update-area").innerHTML = '<option value="">ไม่เปลี่ยน</option>';
+  document.getElementById("scan-update-status").value = "";
   document.getElementById("scan-update-image").value = "";
   document.getElementById("scan-img-preview-container").classList.add("hidden");
   document.getElementById("scan-img-placeholder").style.display = "";
@@ -1785,9 +1797,10 @@ async function confirmScanCount() {
 
   const newWarehouse = document.getElementById("scan-update-warehouse").value;
   const newArea = document.getElementById("scan-update-area").value;
+  const newStatus = document.getElementById("scan-update-status").value;
   const fileInput = document.getElementById("scan-update-image");
   const hasImage = fileInput.files && fileInput.files[0];
-  const hasLocationUpdate = newWarehouse || newArea;
+  const hasLocationUpdate = newWarehouse || newArea || newStatus;
 
   try {
     let base64 = "";
@@ -1806,6 +1819,7 @@ async function confirmScanCount() {
       isUnregistered: pendingScanData.isUnregistered === true,
       warehouse: newWarehouse,
       area: newArea,
+      status: newStatus,
       image: base64
     };
 
@@ -1835,7 +1849,7 @@ async function confirmScanCount() {
         newArea || pendingScanData.area || "",
         newWarehouse || pendingScanData.warehouse || "",
         new Date().toISOString(),
-        "Active",
+        newStatus || "ใช้งานอยู่",
         new Date().toISOString(),
         "Unregistered",
         "",
@@ -1856,6 +1870,7 @@ async function confirmScanCount() {
       if (assetIdx > -1) {
         allAssets[assetIdx][7] = new Date().toISOString();
         allAssets[assetIdx][8] = "Count";
+        if (newStatus) allAssets[assetIdx][6] = newStatus;
         if (newArea) allAssets[assetIdx][3] = newArea;
         if (newWarehouse) allAssets[assetIdx][4] = newWarehouse;
         if (imageUrl) allAssets[assetIdx][10] = imageUrl;
