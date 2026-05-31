@@ -556,6 +556,24 @@ body {
 .result-card.success { border-left: 4px solid var(--success); }
 .result-card.warning { border-left: 4px solid var(--warning); }
 .result-card.error   { border-left: 4px solid var(--danger);  }
+.blink-label-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #7f1d1d;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  animation: labelFlash 0.9s step-end infinite;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 8px 20px rgba(127,29,29,0.35);
+}
+@keyframes labelFlash {
+  50% { opacity: 0.15; transform: scale(0.99); }
+}
 
 /* ===== FORM ===== */
 .form-card {
@@ -815,27 +833,25 @@ input[type="file"] { display: none; }
     <div style="padding: 20px; text-align: center; margin-top: 10px;">
       <h2 style="font-size: 28px; font-weight: 900; color: var(--primary); margin-bottom: 24px;">เมนูหลัก (Home)</h2>
       
-      <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div onclick="showPage('handheld')" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: var(--radius); padding: 24px; text-align: center; box-shadow: 0 4px 12px rgba(37,99,235,0.2); cursor: pointer; color: white;">
-          <div style="font-size: 48px; margin-bottom: 8px;">📟</div>
-          <div style="font-size: 20px; font-weight: 800;">1. โหมดสแกนปืน</div>
-          <div style="font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px;">รองรับเครื่องสแกนบาร์โค้ด (Handheld)</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+        <div onclick="showPage('handheld')" style="min-height: 180px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: var(--radius); padding: 20px 16px; text-align: center; box-shadow: 0 4px 12px rgba(37,99,235,0.2); cursor: pointer; color: white; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 42px; margin-bottom: 8px;">📟</div>
+          <div style="font-size: 18px; font-weight: 800;">1. สแกนปืน</div>
         </div>
 
-        <div onclick="showPage('scan')" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: var(--radius); padding: 24px; text-align: center; box-shadow: 0 4px 12px rgba(16,185,129,0.2); cursor: pointer; color: white;">
-          <div style="font-size: 48px; margin-bottom: 8px;">📷</div>
-          <div style="font-size: 20px; font-weight: 800;">2. โหมดกล้องมือถือ</div>
-          <div style="font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px;">ใช้กล้องสมาร์ทโฟนสแกน QR / Barcode</div>
+        <div onclick="showPage('scan')" style="min-height: 180px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: var(--radius); padding: 20px 16px; text-align: center; box-shadow: 0 4px 12px rgba(16,185,129,0.2); cursor: pointer; color: white; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 42px; margin-bottom: 8px;">📷</div>
+          <div style="font-size: 18px; font-weight: 800;">2. โหมดกล้อง</div>
         </div>
 
-        <div onclick="showPage('dashboard')" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: var(--radius); padding: 24px; text-align: center; box-shadow: 0 4px 12px rgba(245,158,11,0.2); cursor: pointer; color: white;">
-          <div style="font-size: 48px; margin-bottom: 8px;">📊</div>
-          <div style="font-size: 20px; font-weight: 800;">3. หน้าข้อมูลสรุป</div>
-          <div style="font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px;">ดูรายการทรัพย์สินและรายงานต่างๆ</div>
+        <div onclick="openManualAddModal()" style="min-height: 180px; background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); border-radius: var(--radius); padding: 20px 16px; text-align: center; box-shadow: 0 4px 12px rgba(180,83,9,0.2); cursor: pointer; color: white; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 42px; margin-bottom: 8px;">⚠️</div>
+          <div style="font-size: 18px; font-weight: 800;">3. สินค้าบาร์โค้ตเสียหาย</div>
         </div>
 
-        <div onclick="refreshCurrentView()" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; box-shadow: var(--shadow); cursor: pointer; color: var(--text-dim); margin-top: 8px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 8px;">
-          <span style="font-size: 20px;">🔄</span> รีเฟรชแอปพลิเคชัน
+        <div onclick="showPage('dashboard')" style="min-height: 180px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: var(--radius); padding: 20px 16px; text-align: center; box-shadow: 0 4px 12px rgba(245,158,11,0.2); cursor: pointer; color: white; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 42px; margin-bottom: 8px;">📊</div>
+          <div style="font-size: 18px; font-weight: 800;">4. หน้าสรุป</div>
         </div>
       </div>
     </div>
@@ -1757,14 +1773,19 @@ let pendingScanData = null;
 function showSuccess(data) {
   pendingScanData = data;
   let statusText = "พบข้อมูลทรัพย์สิน — รอยืนยันการนับ";
-  let badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dbeafe;color:var(--primary);">⏳ รอยืนยันการนับ</span>`;
+  let badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dbeafe;color:var(--primary);">✅ รอยืนยันการนับ</span>`;
+  const hasRealPhoto = !!(data.imageUrl || data.fileUrl || data.photoUrl || data.image);
+  const isDamagedLabel = String(data.assetStatus || data.status || "").includes("ชำรุดเสียหาย") && hasRealPhoto;
 
   if (data.isUnregistered) {
-    statusText = "พบสินค้านอกระบบ (รอการยืนยัน)";
+    statusText = "พบสินค้านอกระบบ (รอยืนยัน)";
     badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#fef9c3;color:#854d0e;">⚠️ สินค้านอกระบบ (NEW)</span>`;
   } else if (isAlreadyCounted(data)) {
     statusText = "พบข้อมูลทรัพย์สิน (นับแล้วในรอบนี้)";
-    badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✓ นับแล้ว (Count)</span>`;
+    badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✅ นับแล้ว (Count)</span>`;
+  } else if (currentPage === "dashboard" && currentPillar === "count" && isDamagedLabel) {
+    statusText = "พบสินค้าที่มีรูปเสียหายจริง";
+    badgeHtml = `<span class="blink-label-warning">⚠️ Label เสียหาย</span>`;
   }
 
   setResult(`
@@ -3331,6 +3352,7 @@ async function submitManualAdd() {
   const zone      = document.getElementById("manual-area").value;
   const status    = document.getElementById("manual-status").value;
   const remarks   = "";
+  let masterAsset = null;
   if (!category) {
     alert("กรุณาเลือกหมวดหมู่ทรัพย์สิน");
     return;
@@ -3348,22 +3370,45 @@ async function submitManualAdd() {
     return;
   }
 
+  if (assetNo) {
+    try {
+      const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: assetNo, nocache: "1" }));
+      const lookupData = await lookupRes.json().catch(() => null);
+      if (lookupData && lookupData.status === "success" && lookupData.found) {
+        masterAsset = lookupData;
+      }
+    } catch (e) {}
+  }
+
   const btn = document.getElementById("btn-manual-submit");
   btn.disabled = true;
   btn.textContent = "⏳ กำลังอัปโหลด...";
 
   try {
-    const payload = {
-      key: API_SECRET,
-      image: manualImageBase64,
-      assetNo: assetNo,
-      assetName: assetName,
-      category: category,
-      warehouse: group, // ส่งโซนหลักไปที่คอลัมน์ Warehouse
-      area: zone,       // ส่งพื้นที่ย่อยไปที่คอลัมน์ Area
-      status: status,
-      remarks: remarks
-    };
+    const payload = masterAsset
+      ? {
+          key: API_SECRET,
+          action: "updateAsset",
+          assetNo: assetNo,
+          assetName: masterAsset.assetName || assetName,
+          warehouse: group,
+          area: zone,
+          status: status,
+          image: manualImageBase64,
+          isScan: true,
+          isUnregistered: false
+        }
+      : {
+          key: API_SECRET,
+          image: manualImageBase64,
+          assetNo: assetNo,
+          assetName: assetName,
+          category: category,
+          warehouse: group, // ส่งโซนหลักไปที่คอลัมน์ Warehouse
+          area: zone,       // ส่งพื้นที่ย่อยไปที่คอลัมน์ Area
+          status: status,
+          remarks: remarks
+        };
 
     // ใช้ API_URL (อันเดียวกับ code.gs ตัวเต็มของคุณ)
     const response = await fetch(API_URL, {
@@ -3373,31 +3418,51 @@ async function submitManualAdd() {
     
     const data = await response.json().catch(() => null);
     
-    if (data && data.status === "success") {
+    if (masterAsset && data && data.status === "success") {
+      const assetInfo = data || masterAsset || {};
       closeManualAddModal();
-      setResult(`
-        <div class="result-card success">
-          <div style="font-size:36px;margin-bottom:8px;">✅</div>
-          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">บันทึกสำเร็จ</div>
-          <div style="font-size:22px;font-weight:800;margin-top:4px;color:var(--success);">${data.tempId}</div>
-        </div>
-      `);
+      showSuccess({
+        assetNo: assetInfo.assetNo || assetNo,
+        assetName: assetInfo.assetName || assetName,
+        category: assetInfo.category || category,
+        area: assetInfo.area || zone,
+        warehouse: assetInfo.warehouse || group,
+        acquisitionDate: assetInfo.acquisitionDate || "",
+        assetStatus: assetInfo.assetStatus || status,
+        lastScan: assetInfo.lastScan || "",
+        lastResult: assetInfo.lastResult || "",
+        isUnregistered: false
+      });
+    } else if (!masterAsset && data && data.status === "success") {
+      const assetInfo = data || {};
+      closeManualAddModal();
+      showSuccess({
+        assetNo: assetInfo.assetNo || assetNo,
+        assetName: assetInfo.assetName || assetName,
+        category: assetInfo.category || category,
+        area: assetInfo.area || zone,
+        warehouse: assetInfo.warehouse || group,
+        acquisitionDate: assetInfo.acquisitionDate || "",
+        assetStatus: assetInfo.assetStatus || status,
+        lastScan: assetInfo.lastScan || "",
+        lastResult: assetInfo.lastResult || "",
+        isUnregistered: true
+      });
       
-      const newUnregRow = [
-        data.tempId, assetName, category, group, zone, remarks, new Date().toISOString(), data.fileUrl || "", "Pending", status
-      ];
-      if (typeof allUnregAssets !== 'undefined') {
-        allUnregAssets.unshift(newUnregRow);
+      if (assetInfo.tempId || data.tempId) {
+        const newUnregRow = [
+          assetInfo.tempId || data.tempId, assetName, category, group, zone, remarks, new Date().toISOString(), assetInfo.fileUrl || data.fileUrl || "", "Pending", status
+        ];
+        if (typeof allUnregAssets !== 'undefined') {
+          allUnregAssets.unshift(newUnregRow);
+        }
       }
-      
-      // ไม่ต้องเปิดหน้าต่างยืนยันเข้า Master (ให้ใช้ในโหมด Unregistered เท่านั้น)
-
     } else {
       alert("❌ บันทึกไม่สำเร็จ: " + (data ? data.message : "ไม่มีข้อความตอบกลับ"));
       btn.disabled = false;
       btn.textContent = "💾 บันทึกและอัปโหลด";
-    }
-  } catch (error) {
+      return;
+    }  } catch (error) {
     alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ: " + error.toString());
     console.error(error);
     btn.disabled = false;
