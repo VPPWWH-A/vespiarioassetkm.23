@@ -1539,8 +1539,8 @@ function isAlreadyCounted(data) {
 }
 
 /** Read-only server lookup: lookup API, or export search if GAS not updated yet. Never uses scan. */
-async function fetchAssetLookup(cleanCode) {
-  const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: cleanCode }));
+async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
+  const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: cleanCode, ...(forceFresh ? { nocache: "1" } : {}) }));
   const lookupData = await lookupRes.json().catch(() => null);
   if (lookupData && lookupData.status === "success") {
     dbgLog('index.html:fetchAssetLookup', 'lookup ok', { cleanCode, found: !!lookupData.found, via: 'lookup' }, 'H1');
@@ -1578,6 +1578,22 @@ async function fetchAssetLookup(cleanCode) {
   };
 }
 
+
+
+async function fetchAssetLookupWithTimeout(cleanCode, timeoutMs = 1200) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: cleanCode, nocache: "1" }), { signal: controller.signal });
+    const lookupData = await lookupRes.json().catch(() => null);
+    if (lookupData && lookupData.status === "success") return lookupData;
+    return null;
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 let html5QrCode = null, isScanning = false, isProcessing = false;
 let currentAssetNo = "", currentTab = "all", allAssets = [], exportHeaders = [];
 let allUnregAssets = [], exportUnregHeaders = [];
@@ -1982,21 +1998,27 @@ async function onScanSuccess(decodedText, isHandheld = false) {
   
   // 🚀 Instant Local Search (Performance Optimization)
   const localMatch = allAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode);
+  const liveLookupPromise = localMatch ? fetchAssetLookupWithTimeout(cleanCode, isHandheld ? 900 : 1200) : Promise.resolve(null);
   
   if (localMatch) {
+    const liveLookup = await liveLookupPromise;
+    const chosen = (liveLookup && liveLookup.status === "success" && liveLookup.found) ? liveLookup : null;
+    const liveLastResult = chosen ? chosen.lastResult : localMatch[8];
+    const liveLastScan = chosen ? chosen.lastScan : localMatch[7];
     // #region agent log
-    dbgLog('index.html:onScanSuccess:local', 'local cache hit', { cleanCode, lastResult: localMatch[8], lastScan: localMatch[7] }, 'H2');
+    dbgLog('index.html:onScanSuccess:local', 'local cache hit', { cleanCode, lastResult: liveLastResult, lastScan: liveLastScan, liveFresh: !!chosen }, 'H2');
     // #endregion
     const data = {
-      assetNo: localMatch[0],
-      assetName: localMatch[1],
-      category: localMatch[2],
-      area: localMatch[3],
-      warehouse: localMatch[4],
-      acquisitionDate: localMatch[5],
-      assetStatus: localMatch[6],
-      lastResult: localMatch[8],
-      lastScan: localMatch[7]
+      assetNo: chosen ? chosen.assetNo : localMatch[0],
+      assetName: chosen ? chosen.assetName : localMatch[1],
+      category: chosen ? chosen.category : localMatch[2],
+      area: chosen ? chosen.area : localMatch[3],
+      warehouse: chosen ? chosen.warehouse : localMatch[4],
+      acquisitionDate: chosen ? chosen.acquisitionDate : localMatch[5],
+      assetStatus: chosen ? chosen.assetStatus : localMatch[6],
+      lastResult: liveLastResult,
+      lastScan: liveLastScan,
+      isUnregistered: !!(chosen && chosen.isUnregistered)
     };
     showSuccess(data);
     
