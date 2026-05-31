@@ -1796,6 +1796,19 @@ function closeScanConfirmModal() {
       const hhInput = document.getElementById("handheld-input");
       if (hhInput) hhInput.focus();
     }, 100);
+  } else if (currentPage === "scan" && html5QrCode && isScanning) {
+    setTimeout(() => {
+      try { html5QrCode.resume(); } catch(e) {}
+    }, 150);
+  }
+}
+
+function resumeScannerAfterAction() {
+  isProcessing = false;
+  if (currentPage === "scan" && html5QrCode && isScanning) {
+    setTimeout(() => {
+      try { html5QrCode.resume(); } catch(e) {}
+    }, 150);
   }
 }
 
@@ -1977,6 +1990,7 @@ async function confirmScanCount() {
     }
 
     closeScanConfirmModal();
+    resumeScannerAfterAction();
     setResult(`
       <div class="result-card success">
         <div style="font-size:36px;margin-bottom:8px;">✅</div>
@@ -1990,6 +2004,7 @@ async function confirmScanCount() {
     alert("Error: " + err.message);
     btn.disabled = false;
     btn.innerHTML = "✅ ยืนยันนับสต๊อก";
+    resumeScannerAfterAction();
   }
 }
 
