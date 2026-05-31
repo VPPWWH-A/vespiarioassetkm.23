@@ -2094,6 +2094,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
     const chosen = (liveLookup && liveLookup.status === "success" && liveLookup.found) ? liveLookup : null;
     const liveLastResult = chosen ? chosen.lastResult : localMatch[8];
     const liveLastScan = chosen ? chosen.lastScan : localMatch[7];
+    const isUnregisteredRow = !!(chosen && chosen.isUnregistered);
     // #region agent log
     dbgLog('index.html:onScanSuccess:local', 'local cache hit', { cleanCode, lastResult: liveLastResult, lastScan: liveLastScan, liveFresh: !!chosen }, 'H2');
     // #endregion
@@ -2107,9 +2108,20 @@ async function onScanSuccess(decodedText, isHandheld = false) {
       assetStatus: chosen ? chosen.assetStatus : localMatch[6],
       lastResult: liveLastResult,
       lastScan: liveLastScan,
-      isUnregistered: !!(chosen && chosen.isUnregistered)
+      isUnregistered: isUnregisteredRow
     };
-    showSuccess(data);
+    if (isUnregisteredRow) {
+      showUnregExistsModal({
+        assetNo: data.assetNo,
+        assetName: data.assetName,
+        category: data.category,
+        warehouse: data.warehouse,
+        area: data.area,
+        remark: chosen ? (chosen.remark || "") : ""
+      });
+    } else {
+      showSuccess(data);
+    }
     
     // Note: We keep a delay before resuming scanner to prevent double scans
     setTimeout(async () => {
@@ -2141,13 +2153,13 @@ async function onScanSuccess(decodedText, isHandheld = false) {
       const data = await fetchAssetLookup(cleanCode);
       if (data && data.status === "success" && data.found) {
         if (data.isUnregistered) {
-          showSuccess({
+          showUnregExistsModal({
             assetNo: data.assetNo,
             assetName: data.assetName,
             category: data.category,
             warehouse: data.warehouse,
             area: data.area,
-            isUnregistered: true
+            remark: data.remark || ""
           });
         } else {
           const newAssetRow = [
