@@ -1645,6 +1645,12 @@ let currentWarehouse = "all";
 function showPage(page) {
   currentPage = page;
   localStorage.setItem("lastActivePage", page); // บันทึกหน้าล่าสุด
+
+  if (page === "home") {
+    closeScanConfirmModal();
+    try { stopScanner(); } catch (e) {}
+  }
+
   document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
   document.getElementById("page-" + page).classList.remove("hidden");
   
