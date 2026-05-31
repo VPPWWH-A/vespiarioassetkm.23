@@ -1772,6 +1772,16 @@ function escHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+function yieldToUI() {
+  return new Promise(resolve => {
+    if (window.requestAnimationFrame) {
+      requestAnimationFrame(() => setTimeout(resolve, 0));
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
 let pendingScanData = null;
 
 function showStockCountModal(data) {
@@ -1951,6 +1961,7 @@ async function confirmScanCount() {
   const hasLocationUpdate = newWarehouse || newArea || newStatus;
 
   try {
+    await yieldToUI();
     let base64 = "";
     if (hasImage) {
       const file = fileInput.files[0];
@@ -2366,6 +2377,7 @@ async function submitAdd() {
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "⏳ กำลังบันทึก..."; }
 
   const savedNo = currentAssetNo;
+  await yieldToUI();
 
   // Reset form
   document.getElementById("input-name").value      = "";
@@ -3404,6 +3416,7 @@ async function submitManualAdd() {
   btn.textContent = "⏳ กำลังอัปโหลด...";
 
   try {
+    await yieldToUI();
     const payload = masterAsset
       ? {
           key: API_SECRET,
