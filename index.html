@@ -2030,6 +2030,26 @@ function previewScanImage(event) {
 
 function updateScanZones() { updateZones('scan-update-warehouse', 'scan-update-area'); }
 
+async function uploadScanImageInBackground(file, meta) {
+  if (!file || !meta || !meta.requestId || !meta.assetNo) return;
+  try {
+    const base64 = await compressImageToBase64(file);
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        key: API_SECRET,
+        action: "uploadScanImage",
+        requestId: meta.requestId,
+        assetNo: meta.assetNo,
+        assetName: meta.assetName || "",
+        image: base64
+      })
+    });
+  } catch (e) {
+    console.warn("Background image upload failed", e);
+  }
+}
+
 async function confirmScanCount() {
   if (!pendingScanData) return;
   const requestId = "REQ-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -2045,15 +2065,11 @@ async function confirmScanCount() {
   const newStatus = document.getElementById("scan-update-status").value;
   const fileInput = document.getElementById("scan-update-image");
   const hasImage = fileInput.files && fileInput.files[0];
+  const imageFile = hasImage ? fileInput.files[0] : null;
   const hasLocationUpdate = newWarehouse || newArea || newStatus;
 
   try {
     await yieldToUI();
-    let base64 = "";
-    if (hasImage) {
-      const file = fileInput.files[0];
-      base64 = await compressImageToBase64(file);
-    }
 
     // 🚀 Single POST request for everything (Count mark, Location update, Image upload)
     const payload = {
@@ -2068,7 +2084,8 @@ async function confirmScanCount() {
       warehouse: newWarehouse,
       area: newArea,
       status: newStatus,
-      image: base64
+      image: "",
+      hasDeferredImage: !!imageFile
     };
 
     const uploadRes = await fetch(API_URL, {
@@ -2129,6 +2146,13 @@ async function confirmScanCount() {
 
     closeScanConfirmModal();
     resumeScannerAfterAction();
+    if (imageFile) {
+      uploadScanImageInBackground(imageFile, {
+        requestId: responseRequestId,
+        assetNo: pendingScanData.assetNo,
+        assetName: pendingScanData.assetName || ""
+      });
+    }
     setResult(`
       <div class="result-card success">
         <div style="font-size:36px;margin-bottom:8px;">✅</div>
@@ -2137,7 +2161,7 @@ async function confirmScanCount() {
         <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(pendingScanData.assetName)}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Ref: ${escHtml(responseRequestId)}${escHtml(durationText)}</div>
         ${hasLocationUpdate ? '<div style="font-size:12px;color:var(--primary);margin-top:6px;">📍 อัปเดตตำแหน่งแล้ว</div>' : ''}
-        ${imageUrl ? '<div style="font-size:12px;color:var(--primary);margin-top:4px;">📷 อัปโหลดรูปแล้ว</div>' : ''}
+        ${imageFile ? '<div style="font-size:12px;color:var(--primary);margin-top:4px;">📷 กำลังอัปโหลดรูปตามหลัง</div>' : ''}
       </div>`);
   } catch (err) {
     alert("Error: " + err.message);
