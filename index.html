@@ -1995,6 +1995,7 @@ function updateScanZones() { updateZones('scan-update-warehouse', 'scan-update-a
 
 async function confirmScanCount() {
   if (!pendingScanData) return;
+  const requestId = "REQ-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
   // #region agent log
   dbgLog('index.html:confirmScanCount:entry', 'confirm scan', { assetNo: pendingScanData.assetNo, isUnregistered: !!pendingScanData.isUnregistered }, 'H1-H4');
   // #endregion
@@ -2021,6 +2022,8 @@ async function confirmScanCount() {
     const payload = {
       key: API_SECRET,
       action: "updateAsset",
+      requestId: requestId,
+      clientSentAt: new Date().toISOString(),
       assetNo: pendingScanData.assetNo,
       assetName: pendingScanData.assetName || "",
       isScan: true,
@@ -2045,6 +2048,8 @@ async function confirmScanCount() {
     }
 
     const imageUrl = uploadData.imageUrl || "";
+    const responseRequestId = uploadData.requestId || requestId;
+    const durationText = uploadData.durationMs ? ` (${Math.round(uploadData.durationMs / 1000)}s)` : "";
 
     // Update local data so UI reflects changes immediately
     if (pendingScanData.isUnregistered) {
@@ -2093,6 +2098,7 @@ async function confirmScanCount() {
         <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">นับสต๊อกสำเร็จ</div>
         <div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(pendingScanData.assetNo)}</div>
         <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(pendingScanData.assetName)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Ref: ${escHtml(responseRequestId)}${escHtml(durationText)}</div>
         ${hasLocationUpdate ? '<div style="font-size:12px;color:var(--primary);margin-top:6px;">📍 อัปเดตตำแหน่งแล้ว</div>' : ''}
         ${imageUrl ? '<div style="font-size:12px;color:var(--primary);margin-top:4px;">📷 อัปโหลดรูปแล้ว</div>' : ''}
       </div>`);
