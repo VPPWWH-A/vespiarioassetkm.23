@@ -1532,7 +1532,11 @@ window.addEventListener('beforeinstallprompt', (e) => {
   deferredPrompt = e;
 });
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed: ', err));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('ServiceWorker registered!', reg))
+      .catch(err => console.log('ServiceWorker failed:', err));
+  });
 }
 
 // ============================================================
@@ -1551,8 +1555,10 @@ function apiUrl(params) {
   return url.toString();
 }
 
-// #region agent log
+const DEBUG_LOG_ENABLED = false;
+
 function dbgLog(location, message, data, hypothesisId, runId) {
+  if (!DEBUG_LOG_ENABLED) return;
   const entry = { sessionId: '730ebd', location, message, data, timestamp: Date.now(), hypothesisId, runId: runId || 'post-fix' };
   try {
     const k = '__debug_730ebd';
@@ -1561,9 +1567,7 @@ function dbgLog(location, message, data, hypothesisId, runId) {
     if (arr.length > 80) arr.shift();
     sessionStorage.setItem(k, JSON.stringify(arr));
   } catch (e) {}
-  fetch('http://127.0.0.1:7593/ingest/c5d61986-e57e-424b-a37c-105524717e6f', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '730ebd' }, body: JSON.stringify(entry) }).catch(() => {});
 }
-// #endregion
 
 function isAlreadyCounted(data) {
   if (data.isUnregistered) return false;
@@ -1629,46 +1633,74 @@ async function fetchAssetLookupWithTimeout(cleanCode, timeoutMs = 1200) {
 }
 
 async function refreshCurrentView() {
-  const btn = document.getElementById("refresh-btn");
-  if (btn) btn.classList.add("spinning");
-
-  try {
-    const resp = await fetch(apiUrl({ action: "export", nocache: "1" })).catch(() => null);
-    const data = resp ? await resp.json().catch(() => null) : null;
-    if (data && data.status === "ok" && Array.isArray(data.assets)) {
-      exportHeaders = data.headers || [];
-      exportUnregHeaders = data.unregHeaders || [];
-      allAssets = [...data.assets].sort((a, b) => {
-        const da = a[7] ? new Date(a[7]).getTime() : 0;
-        const db = b[7] ? new Date(b[7]).getTime() : 0;
-        return db - da;
-      });
-      allUnregAssets = [...(data.unregAssets || [])].sort((a, b) => {
-        const da = a[6] ? new Date(a[6]).getTime() : 0;
-        const db = b[6] ? new Date(b[6]).getTime() : 0;
-        return db - da;
-      });
-
-      if (currentPage === "dashboard") {
-        renderTable(allAssets);
-      } else if (currentPage === "home") {
-        renderTable(allAssets);
-        renderUnregTable();
-      } else if (currentPillar === "count") {
-        renderTable(allAssets);
-      } else {
-        renderUnregTable();
-      }
-
-      await loadDashboard(true, true);
-
-      if (currentPage === "scan" && html5QrCode && isScanning && !isProcessing) {
-        try { await html5QrCode.resume(); } catch (e) {}
-      }
-    }
-  } finally {
-    if (btn) btn.classList.remove("spinning");
+  await loadDashboard(true, true);
+  if (currentPage === "scan" && html5QrCode && isScanning && !isProcessing) {
+    try { await html5QrCode.resume(); } catch (e) {}
   }
+}
+
+let isDashboardLoading = false;
+
+function applyExportData(data2) {
+  exportHeaders = data2.headers || [];
+  exportUnregHeaders = data2.unregHeaders || [];
+  allUnregAssets = [...(data2.unregAssets || [])].sort((a, b) => {
+    const da = a[6] ? new Date(a[6]).getTime() : 0;
+    const db = b[6] ? new Date(b[6]).getTime() : 0;
+    return db - da;
+  });
+  
+  const unregEl = document.getElementById("dash-pillar-unreg");
+  if (unregEl) unregEl.textContent = allUnregAssets.length.toLocaleString();
+
+  allAssets = [...data2.assets].sort((a, b) => {
+    const da = a[7] ? new Date(a[7]).getTime() : 0;
+    const db = b[7] ? new Date(b[7]).getTime() : 0;
+    return db - da;
+  });
+  
+  if (currentPillar === 'count') {
+    renderTable(allAssets);
+  } else {
+    renderUnregTable();
+  }
+  document.getElementById("dash-total").textContent = data2.total.toLocaleString();
+
+  // --- Calculate Dashboard Summary on Frontend ---
+  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const d = new Date();
+  const currentMonthName = "เช็ค " + months[d.getMonth()] + " " + d.getFullYear();
+  
+  let currentMonthIndex = exportHeaders.indexOf(currentMonthName);
+  if (currentMonthIndex === -1) currentMonthIndex = exportHeaders.length; // fallback
+  
+  let checkedCount = 0;
+  allAssets.forEach(row => {
+    if (row[currentMonthIndex] === "Count" || row[currentMonthIndex] === "Checked") checkedCount++;
+  });
+  
+  const totalAssets = data2.total;
+  document.getElementById("dash-checked").textContent = checkedCount.toLocaleString();
+  
+  const pending = Math.max(0, totalAssets - checkedCount);
+  const pendingEl = document.getElementById("dash-pending");
+  if (pendingEl) pendingEl.textContent = pending.toLocaleString();
+  
+  if (totalAssets > 0) {
+    let checkedPct = Math.round((checkedCount / totalAssets) * 100);
+    if (checkedPct > 100) checkedPct = 100;
+    let pendingPct = Math.round((pending / totalAssets) * 100);
+    if (pendingPct < 0) pendingPct = 0;
+    
+    document.getElementById("dash-pct-checked").textContent = checkedPct + "%";
+    document.getElementById("dash-pct-pending").textContent = pendingPct + "%";
+    document.getElementById("dash-progress-bar").style.width = checkedPct + "%";
+  } else {
+    document.getElementById("dash-pct-checked").textContent = "0%";
+    document.getElementById("dash-pct-pending").textContent = "0%";
+    document.getElementById("dash-progress-bar").style.width = "0%";
+  }
+  document.getElementById("dash-month-label").textContent = currentMonthName;
 }
 let html5QrCode = null, isScanning = false, isProcessing = false;
 let currentAssetNo = "", currentTab = "all", allAssets = [], exportHeaders = [];
@@ -1678,6 +1710,11 @@ let currentWarehouse = "all";
 
 // ==================== NAVIGATION ====================
 function showPage(page) {
+  if (page === "dashboard") {
+    window.location.href = "dashboard.html";
+    return;
+  }
+
   currentPage = page;
   localStorage.setItem("lastActivePage", page); // บันทึกหน้าล่าสุด
 
@@ -2911,6 +2948,8 @@ function clearDateFilter() {
 }
 
 async function loadDashboard(isSilent = false, forceClearCache = false) {
+  if (isDashboardLoading) return;
+  isDashboardLoading = true;
   // Spinning refresh button
   const btn = document.getElementById("refresh-btn");
   if (btn) btn.classList.add("spinning");
@@ -2930,65 +2969,7 @@ async function loadDashboard(isSilent = false, forceClearCache = false) {
     if (resp2) {
       const data2 = await resp2.json().catch(() => null);
       if (data2 && data2.status === "ok" && Array.isArray(data2.assets)) {
-        exportHeaders = data2.headers || [];
-        exportUnregHeaders = data2.unregHeaders || [];
-        allUnregAssets = [...(data2.unregAssets || [])].sort((a, b) => {
-          const da = a[6] ? new Date(a[6]).getTime() : 0;
-          const db = b[6] ? new Date(b[6]).getTime() : 0;
-          return db - da;
-        });
-        
-        const unregEl = document.getElementById("dash-pillar-unreg");
-        if (unregEl) unregEl.textContent = allUnregAssets.length.toLocaleString();
-
-        allAssets = [...data2.assets].sort((a, b) => {
-          const da = a[7] ? new Date(a[7]).getTime() : 0;
-          const db = b[7] ? new Date(b[7]).getTime() : 0;
-          return db - da;
-        });
-        
-        if (currentPillar === 'count') {
-          renderTable(allAssets);
-        } else {
-          renderUnregTable();
-        }
-        document.getElementById("dash-total").textContent = data2.total.toLocaleString();
-
-        // --- Calculate Dashboard Summary on Frontend ---
-        const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-        const d = new Date();
-        const currentMonthName = "เช็ค " + months[d.getMonth()] + " " + d.getFullYear();
-        
-        let currentMonthIndex = exportHeaders.indexOf(currentMonthName);
-        if (currentMonthIndex === -1) currentMonthIndex = exportHeaders.length; // fallback
-        
-        let checkedCount = 0;
-        allAssets.forEach(row => {
-          if (row[currentMonthIndex] === "Count" || row[currentMonthIndex] === "Checked") checkedCount++;
-        });
-        
-        const totalAssets = data2.total;
-        document.getElementById("dash-checked").textContent = checkedCount.toLocaleString();
-        
-        const pending = Math.max(0, totalAssets - checkedCount);
-        const pendingEl = document.getElementById("dash-pending");
-        if (pendingEl) pendingEl.textContent = pending.toLocaleString();
-        
-        if (totalAssets > 0) {
-          let checkedPct = Math.round((checkedCount / totalAssets) * 100);
-          if (checkedPct > 100) checkedPct = 100;
-          let pendingPct = Math.round((pending / totalAssets) * 100);
-          if (pendingPct < 0) pendingPct = 0;
-          
-          document.getElementById("dash-pct-checked").textContent = checkedPct + "%";
-          document.getElementById("dash-pct-pending").textContent = pendingPct + "%";
-          document.getElementById("dash-progress-bar").style.width = checkedPct + "%";
-        } else {
-          document.getElementById("dash-pct-checked").textContent = "0%";
-          document.getElementById("dash-pct-pending").textContent = "0%";
-          document.getElementById("dash-progress-bar").style.width = "0%";
-        }
-        document.getElementById("dash-month-label").textContent = currentMonthName;
+        applyExportData(data2);
       }
     }
   } catch(err) {
@@ -2996,16 +2977,17 @@ async function loadDashboard(isSilent = false, forceClearCache = false) {
     document.getElementById("table-body").innerHTML =
       `<div style="padding:32px;text-align:center;color:var(--danger);">โหลดข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>`;
   } finally {
+    isDashboardLoading = false;
     if (btn) btn.classList.remove("spinning");
   }
 }
 
-// Auto-Refresh Real-Time Dashboard (Every 30 Seconds)
+// Auto-refresh dashboard only while the tab is visible, and at a calmer interval.
 setInterval(() => {
-  if (currentPage === "dashboard") {
+  if (currentPage === "dashboard" && !document.hidden) {
     loadDashboard(true);
   }
-}, 30000);
+}, 180000);
 
 // ==================== MODAL ====================
 let currentModalAssetNo = "";
@@ -3571,7 +3553,8 @@ const lastPage = localStorage.getItem("lastActivePage") || "home";
 showPage(lastPage);
 
 // 🚀 โหลดข้อมูลทั้งหมดเก็บไว้ในเครื่องเบื้องหลังทันทีที่เปิดแอป (Silent Background Load)
-loadDashboard(true);
+// ปิดไว้หลังแยก dashboard ออกเป็นหน้าเฉพาะ เพื่อลดการ export ทั้งชีตจากผู้ใช้หน้างาน
+// loadDashboard(true);
 
 setTimeout(() => {
   if (currentPage === "handheld") {
@@ -3629,14 +3612,6 @@ document.getElementById('handheld-input').addEventListener('keydown', function(e
 
 });
 
-// ==================== PWA SERVICE WORKER REGISTRATION ====================
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('ServiceWorker registered!', reg))
-      .catch(err => console.log('ServiceWorker failed:', err));
-  });
-}
 </script>
 </body>
 </html>
