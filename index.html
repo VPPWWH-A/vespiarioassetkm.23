@@ -2560,9 +2560,9 @@ async function onScanSuccess(decodedText, isHandheld = false) {
     if (state === "done" || state === "received" || state === "processing") {
       showScanStatusNotice(cleanCode, scanStatus);
       setTimeout(async () => {
-        isProcessing = false;
-        if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
-      }, isHandheld ? 100 : 1400);
+          isProcessing = false;
+          if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
+        }, isHandheld ? 50 : 800);
       return;
     }
   }
@@ -2609,7 +2609,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
     setTimeout(async () => {
       isProcessing = false;
       if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
-    }, isHandheld ? 100 : 1500);
+    }, isHandheld ? 50 : 800);
   } else {
     // Check if it exists in Unregistered assets first
     if (allUnregAssets) {
@@ -2680,7 +2680,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
       setTimeout(async () => {
         isProcessing = false;
         if (html5QrCode && isScanning) { try { await html5QrCode.resume(); } catch(e){} }
-      }, 1500);
+      }, 800);
     }
   }
 }
@@ -2733,14 +2733,15 @@ async function startScanner() {
       Html5QrcodeSupportedFormats.CODE_39
     ];
     const config = {
-      fps: 15,
+      fps: 30,
       qrbox(viewfinderWidth, viewfinderHeight) {
-        const width = Math.floor(viewfinderWidth * 0.92);
-        const height = Math.min(Math.floor(viewfinderHeight * 0.42), 260);
-        return { width, height: Math.max(height, 180) };
+        const width = Math.floor(viewfinderWidth * 0.95);
+        const height = Math.floor(viewfinderHeight * 0.85);
+        return { width, height };
       },
       formatsToSupport: formats,
-      disableFlip: true
+      disableFlip: true,
+      videoConstraints: { focusMode: "continuous" }
     };
 
     let didStart = false;
@@ -2756,7 +2757,7 @@ async function startScanner() {
     if (!didStart && cameras.length > 0) {
       try {
         try { await html5QrCode.clear(); } catch(ce){}
-        html5QrCode = new Html5Qrcode("reader", { experimentalFeatures: { useBarCodeDetectorIfSupported: true }, verbose: false });
+        html5QrCode = new Html5Qrcode("reader", { experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
         let backCam = cameras.find(c => /back|rear|environment|หลัง/i.test(c.label));
         let selectedCam = backCam || cameras[cameras.length - 1];
         await html5QrCode.start({ deviceId: { exact: selectedCam.id } }, config, onScanSuccess, () => {});
@@ -2768,7 +2769,7 @@ async function startScanner() {
     if (!didStart) {
       try {
         try { await html5QrCode.clear(); } catch(ce){}
-        html5QrCode = new Html5Qrcode("reader", { experimentalFeatures: { useBarCodeDetectorIfSupported: true }, verbose: false });
+        html5QrCode = new Html5Qrcode("reader", { experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
         await html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, () => {});
         didStart = true;
       } catch (e3) {}
@@ -4086,3 +4087,9 @@ document.getElementById('handheld-input').addEventListener('keydown', function(e
 </script>
 </body>
 </html>
+
+
+
+
+
+
