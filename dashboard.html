@@ -814,7 +814,7 @@ function apiUrl(params) {
   return url.toString();
 }
 
-function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, { ...options, signal: controller.signal })
@@ -867,7 +867,7 @@ async function submitApproveLogin() {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner-sm"></span> กำลังตรวจสอบ...`;
   try {
-    const res = await fetchWithTimeout(apiUrl({ action: "approveLogin", user, pass }), {}, 8000);
+    const res = await fetchWithTimeout(apiUrl({ action: "approveLogin", user, pass }), {}, 15000);
     const d = await res.json().catch(() => null);
     if (!d || typeof d !== 'object' || d.status !== "success") {
       throw new Error(d ? d.message : "❌ เข้าสู่ระบบไม่สำเร็จ");
@@ -922,8 +922,8 @@ async function loadDashboard() {
 
   try {
     const [r1, r2] = await Promise.all([
-      fetchWithTimeout(apiUrl({ action: "dashboard" }), {}, 8000).then(res => res.json()).catch(() => null),
-      fetchWithTimeout(apiUrl({ action: "export" }), {}, 10000).then(res => res.json()).catch(() => null)
+      fetchWithTimeout(apiUrl({ action: "dashboard" }), {}, 15000).then(res => res.json()).catch(() => null),
+      fetchWithTimeout(apiUrl({ action: "export" }), {}, 25000).then(res => res.json()).catch(() => null)
     ]);
     
     if(r1 && r1.summary) {
@@ -1144,7 +1144,7 @@ async function confirmUnreg(id, btn) {
     btn.innerHTML = `<span class="spinner-sm" style="border-top-color:#ffffff; margin-right:4px;"></span> อนุมัติ...`;
   }
   try {
-    const res = await fetchWithTimeout(apiUrl({ action: "confirmUnregSecure", tempId: id, user: approveAuth.user, pass: approveAuth.pass }), {}, 8000);
+    const res = await fetchWithTimeout(apiUrl({ action: "confirmUnregSecure", tempId: id, user: approveAuth.user, pass: approveAuth.pass }), {}, 18000);
     const d = await res.json().catch(() => null);
     if(d && d.status === "success") { 
       alert("✅ อนุมัติเรียบร้อย!"); 
@@ -1176,7 +1176,7 @@ async function confirmAllUnreg(btn) {
     btn.innerHTML = `<span class="spinner-sm" style="border-top-color:#ffffff; margin-right:4px;"></span> กำลังอนุมัติ...`;
   }
   try {
-    const res = await fetchWithTimeout(apiUrl({ action: "confirmAllUnreg", user: approveAuth.user, pass: approveAuth.pass }), {}, 10000);
+    const res = await fetchWithTimeout(apiUrl({ action: "confirmAllUnreg", user: approveAuth.user, pass: approveAuth.pass }), {}, 25000);
     const d = await res.json().catch(() => null);
     if(d && d.status === "success") { 
       alert("✅ อนุมัติทั้งหมดสำเร็จ! (" + d.addedCount + " รายการ)"); 
@@ -1621,7 +1621,7 @@ async function submitManualAdd() {
     const response = await fetchWithTimeout(API_URL, {
       method: "POST",
       body: JSON.stringify(payload)
-    }, 12000);
+    }, 25000);
     
     const data = await response.json().catch(() => null);
     

@@ -2624,56 +2624,83 @@ async function startScanner() {
 
   if (isScanning) return;
   const reader = document.getElementById("reader");
-  reader.innerHTML = `<div style="padding:30px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-size:13px;color:var(--text-muted);">กำลังเปิดกล้อง...</div></div>`;
+  reader.innerHTML = `<div style="padding:30px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-size:13px;color:var(--text-muted);">กำลังขออนุญาตเปิดกล้อง...</div></div>`;
 
   try {
-    html5QrCode = new Html5Qrcode("reader", { verbose: false });
+    let cameras = [];
+    try {
+      // จำเป็นต้องเรียกเพื่อขอสิทธิ์กล้องจากผู้ใช้ก่อน
+      cameras = await Html5Qrcode.getCameras();
+    } catch (permErr) {
+      throw new Error("NotAllowedError: " + String(permErr));
+    }
+
+    if (!cameras || cameras.length === 0) {
+      throw new Error("ไม่พบกล้องบนอุปกรณ์นี้");
+    }
+
+    // ใส่ป้ายสถานะ Fast Scan / Standard Scan
+    const badgeHtml = isNativeSupported 
+      ? `<div style="position: absolute; top: 12px; left: 12px; background: rgba(5, 150, 105, 0.9); color: white; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">⚡ FAST SCAN ACTIVE</div>` 
+      : `<div style="position: absolute; top: 12px; left: 12px; background: rgba(71, 85, 105, 0.9); color: white; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; z-index: 10;">📷 STANDARD SCAN</div>`;
+
+    // วาดกรอบสี่เหลี่ยมก่อนสร้าง Scanner
+    reader.innerHTML = badgeHtml + `<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
+
+    html5QrCode = new Html5Qrcode("reader", { 
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false 
+    });
+
     const formats = [
       Html5QrcodeSupportedFormats.QR_CODE,
-      Html5QrcodeSupportedFormats.CODE_128
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39
     ];
     const config = {
-      fps: 30,
+      fps: 15,
       qrbox(viewfinderWidth, viewfinderHeight) {
-        const width = Math.floor(viewfinderWidth * 0.70);
-        const height = Math.min(Math.floor(viewfinderHeight * 0.30), 200);
-        return { width, height: Math.max(height, 140) };
+        const width = Math.floor(viewfinderWidth * 0.92);
+        const height = Math.min(Math.floor(viewfinderHeight * 0.42), 260);
+        return { width, height: Math.max(height, 180) };
       },
       formatsToSupport: formats,
-      disableFlip: true,
-      useBarCodeDetectorIfSupported: true
+      disableFlip: true
     };
-
-    reader.innerHTML = `<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
 
     let didStart = false;
 
-    // Try with cached camera first
-    if (cachedCameraId) {
-      try {
-        const cameraConstraints = {
-          deviceId: { exact: cachedCameraId }
-        };
-        await html5QrCode.start(cameraConstraints, config, onScanSuccess, () => {});
-        didStart = true;
-      } catch (e) {
-        cachedCameraId = null;
-      }
-    }
-
-    // If cache failed or empty, use facingMode
     if (!didStart) {
       try {
-        const fallbackConstraints = {
-          facingMode: "environment"
-        };
-        await html5QrCode.start(fallbackConstraints, config, onScanSuccess, () => {});
+        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
         didStart = true;
-      } catch (error) {
-        cachedCameraId = null;
-        // Last resort: generic constraints
-        await html5QrCode.start({ facingMode: { ideal: "environment" } }, config, onScanSuccess, () => {});
-      }
+      } catch (e1) {}
+    }
+
+    // ลองบังคับเลือกกล้องหลังโดยตรง ถ้าระบบ Auto ทำงานไม่ได้
+    if (!didStart && cameras.length > 0) {
+      try {
+        try { await html5QrCode.clear(); } catch(ce){}
+        html5QrCode = new Html5Qrcode("reader", { experimentalFeatures: { useBarCodeDetectorIfSupported: true }, verbose: false });
+        let backCam = cameras.find(c => /back|rear|environment|หลัง/i.test(c.label));
+        let selectedCam = backCam || cameras[cameras.length - 1];
+        await html5QrCode.start({ deviceId: { exact: selectedCam.id } }, config, onScanSuccess, () => {});
+        didStart = true;
+      } catch (e2) {}
+    }
+
+    // ทางเลือกสุดท้าย: ใช้กล้องหน้าเผื่อเทสในคอมพิวเตอร์
+    if (!didStart) {
+      try {
+        try { await html5QrCode.clear(); } catch(ce){}
+        html5QrCode = new Html5Qrcode("reader", { experimentalFeatures: { useBarCodeDetectorIfSupported: true }, verbose: false });
+        await html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, () => {});
+        didStart = true;
+      } catch (e3) {}
+    }
+
+    if (!didStart) {
+      throw new Error("ไม่สามารถเปิดกล้องได้ในทุกโหมด — กรุณาตรวจสอบสิทธิ์กล้องและลองอีกครั้ง");
     }
 
     isScanning = true;
