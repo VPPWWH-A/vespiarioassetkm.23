@@ -1342,10 +1342,6 @@ input[type="file"] { display: none; }
         <input type="text" id="manual-asset-no" placeholder="เช่น OFF00123 หรือเว้นว่างให้ระบบสร้างรหัสชั่วคราว">
       </div>
       <div class="form-field">
-        <label>ชื่อทรัพย์สิน / โมเดล <span class="req">*</span></label>
-        <input type="text" id="manual-name" placeholder="เช่น เก้าอี้สำนักงานสีดำ">
-      </div>
-      <div class="form-field">
         <label>หมวดหมู่ทรัพย์สิน <span class="req">*</span></label>
         <select id="manual-category">
           <option value="">เลือก</option>
@@ -3789,7 +3785,6 @@ function closeManualAddModal() {
   document.body.style.overflow = "";
   // Reset form
   document.getElementById("manual-asset-no").value = "";
-  document.getElementById("manual-name").value = "";
   document.getElementById("manual-category").value = "";
   document.getElementById("manual-image").value = "";
   manualImageCompressToken++;
@@ -3841,7 +3836,7 @@ function previewManualImage(event) {
 
 async function submitManualAdd() {
   const assetNo   = document.getElementById("manual-asset-no").value.trim();
-  const assetName = document.getElementById("manual-name").value.trim();
+  const assetName = "-";
   const category  = document.getElementById("manual-category").value;
   const group     = document.getElementById("manual-loc-group").value;
   const zone      = document.getElementById("manual-area").value;
@@ -3849,10 +3844,6 @@ async function submitManualAdd() {
   const remarks   = "";
   let masterAsset = null;
   
-  if (!assetName) {
-    alert("❌ กรุณากรอกชื่อทรัพย์สิน / โมเดล");
-    return;
-  }
   if (!category) {
     alert("กรุณาเลือกหมวดหมู่ทรัพย์สิน");
     return;
@@ -4079,13 +4070,3 @@ document.getElementById('handheld-input').addEventListener('keydown', function(e
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
