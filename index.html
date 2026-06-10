@@ -1013,8 +1013,8 @@ input[type="file"] { display: none; }
         <div class="label">รหัสทรัพย์สิน</div>
         <div class="code" id="add-asset-no">-</div>
       </div>
-      <div class="form-field" style="display:none;">
-        <label>ชื่อทรัพย์สิน</label>
+      <div class="form-field">
+        <label>ชื่อทรัพย์สิน <span class="req">*</span></label>
         <input type="text" id="input-name" placeholder="เช่น Komatsu Forklift">
       </div>
       <div class="form-row">
@@ -1337,8 +1337,8 @@ input[type="file"] { display: none; }
         <label>รหัสทรัพย์สิน (กรณีระบุได้)</label>
         <input type="text" id="manual-asset-no" placeholder="เช่น OFF00123 หรือเว้นว่างให้ระบบสร้างรหัสชั่วคราว">
       </div>
-      <div class="form-field" style="display:none;">
-        <label>ชื่อทรัพย์สิน</label>
+      <div class="form-field">
+        <label>ชื่อทรัพย์สิน / โมเดล <span class="req">*</span></label>
         <input type="text" id="manual-name" placeholder="เช่น เก้าอี้สำนักงานสีดำ">
       </div>
       <div class="form-field">
@@ -1669,37 +1669,6 @@ input[type="file"] { display: none; }
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         ปิด
       </button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal iOS Fast Scan Tip -->
-<div id="modal-ios-fastscan" class="modal-overlay hidden" onclick="closeIosFastScanModal(false)">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-header" style="background: #ffffff; border-bottom: 1px solid var(--border); color: var(--text);">
-      <div class="modal-title-row">
-        <span class="modal-icon">⚡</span>
-        <div>
-          <div class="modal-title" style="color: var(--primary);">เคล็ดลับสแกนไวสำหรับ iPhone</div>
-          <div class="modal-subtitle" style="font-size:14px; margin-top:2px;">เปิดใช้งานโหมด Fast Scan</div>
-        </div>
-      </div>
-      <button class="modal-close" onclick="closeIosFastScanModal(false)">✕</button>
-    </div>
-    <div class="modal-body" style="padding: 16px;">
-      <p style="margin-bottom:10px; font-size:13px; color:var(--text-dim);">ระบบตรวจพบว่าคุณใช้งาน iPhone หากต้องการให้กล้องสแกนได้<b>ไวขึ้นมาก</b> กรุณาตั้งค่าตามนี้:</p>
-      <div style="background:#f8fafc; padding:14px; border-radius:8px; font-size:13px; line-height:1.7; border:1px solid var(--border);">
-        1. ไปที่แอป <b>ตั้งค่า (Settings)</b> ของเครื่อง<br>
-        2. เลื่อนลงมาหาแอป <b>Safari</b> แล้วกดเข้าไป<br>
-        3. เลื่อนลงมาล่างสุด กดคำว่า <b>ขั้นสูง (Advanced)</b><br>
-        4. กดเข้าไปที่ <b>Feature Flags</b><br>
-        5. เลื่อนหา <b>Shape Detection API</b><br>
-        6. กดสวิตช์ (ON) ให้เป็นสีเขียว 🟢<br>
-        <span style="color:var(--danger); font-size:11px; margin-top:8px; display:block; font-weight:bold;">* หากเปิดแล้ว กรุณารีเฟรชแอปใหม่ 1 ครั้ง</span>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" onclick="closeIosFastScanModal(true)" style="width:100%;">รับทราบ และเปิดกล้องต่อ</button>
     </div>
   </div>
 </div>
@@ -2771,15 +2740,6 @@ async function stopScanner() {
   document.getElementById("reader").innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p>แตะ "เปิดกล้อง" เพื่อสแกน</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
 }
 
-// ปิดหน้าต่างแนะนำ iOS
-function closeIosFastScanModal(proceed) {
-  document.getElementById("modal-ios-fastscan").classList.add("hidden");
-  localStorage.setItem('iosFastScanTipShown', 'true'); // บันทึกว่าเคยอ่านแล้ว จะได้ไม่เด้งซ้ำ
-  if (proceed) {
-    startScanner(); // ถ้ากดปุ่มรับทราบ ให้ทำการเริ่มเปิดกล้องต่อทันที
-  }
-}
-
 // ==================== ADD FORM ====================
 function showAddForm(assetNo) {
   openManualAddModal(assetNo);
@@ -2793,6 +2753,10 @@ async function submitAdd() {
   const acquisitionDate = document.getElementById("input-date").value;
   const status     = document.getElementById("input-status").value;
 
+  if (!assetName) {
+    alert("❌ กรุณากรอกชื่อทรัพย์สิน");
+    return;
+  }
   if (!category || !area || !warehouse) {
     alert("กรุณากรอกข้อมูลที่จำเป็น");
     return;
@@ -3816,6 +3780,11 @@ async function submitManualAdd() {
   const status    = document.getElementById("manual-status").value;
   const remarks   = "";
   let masterAsset = null;
+  
+  if (!assetName) {
+    alert("❌ กรุณากรอกชื่อทรัพย์สิน / โมเดล");
+    return;
+  }
   if (!category) {
     alert("กรุณาเลือกหมวดหมู่ทรัพย์สิน");
     return;
@@ -3835,8 +3804,7 @@ async function submitManualAdd() {
 
   if (assetNo) {
     try {
-      const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: assetNo, nocache: "1" }));
-      const lookupData = await lookupRes.json().catch(() => null);
+      const lookupData = await fetchAssetLookupWithTimeout(assetNo, 6000);
       if (lookupData && lookupData.status === "success" && lookupData.found) {
         masterAsset = lookupData;
       }
