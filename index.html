@@ -2710,9 +2710,9 @@ async function startScanner() {
   } catch (err) {
     let errMsg = "ไม่สามารถเปิดกล้องได้";
     const errStr = String(err);
-    if (errStr.includes("NotAllowedError") || errStr.includes("Permission")) {
-      errMsg = "กรุณาอนุญาตให้ใช้งานกล้องในเบราว์เซอร์";
-    } else if (errStr.includes("ไม่พบกล้อง")) {
+    if (errStr.includes("NotAllowedError") || errStr.includes("Permission") || errStr.includes("NotReadableError")) {
+      errMsg = "กรุณาอนุญาตกล้องใน Safari (ไปที่ ตั้งค่า -> Safari -> กล้อง -> อนุญาต)";
+    } else if (errStr.includes("ไม่พบกล้อง") || errStr.includes("NotFoundError")) {
       errMsg = "ไม่พบกล้องบนอุปกรณ์นี้";
     } else if (window.location.protocol === "file:") {
       errMsg = "กล้องต้องใช้ HTTPS เท่านั้น";
