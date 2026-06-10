@@ -814,6 +814,14 @@ function apiUrl(params) {
   return url.toString();
 }
 
+function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .then(res => { clearTimeout(timer); return res; })
+    .catch(err => { clearTimeout(timer); throw err; });
+}
+
 function isApproveLoggedIn() {
   return !!(approveAuth && approveAuth.user && approveAuth.pass);
 }
@@ -850,7 +858,7 @@ async function submitApproveLogin() {
   const pass = document.getElementById("approve-pass").value.trim();
   const err = document.getElementById("approve-login-error");
   if (!user || !pass) {
-    err.textContent = "กรุณากรอก Username และ Password";
+    err.textContent = "❌ กรุณากรอก Username และ Password";
     err.style.display = "block";
     return;
   }
@@ -859,17 +867,20 @@ async function submitApproveLogin() {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner-sm"></span> กำลังตรวจสอบ...`;
   try {
-    const res = await fetch(apiUrl({ action: "approveLogin", user, pass }));
+    const res = await fetchWithTimeout(apiUrl({ action: "approveLogin", user, pass }), {}, 8000);
     const d = await res.json().catch(() => null);
-    if (!d || d.status !== "success") {
-      throw new Error(d ? d.message : "เข้าสู่ระบบไม่สำเร็จ");
+    if (!d || typeof d !== 'object' || d.status !== "success") {
+      throw new Error(d ? d.message : "❌ เข้าสู่ระบบไม่สำเร็จ");
     }
     approveAuth = { user, pass };
     sessionStorage.setItem("approveAuth", JSON.stringify(approveAuth));
     closeApproveLogin();
     updateAuthUi();
   } catch (e) {
-    err.textContent = e.message || "เข้าสู่ระบบไม่สำเร็จ";
+    err.textContent = (e.message || "เข้าสู่ระบบไม่สำเร็จ").replace("❌ ", "");
+    if (e.name === "AbortError") {
+      err.textContent = "❌ หมดเวลา - ตรวจสอบการเชื่อมต่อ Network";
+    }
     err.style.display = "block";
   } finally {
     btn.disabled = false;
@@ -911,8 +922,8 @@ async function loadDashboard() {
 
   try {
     const [r1, r2] = await Promise.all([
-      fetch(apiUrl({ action: "dashboard" })).then(res => res.json()).catch(() => null),
-      fetch(apiUrl({ action: "export" })).then(res => res.json()).catch(() => null)
+      fetchWithTimeout(apiUrl({ action: "dashboard" }), {}, 8000).then(res => res.json()).catch(() => null),
+      fetchWithTimeout(apiUrl({ action: "export" }), {}, 10000).then(res => res.json()).catch(() => null)
     ]);
     
     if(r1 && r1.summary) {
@@ -933,14 +944,16 @@ async function loadDashboard() {
       }
     }
     
-    if(r2 && r2.assets) {
+    if(r2 && Array.isArray(r2.assets)) {
       allAssets = r2.assets; 
-      allUnregAssets = r2.unregAssets || [];
-      exportHeaders = r2.headers || [];
+      allUnregAssets = Array.isArray(r2.unregAssets) ? r2.unregAssets : [];
+      exportHeaders = Array.isArray(r2.headers) ? r2.headers : [];
       document.getElementById("dash-pillar-unreg").textContent = allUnregAssets.length.toLocaleString();
       filterTable();
+    } else {
+      throw new Error("ไม่สามารถอ่านข้อมูลจาก Server ได้");
     }
-  } catch(e) { console.error(e); alert("ไม่สามารถดึงข้อมูลจาก Server ได้"); }
+  } catch(e) { console.error(e); alert("❌ ไม่สามารถเข้าถึง Server\n" + (e.message || "หมดเวลา หรือ Network Error")); }
   finally { refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> รีเฟรชข้อมูล`; refreshBtn.disabled = false; }
 }
 
@@ -1071,9 +1084,15 @@ function renderMasterTable(data) {
 
 function renderUnregTable(data) {
   const tbody = document.getElementById("table-unreg-body");
-  const sorted = [...data].sort((a,b) => new Date(b[6]).getTime() - new Date(a[6]).getTime());
-  
-  if(sorted.length === 0) { tbody.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">ไม่พบข้อมูล</div>'; return; }
+  if (!Array.isArray(data) || data.length === 0) { 
+    tbody.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">ไม่พบข้อมูล</div>'; 
+    return; 
+  }
+  const sorted = [...data].sort((a,b) => {
+    const da = a && a[6] ? new Date(a[6]).getTime() : 0;
+    const db = b && b[6] ? new Date(b[6]).getTime() : 0;
+    return db - da;
+  });
 
   tbody.innerHTML = sorted.map(r => {
     const assetName = String(r[1] || "").trim();
@@ -1108,7 +1127,6 @@ function renderUnregTable(data) {
       </div>
     `;
   }).join('');
-  updateAuthUi();
 }
 
 async function confirmUnreg(id, btn) {
@@ -1122,20 +1140,20 @@ async function confirmUnreg(id, btn) {
     btn.innerHTML = `<span class="spinner-sm" style="border-top-color:#ffffff; margin-right:4px;"></span> อนุมัติ...`;
   }
   try {
-    const res = await fetch(apiUrl({ action: "confirmUnregSecure", tempId: id, user: approveAuth.user, pass: approveAuth.pass }));
+    const res = await fetchWithTimeout(apiUrl({ action: "confirmUnregSecure", tempId: id, user: approveAuth.user, pass: approveAuth.pass }), {}, 8000);
     const d = await res.json().catch(() => null);
     if(d && d.status === "success") { 
-      alert("อนุมัติเรียบร้อย!"); 
+      alert("✅ อนุมัติเรียบร้อย!"); 
       loadDashboard(); 
     } else {
-      alert("เกิดข้อผิดพลาด: " + (d ? d.message : "ไม่สำเร็จ"));
+      alert("❌ เกิดข้อผิดพลาด: " + (d ? d.message : "ไม่สำเร็จ"));
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = originalHtml;
       }
     }
   } catch(e) { 
-    alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"); 
+    alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ: " + e.message); 
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = originalHtml;
@@ -1154,20 +1172,20 @@ async function confirmAllUnreg(btn) {
     btn.innerHTML = `<span class="spinner-sm" style="border-top-color:#ffffff; margin-right:4px;"></span> กำลังอนุมัติ...`;
   }
   try {
-    const res = await fetch(apiUrl({ action: "confirmAllUnreg", user: approveAuth.user, pass: approveAuth.pass }));
+    const res = await fetchWithTimeout(apiUrl({ action: "confirmAllUnreg", user: approveAuth.user, pass: approveAuth.pass }), {}, 10000);
     const d = await res.json().catch(() => null);
     if(d && d.status === "success") { 
-      alert("อนุมัติทั้งหมดสำเร็จ!"); 
+      alert("✅ อนุมัติทั้งหมดสำเร็จ! (" + d.addedCount + " รายการ)"); 
       loadDashboard(); 
     } else {
-      alert("เกิดข้อผิดพลาด: " + (d ? d.message : "ไม่สำเร็จ"));
+      alert("❌ เกิดข้อผิดพลาด: " + (d ? d.message : "ไม่สำเร็จ"));
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = originalHtml;
       }
     }
   } catch(e) { 
-    alert("ทำรายการไม่สำเร็จ"); 
+    alert("❌ ทำรายการไม่สำเร็จ: " + e.message); 
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = originalHtml;
@@ -1514,33 +1532,42 @@ function yieldToUI() {
 }
 
 async function submitManualAdd() {
-  const assetNo   = document.getElementById("manual-asset-no").value.trim();
-  const assetName = document.getElementById("manual-name").value.trim();
-  const category  = document.getElementById("manual-category").value;
-  const group     = document.getElementById("manual-loc-group").value;
-  const zone      = document.getElementById("manual-area").value;
-  const status    = document.getElementById("manual-status").value;
+  const assetNo   = String(document.getElementById("manual-asset-no").value || "").trim();
+  const assetName = String(document.getElementById("manual-name").value || "").trim();
+  const category  = String(document.getElementById("manual-category").value || "");
+  const group     = String(document.getElementById("manual-loc-group").value || "");
+  const zone      = String(document.getElementById("manual-area").value || "");
+  const status    = String(document.getElementById("manual-status").value || "ใช้งานอยู่");
   const remarks = "";
   let masterAsset = null;
 
-  if (!assetName) {
-    alert("กรุณากรอกชื่อทรัพย์สิน / โมเดล");
+  // Validate required fields
+  if (!assetName || assetName.length === 0) {
+    alert("❌ กรุณากรอกชื่อทรัพย์สิน / โมเดล");
+    document.getElementById("manual-name").focus();
+    return;
+  }
+  if (assetName.length > 200) {
+    alert("❌ ชื่อทรัพย์สินต้องไม่เกิน 200 ตัวอักษร");
     return;
   }
   if (!category) {
-    alert("กรุณาเลือกหมวดหมู่ทรัพย์สิน");
+    alert("❌ กรุณาเลือกหมวดหมู่ทรัพย์สิน");
+    document.getElementById("manual-category").focus();
     return;
   }
   if (!group) {
-    alert("กรุณาเลือกคลัง / โซนหลัก");
+    alert("❌ กรุณาเลือกคลัง / โซนหลัก");
+    document.getElementById("manual-loc-group").focus();
     return;
   }
   if (!zone) {
-    alert("กรุณาเลือกพื้นที่ย่อย");
+    alert("❌ กรุณาเลือกพื้นที่ย่อย");
+    document.getElementById("manual-area").focus();
     return;
   }
   if (!manualImageBase64) {
-    alert("กรุณารอสักครู่ ระบบกำลังเตรียมรูปภาพ หรือถ่ายรูปใหม่อีกครั้ง");
+    alert("❌ กรุณารอสักครู่ ระบบกำลังเตรียมรูปภาพ หรือถ่ายรูปใหม่อีกครั้ง");
     return;
   }
 
@@ -1554,7 +1581,7 @@ async function submitManualAdd() {
     // Check if duplicate in master database (if code was typed)
     if (assetNo) {
       try {
-        const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: assetNo, nocache: "1" }));
+        const lookupRes = await fetchWithTimeout(apiUrl({ action: "lookup", assetNo: assetNo, nocache: "1" }), {}, 8000);
         const lookupData = await lookupRes.json().catch(() => null);
         if (lookupData && lookupData.status === "success" && lookupData.found) {
           masterAsset = lookupData;
@@ -1587,10 +1614,10 @@ async function submitManualAdd() {
           remarks: remarks
         };
 
-    const response = await fetch(API_URL, {
+    const response = await fetchWithTimeout(API_URL, {
       method: "POST",
       body: JSON.stringify(payload)
-    });
+    }, 12000);
     
     const data = await response.json().catch(() => null);
     

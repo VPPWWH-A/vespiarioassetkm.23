@@ -1732,42 +1732,61 @@ function isAlreadyCounted(data) {
 
 /** Read-only server lookup: lookup API, or export search if GAS not updated yet. Never uses scan. */
 async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
-  const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: cleanCode, ...(forceFresh ? { nocache: "1" } : {}) }));
-  const lookupData = await lookupRes.json().catch(() => null);
-  if (lookupData && lookupData.status === "success") {
-    dbgLog('index.html:fetchAssetLookup', 'lookup ok', { cleanCode, found: !!lookupData.found, via: 'lookup' }, 'H1');
-    return lookupData;
-  }
-  const needsExportFallback = !lookupData
-    || (lookupData.status === "error" && String(lookupData.message || "").toLowerCase().includes("invalid"));
-  if (!needsExportFallback) {
-    dbgLog('index.html:fetchAssetLookup', 'lookup failed', { cleanCode, message: lookupData && lookupData.message }, 'H1');
-    return lookupData;
-  }
-  dbgLog('index.html:fetchAssetLookup', 'export fallback', { cleanCode }, 'H1');
-  const expRes = await fetch(apiUrl({ action: "export" }));
-  const exp = await expRes.json().catch(() => null);
-  if (!exp || exp.status !== "ok" || !Array.isArray(exp.assets)) {
-    return { status: "error", message: "ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้" };
-  }
-  const row = exp.assets.find(r => String(r[0]).trim().toUpperCase() === cleanCode);
-  if (!row) {
-    const unregRow = (exp.unregAssets || []).find(r => String(r[0]).trim().toUpperCase() === cleanCode);
-    if (unregRow) {
-      return {
-        status: "success", found: true, isUnregistered: true,
-        assetNo: unregRow[0], assetName: unregRow[1], category: unregRow[2],
-        warehouse: unregRow[3], area: unregRow[4]
-      };
+  // Try lookup endpoint with timeout
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1200);
+    const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: cleanCode, ...(forceFresh ? { nocache: "1" } : {}) }), { signal: controller.signal });
+    const lookupData = await lookupRes.json().catch(() => null);
+    clearTimeout(timer);
+    if (lookupData && lookupData.status === "success") {
+      dbgLog('index.html:fetchAssetLookup', 'lookup ok', { cleanCode, found: !!lookupData.found, via: 'lookup' }, 'H1');
+      return lookupData;
     }
-    return { status: "success", found: false, assetNo: cleanCode };
+    const needsExportFallback = !lookupData
+      || (lookupData.status === "error" && String(lookupData.message || "").toLowerCase().includes("invalid"));
+    if (!needsExportFallback) {
+      dbgLog('index.html:fetchAssetLookup', 'lookup failed', { cleanCode, message: lookupData && lookupData.message }, 'H1');
+      return lookupData;
+    }
+  } catch (e) {
+    // Lookup timed out or failed, fall through to export
+    dbgLog('index.html:fetchAssetLookup', 'lookup timeout', { cleanCode, error: e.message }, 'H1');
   }
-  return {
-    status: "success", found: true,
-    assetNo: row[0], assetName: row[1], category: row[2],
-    area: row[3], warehouse: row[4], acquisitionDate: row[5],
-    assetStatus: row[6], lastScan: row[7], lastResult: row[8]
-  };
+  
+  // Fallback to export with timeout
+  try {
+    dbgLog('index.html:fetchAssetLookup', 'export fallback', { cleanCode }, 'H1');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const expRes = await fetch(apiUrl({ action: "export" }), { signal: controller.signal });
+    const exp = await expRes.json().catch(() => null);
+    clearTimeout(timer);
+    
+    if (!exp || exp.status !== "ok" || !Array.isArray(exp.assets)) {
+      return { status: "error", message: "ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้" };
+    }
+    const row = exp.assets.find(r => String(r[0]).trim().toUpperCase() === cleanCode);
+    if (!row) {
+      const unregRow = (exp.unregAssets || []).find(r => String(r[0]).trim().toUpperCase() === cleanCode);
+      if (unregRow) {
+        return {
+          status: "success", found: true, isUnregistered: true,
+          assetNo: unregRow[0], assetName: unregRow[1], category: unregRow[2],
+          warehouse: unregRow[3], area: unregRow[4]
+        };
+      }
+      return { status: "success", found: false, assetNo: cleanCode };
+    }
+    return {
+      status: "success", found: true,
+      assetNo: row[0], assetName: row[1], category: row[2],
+      area: row[3], warehouse: row[4], acquisitionDate: row[5],
+      assetStatus: row[6], lastScan: row[7], lastResult: row[8]
+    };
+  } catch (e) {
+    return { status: "error", message: "❌ หมดเวลากระหว่างค้นหา - ตรวจสอบเครือข่าย" };
+  }
 }
 
 
@@ -2233,10 +2252,17 @@ async function uploadScanImageInBackground(file, meta) {
         assetNo: meta.assetNo,
         assetName: meta.assetName || "",
         image: base64
-      })
+      }),
+      signal: AbortSignal.timeout(20000)
+    }).catch(e => {
+      if (e.name === "AbortError") {
+        console.warn("Background image upload timed out", meta.assetNo);
+      } else {
+        console.warn("Background image upload failed", e);
+      }
     });
   } catch (e) {
-    console.warn("Background image upload failed", e);
+    console.warn("Background image upload error", e.message);
   }
 }
 
@@ -2280,7 +2306,11 @@ async function confirmScanCount() {
 
     const uploadRes = await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000)
+    }).catch(e => {
+      if (e.name === "AbortError") throw new Error("❌ หมดเวลาในการบันทึก - ตรวจสอบเครือข่าย");
+      throw e;
     });
     
     const uploadData = await uploadRes.json().catch(() => null);
@@ -2354,7 +2384,7 @@ async function confirmScanCount() {
         ${imageFile ? '<div style="font-size:12px;color:var(--primary);margin-top:4px;">📷 กำลังอัปโหลดรูปตามหลัง</div>' : ''}
       </div>`);
   } catch (err) {
-    alert("Error: " + err.message);
+    alert("❌ เกิดข้อผิดพลาด: " + (err.message || "ไม่สามารถบันทึกได้"));
     btn.disabled = false;
     btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ยืนยันนับสต๊อก';
     resumeScannerAfterAction();
@@ -3035,19 +3065,24 @@ async function deleteUnregAsset(tempId) {
   footerDiv.innerHTML = `<span class="spinner-sm" style="margin-right:6px;"></span><span style="font-size:13px; color:var(--text-muted);">กำลังลบข้อมูล...</span>`;
   
   try {
-    const res = await fetch(apiUrl({ action: "deleteUnreg", tempId: tempId }));
-    const data = await res.json();
-    if (data.status === "success") {
+    const res = await fetch(apiUrl({ action: "deleteUnreg", tempId: tempId }), {
+      signal: AbortSignal.timeout(10000)
+    }).catch(e => {
+      if (e.name === "AbortError") throw new Error("❌ หมดเวลา - ตรวจสอบเครือข่าย");
+      throw e;
+    });
+    const data = await res.json().catch(() => null);
+    if (data && data.status === "success") {
       closeConfirmUnregModal();
       allUnregAssets = allUnregAssets.filter(row => String(row[0]).trim() !== tempId);
       renderUnregTable();
-      setTimeout(() => alert("🗑️ ลบข้อมูลเรียบร้อยแล้ว"), 50);
+      setTimeout(() => alert("✅ ลบข้อมูลเรียบร้อยแล้ว"), 50);
     } else {
-      alert("Error: " + data.message);
+      alert("❌ เกิดข้อผิดพลาด: " + (data ? data.message : "ไม่สำเร็จ"));
       closeConfirmUnregModal();
     }
   } catch (err) {
-    alert("Error: " + err.message);
+    alert("❌ ข้อผิดพลาด: " + err.message);
     closeConfirmUnregModal();
   }
 }
@@ -3144,7 +3179,7 @@ async function submitApproveAll() {
   const pass = document.getElementById("approve-password").value.trim();
   
   if (!user || !pass) {
-    alert("กรุณากรอก Username และ Password");
+    alert("❌ กรุณากรอก Username และ Password");
     return;
   }
   
@@ -3154,14 +3189,19 @@ async function submitApproveAll() {
   btn.disabled = true;
   
   try {
-    const response = await fetch(apiUrl({ action: "confirmAllUnreg", user: user, pass: pass }));
-    const data = await response.json();
-    if (data.status === "success") {
-      alert(`✅ ${data.message}`);
+    const response = await fetch(apiUrl({ action: "confirmAllUnreg", user: user, pass: pass }), {
+      signal: AbortSignal.timeout(10000)
+    }).catch(e => {
+      if (e.name === "AbortError") throw new Error("❌ หมดเวลา - ตรวจสอบเครือข่าย");
+      throw e;
+    });
+    const data = await response.json().catch(() => null);
+    if (data && data.status === "success") {
+      alert(`✅ ${data.message || "ยืนยันเรียบร้อย"}`);
       closeApproveLoginModal();
       loadDashboard(false);
     } else {
-      alert("❌ " + data.message);
+      alert("❌ " + (data ? data.message : "ไม่สำเร็จ"));
     }
   } catch(err) {
     alert("❌ เกิดข้อผิดพลาด: " + err.message);
@@ -3196,18 +3236,25 @@ async function loadDashboard(isSilent = false, forceClearCache = false) {
 
   try {
     const queryAppend = forceClearCache ? "&nocache=1" : "";
-    const resp2 = await fetch(apiUrl({ action: "export" }) + queryAppend).catch(() => null);
+    const resp2 = await fetch(apiUrl({ action: "export" }) + queryAppend, {
+      signal: AbortSignal.timeout(12000)
+    }).catch(e => {
+      if (e.name === "AbortError") throw new Error("❌ หมดเวลาในการโหลด");
+      return null;
+    });
 
     if (resp2) {
       const data2 = await resp2.json().catch(() => null);
       if (data2 && data2.status === "ok" && Array.isArray(data2.assets)) {
         applyExportData(data2);
+      } else {
+        throw new Error("ข้อมูลตอบกลับไม่ถูกต้อง");
       }
     }
   } catch(err) {
     console.error(err);
     document.getElementById("table-body").innerHTML =
-      `<div style="padding:32px;text-align:center;color:var(--danger);">โหลดข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>`;
+      `<div style="padding:32px;text-align:center;color:var(--danger);">❌ โหลดข้อมูลไม่สำเร็จ — ${err.message || "กรุณารีเฟรช"}</div>`;
   } finally {
     isDashboardLoading = false;
     if (btn) btn.classList.remove("spinning");
