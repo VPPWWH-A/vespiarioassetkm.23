@@ -958,29 +958,33 @@ async function loadDashboard() {
 }
 
 function filterTable() {
+  // ✅ Guard against race conditions
+  if (!allAssets || !Array.isArray(allAssets)) return;
+  if (!allUnregAssets || !Array.isArray(allUnregAssets)) return;
+  
   const searchTxt = document.getElementById("search-input").value.toUpperCase();
   const dateFrom = document.getElementById("date-from").value;
   const dateTo = document.getElementById("date-to").value;
 
   if (currentPillar === 'count') {
-    let filtered = allAssets;
+    let filtered = allAssets.slice(); // ✅ Copy array to prevent mutation
     
     // Filter Category
     if(currentTab !== 'all') {
-      filtered = filtered.filter(r => String(r[2]).toLowerCase().includes(currentTab));
+      filtered = filtered.filter(r => r && String(r[2]).toLowerCase().includes(currentTab));
     }
     // Filter Warehouse
     if(currentWarehouse !== 'all') {
-      filtered = filtered.filter(r => String(r[4]).toLowerCase().includes(currentWarehouse.toLowerCase()));
+      filtered = filtered.filter(r => r && String(r[4]).toLowerCase().includes(currentWarehouse.toLowerCase()));
     }
     // Filter Search
     if(searchTxt) {
-      filtered = filtered.filter(r => String(r[0]).toUpperCase().includes(searchTxt) || String(r[1]).toUpperCase().includes(searchTxt));
+      filtered = filtered.filter(r => r && (String(r[0]).toUpperCase().includes(searchTxt) || String(r[1]).toUpperCase().includes(searchTxt)));
     }
     // Filter Date
     if(dateFrom || dateTo) {
       filtered = filtered.filter(r => {
-        if(!r[7]) return false;
+        if(!r || !r[7]) return false;
         const d = new Date(r[7]).setHours(0,0,0,0);
         if(dateFrom && d < new Date(dateFrom).getTime()) return false;
         if(dateTo && d > new Date(dateTo).getTime()) return false;
@@ -990,13 +994,13 @@ function filterTable() {
 
     renderMasterTable(filtered);
   } else {
-    let filteredUnreg = allUnregAssets;
+    let filteredUnreg = allUnregAssets.slice(); // ✅ Copy array to prevent mutation
     if(searchTxt) {
-      filteredUnreg = filteredUnreg.filter(r => String(r[0]).toUpperCase().includes(searchTxt) || String(r[1]).toUpperCase().includes(searchTxt) || String(r[5]).toUpperCase().includes(searchTxt));
+      filteredUnreg = filteredUnreg.filter(r => r && (String(r[0]).toUpperCase().includes(searchTxt) || String(r[1]).toUpperCase().includes(searchTxt) || String(r[5]).toUpperCase().includes(searchTxt)));
     }
     if(dateFrom || dateTo) {
       filteredUnreg = filteredUnreg.filter(r => {
-        if(!r[6]) return false;
+        if(!r || !r[6]) return false;
         const d = new Date(r[6]).setHours(0,0,0,0);
         if(dateFrom && d < new Date(dateFrom).getTime()) return false;
         if(dateTo && d > new Date(dateTo).getTime()) return false;

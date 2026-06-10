@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -1735,7 +1735,7 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
   // Try lookup endpoint with timeout
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 1200);
+    const timer = setTimeout(() => controller.abort(), 6000);
     const lookupRes = await fetch(apiUrl({ action: "lookup", assetNo: cleanCode, ...(forceFresh ? { nocache: "1" } : {}) }), { signal: controller.signal });
     const lookupData = await lookupRes.json().catch(() => null);
     clearTimeout(timer);
@@ -1758,7 +1758,7 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
   try {
     dbgLog('index.html:fetchAssetLookup', 'export fallback', { cleanCode }, 'H1');
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    const timer = setTimeout(() => controller.abort(), 15000);
     const expRes = await fetch(apiUrl({ action: "export" }), { signal: controller.signal });
     const exp = await expRes.json().catch(() => null);
     clearTimeout(timer);
@@ -1791,7 +1791,7 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
 
 
 
-async function fetchAssetLookupWithTimeout(cleanCode, timeoutMs = 1200) {
+async function fetchAssetLookupWithTimeout(cleanCode, timeoutMs = 6000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -1813,7 +1813,7 @@ async function refreshCurrentView() {
   }
 }
 
-async function fetchScanStatusWithTimeout(cleanCode, timeoutMs = 900) {
+async function fetchScanStatusWithTimeout(cleanCode, timeoutMs = 5000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -1852,20 +1852,31 @@ function showScanStatusNotice(assetNo, scanStatus) {
 let isDashboardLoading = false;
 
 function applyExportData(data2) {
-  exportHeaders = data2.headers || [];
-  exportUnregHeaders = data2.unregHeaders || [];
-  allUnregAssets = [...(data2.unregAssets || [])].sort((a, b) => {
-    const da = a[6] ? new Date(a[6]).getTime() : 0;
-    const db = b[6] ? new Date(b[6]).getTime() : 0;
+  // ✅ Validate input data structure
+  if (!data2 || typeof data2 !== 'object') {
+    console.error("Invalid export data received");
+    return;
+  }
+
+  exportHeaders = Array.isArray(data2.headers) ? data2.headers : [];
+  exportUnregHeaders = Array.isArray(data2.unregHeaders) ? data2.unregHeaders : [];
+  
+  // ✅ Ensure unregAssets is array
+  const unregAssetsRaw = Array.isArray(data2.unregAssets) ? data2.unregAssets : [];
+  allUnregAssets = [...unregAssetsRaw].sort((a, b) => {
+    const da = a && a[6] ? new Date(a[6]).getTime() : 0;
+    const db = b && b[6] ? new Date(b[6]).getTime() : 0;
     return db - da;
   });
   
   const unregEl = document.getElementById("dash-pillar-unreg");
   if (unregEl) unregEl.textContent = allUnregAssets.length.toLocaleString();
 
-  allAssets = [...data2.assets].sort((a, b) => {
-    const da = a[7] ? new Date(a[7]).getTime() : 0;
-    const db = b[7] ? new Date(b[7]).getTime() : 0;
+  // ✅ Ensure assets is array
+  const assetsRaw = Array.isArray(data2.assets) ? data2.assets : [];
+  allAssets = [...assetsRaw].sort((a, b) => {
+    const da = a && a[7] ? new Date(a[7]).getTime() : 0;
+    const db = b && b[7] ? new Date(b[7]).getTime() : 0;
     return db - da;
   });
   
@@ -1874,7 +1885,11 @@ function applyExportData(data2) {
   } else {
     renderUnregTable();
   }
-  document.getElementById("dash-total").textContent = data2.total.toLocaleString();
+
+  // ✅ Validate total before using
+  const totalAssets = typeof data2.total === 'number' ? Math.max(0, data2.total) : allAssets.length;
+  const dashTotalEl = document.getElementById("dash-total");
+  if (dashTotalEl) dashTotalEl.textContent = totalAssets.toLocaleString();
 
   // --- Calculate Dashboard Summary on Frontend ---
   const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
@@ -1886,11 +1901,13 @@ function applyExportData(data2) {
   
   let checkedCount = 0;
   allAssets.forEach(row => {
-    if (row[currentMonthIndex] === "Count" || row[currentMonthIndex] === "Checked") checkedCount++;
+    if (row && (row[currentMonthIndex] === "Count" || row[currentMonthIndex] === "Checked")) {
+      checkedCount++;
+    }
   });
   
-  const totalAssets = data2.total;
-  document.getElementById("dash-checked").textContent = checkedCount.toLocaleString();
+  const dashCheckedEl = document.getElementById("dash-checked");
+  if (dashCheckedEl) dashCheckedEl.textContent = checkedCount.toLocaleString();
   
   const pending = Math.max(0, totalAssets - checkedCount);
   const pendingEl = document.getElementById("dash-pending");
@@ -2264,6 +2281,8 @@ async function uploadScanImageInBackground(file, meta) {
   if (!file || !meta || !meta.requestId || !meta.assetNo) return;
   try {
     const base64 = await compressImageToBase64(file);
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 30000);
     await fetch(API_URL, {
       method: "POST",
       body: JSON.stringify({
@@ -2274,7 +2293,7 @@ async function uploadScanImageInBackground(file, meta) {
         assetName: meta.assetName || "",
         image: base64
       }),
-      signal: AbortSignal.timeout(20000)
+      signal: controller.signal
     }).catch(e => {
       if (e.name === "AbortError") {
         console.warn("Background image upload timed out", meta.assetNo);
@@ -2282,6 +2301,7 @@ async function uploadScanImageInBackground(file, meta) {
         console.warn("Background image upload failed", e);
       }
     });
+    clearTimeout(timerId);
   } catch (e) {
     console.warn("Background image upload error", e.message);
   }
@@ -2325,14 +2345,17 @@ async function confirmScanCount() {
       hasDeferredImage: !!imageFile
     };
 
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 18000);
     const uploadRes = await fetch(API_URL, {
       method: "POST",
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15000)
+      signal: controller.signal
     }).catch(e => {
       if (e.name === "AbortError") throw new Error("❌ หมดเวลาในการบันทึก - ตรวจสอบเครือข่าย");
       throw e;
     });
+    clearTimeout(timerId);
     
     const uploadData = await uploadRes.json().catch(() => null);
     // #region agent log
@@ -2456,7 +2479,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
   dbgLog('index.html:onScanSuccess:entry', 'scan started', { cleanCode, cacheSize: allAssets.length, unregSize: allUnregAssets.length }, 'H1-H2');
   // #endregion
   
-  const scanStatus = await fetchScanStatusWithTimeout(cleanCode, isHandheld ? 650 : 900);
+  const scanStatus = await fetchScanStatusWithTimeout(cleanCode, isHandheld ? 4000 : 5000);
   if (scanStatus && scanStatus.found) {
     const state = String(scanStatus.scanStatus || "").toLowerCase();
     if (state === "done" || state === "received" || state === "processing") {
@@ -2471,7 +2494,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
 
   // 🚀 Instant Local Search (Performance Optimization)
   const localMatch = allAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode);
-  const liveLookupPromise = localMatch ? fetchAssetLookupWithTimeout(cleanCode, isHandheld ? 900 : 1200) : Promise.resolve(null);
+  const liveLookupPromise = localMatch ? fetchAssetLookupWithTimeout(cleanCode, isHandheld ? 4500 : 6000) : Promise.resolve(null);
   
   if (localMatch) {
     const liveLookup = await liveLookupPromise;
@@ -2590,6 +2613,15 @@ async function onScanSuccess(decodedText, isHandheld = false) {
 
 
 async function startScanner() {
+  // ดักจับ iPhone และแสดงคู่มือ (ทำแค่ครั้งเดียวเพื่อไม่ให้รบกวนการทำงาน)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isNativeSupported = ('BarcodeDetector' in window);
+  
+  if (isIOS && !isNativeSupported && !localStorage.getItem('iosFastScanTipShown')) {
+    document.getElementById("modal-ios-fastscan").classList.remove("hidden");
+    return; // หยุดกระบวนการเปิดกล้องไว้ก่อน เพื่อให้ผู้ใช้อ่าน
+  }
+
   if (isScanning) return;
   const reader = document.getElementById("reader");
   reader.innerHTML = `<div style="padding:30px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-size:13px;color:var(--text-muted);">กำลังเปิดกล้อง...</div></div>`;
@@ -2679,6 +2711,15 @@ async function stopScanner() {
   document.getElementById("btn-start").classList.remove("hidden");
   document.getElementById("btn-stop").classList.add("hidden");
   document.getElementById("reader").innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p>แตะ "เปิดกล้อง" เพื่อสแกน</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
+}
+
+// ปิดหน้าต่างแนะนำ iOS
+function closeIosFastScanModal(proceed) {
+  document.getElementById("modal-ios-fastscan").classList.add("hidden");
+  localStorage.setItem('iosFastScanTipShown', 'true'); // บันทึกว่าเคยอ่านแล้ว จะได้ไม่เด้งซ้ำ
+  if (proceed) {
+    startScanner(); // ถ้ากดปุ่มรับทราบ ให้ทำการเริ่มเปิดกล้องต่อทันที
+  }
 }
 
 // ==================== ADD FORM ====================
@@ -2936,10 +2977,10 @@ function renderTable(assets) {
       <div class="cell">${getStatusBadge(status)}</div>
       <div class="cell" style="font-size:11px;color:var(--text-dim);">${lastResult}</div>
       <div class="cell">
-        <button class="row-btn pdf" onclick="printAssetLabel('${assetNo}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
+        <button class="row-btn pdf" onclick="printAssetLabel(${JSON.stringify(assetNo)})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></button>
       </div>
       <div class="cell">
-        <button class="row-btn detail" onclick="viewAssetDetail('${assetNo}')">ดูข้อมูล</button>
+        <button class="row-btn detail" onclick="viewAssetDetail(${JSON.stringify(assetNo)})">ดูข้อมูล</button>
       </div>`;
     fragment.appendChild(div);
   });
@@ -3086,12 +3127,15 @@ async function deleteUnregAsset(tempId) {
   footerDiv.innerHTML = `<span class="spinner-sm" style="margin-right:6px;"></span><span style="font-size:13px; color:var(--text-muted);">กำลังลบข้อมูล...</span>`;
   
   try {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(apiUrl({ action: "deleteUnreg", tempId: tempId }), {
-      signal: AbortSignal.timeout(10000)
+      signal: controller.signal
     }).catch(e => {
       if (e.name === "AbortError") throw new Error("❌ หมดเวลา - ตรวจสอบเครือข่าย");
       throw e;
     });
+    clearTimeout(timerId);
     const data = await res.json().catch(() => null);
     if (data && data.status === "success") {
       closeConfirmUnregModal();
@@ -3136,8 +3180,14 @@ async function submitConfirmUnreg(tempId) {
   btn.disabled = true;
 
   try {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 15000);
     const url = apiUrl({ action: "confirmUnreg", tempId: tempId });
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal }).catch(e => {
+      if (e.name === "AbortError") throw new Error("❌ หมดเวลาการเชื่อมต่อ");
+      throw e;
+    });
+    clearTimeout(timerId);
     const data = await res.json();
     if (data.status === "success") {
       closeConfirmUnregModal();
@@ -3210,12 +3260,15 @@ async function submitApproveAll() {
   btn.disabled = true;
   
   try {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 18000);
     const response = await fetch(apiUrl({ action: "confirmAllUnreg", user: user, pass: pass }), {
-      signal: AbortSignal.timeout(10000)
+      signal: controller.signal
     }).catch(e => {
       if (e.name === "AbortError") throw new Error("❌ หมดเวลา - ตรวจสอบเครือข่าย");
       throw e;
     });
+    clearTimeout(timerId);
     const data = await response.json().catch(() => null);
     if (data && data.status === "success") {
       alert(`✅ ${data.message || "ยืนยันเรียบร้อย"}`);
@@ -3256,13 +3309,16 @@ async function loadDashboard(isSilent = false, forceClearCache = false) {
   }
 
   try {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 20000);
     const queryAppend = forceClearCache ? "&nocache=1" : "";
     const resp2 = await fetch(apiUrl({ action: "export" }) + queryAppend, {
-      signal: AbortSignal.timeout(12000)
+      signal: controller.signal
     }).catch(e => {
       if (e.name === "AbortError") throw new Error("❌ หมดเวลาในการโหลด");
       return null;
     });
+    clearTimeout(timerId);
 
     if (resp2) {
       const data2 = await resp2.json().catch(() => null);
@@ -3750,6 +3806,7 @@ async function submitManualAdd() {
         }
       : {
           key: API_SECRET,
+          action: "upload",
           image: manualImageBase64,
           assetNo: assetNo,
           assetName: assetName,
@@ -3761,10 +3818,17 @@ async function submitManualAdd() {
         };
 
     // ใช้ API_URL (อันเดียวกับ code.gs ตัวเต็มของคุณ)
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 25000);
     const response = await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    }).catch(e => {
+      if (e.name === "AbortError") throw new Error("❌ หมดเวลาเชื่อมต่อ โปรดลองอีกครั้ง");
+      throw e;
     });
+    clearTimeout(timerId);
     
     const data = await response.json().catch(() => null);
     
