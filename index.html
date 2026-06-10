@@ -1894,6 +1894,7 @@ function applyExportData(data2) {
   document.getElementById("dash-month-label").textContent = currentMonthName;
 }
 let html5QrCode = null, isScanning = false, isProcessing = false;
+let cachedCameraId = null;
 let currentAssetNo = "", currentTab = "all", allAssets = [], exportHeaders = [];
 let allUnregAssets = [], exportUnregHeaders = [];
 let currentPage = "home";
@@ -2125,6 +2126,40 @@ function closeUnregExistsModal() {
       setTimeout(() => {
         try { html5QrCode.resume(); } catch(e){}
       }, 500);
+    }
+  }
+}
+
+async function applyCameraFocus() {
+  const videoEl = document.querySelector("#reader video");
+  if (!videoEl || !videoEl.srcObject) return;
+  const tracks = videoEl.srcObject.getVideoTracks();
+  if (!tracks.length) return;
+  const track = tracks[0];
+  if (typeof track.getCapabilities !== "function" || typeof track.applyConstraints !== "function") return;
+
+  const capabilities = track.getCapabilities();
+  const advanced = [];
+
+  if (capabilities.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("continuous")) {
+    advanced.push({ focusMode: "continuous" });
+  }
+  if (capabilities.exposureMode && Array.isArray(capabilities.exposureMode) && capabilities.exposureMode.includes("continuous")) {
+    advanced.push({ exposureMode: "continuous" });
+  }
+  if (capabilities.whiteBalanceMode && Array.isArray(capabilities.whiteBalanceMode) && capabilities.whiteBalanceMode.includes("continuous")) {
+    advanced.push({ whiteBalanceMode: "continuous" });
+  }
+  if (capabilities.zoom && typeof capabilities.zoom.min === "number") {
+    const zoomValue = Math.min(capabilities.zoom.max || 2, Math.max(capabilities.zoom.min || 1, 1.2));
+    advanced.push({ zoom: zoomValue });
+  }
+
+  if (advanced.length) {
+    try {
+      await track.applyConstraints({ advanced });
+    } catch (err) {
+      console.warn("Camera focus constraints not applied", err);
     }
   }
 }
@@ -2506,124 +2541,93 @@ async function onScanSuccess(decodedText, isHandheld = false) {
 async function startScanner() {
   if (isScanning) return;
   const reader = document.getElementById("reader");
-  reader.innerHTML = `<div style="padding:30px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-size:13px;color:var(--text-muted);">กำลังขออนุญาตเปิดกล้อง...</div></div>`;
+  reader.innerHTML = `<div style="padding:30px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-size:13px;color:var(--text-muted);">กำลังเปิดกล้อง...</div></div>`;
 
   try {
-    let cameras = [];
-    try {
-      cameras = await Html5Qrcode.getCameras();
-    } catch (permErr) {
-      throw new Error("NotAllowedError: " + String(permErr));
-    }
-
-    if (!cameras || cameras.length === 0) {
-      throw new Error("ไม่พบกล้องบนอุปกรณ์นี้");
-    }
+    html5QrCode = new Html5Qrcode("reader", { verbose: false });
+    const formats = [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.CODE_128
+    ];
+    const config = {
+      fps: 30,
+      qrbox(viewfinderWidth, viewfinderHeight) {
+        const width = Math.floor(viewfinderWidth * 0.70);
+        const height = Math.min(Math.floor(viewfinderHeight * 0.30), 200);
+        return { width, height: Math.max(height, 140) };
+      },
+      formatsToSupport: formats,
+      disableFlip: true,
+      useBarCodeDetectorIfSupported: true
+    };
 
     reader.innerHTML = `<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
 
-    html5QrCode = new Html5Qrcode("reader", { 
-      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-      verbose: false
-    });
-    
-    const formats = [
-      Html5QrcodeSupportedFormats.QR_CODE,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39
-    ];
+    let didStart = false;
 
-    const config = { 
-      fps: 12,
-      qrbox: function(viewfinderWidth, viewfinderHeight) {
-        const width = Math.floor(viewfinderWidth * 0.92);
-        const height = Math.min(Math.floor(viewfinderHeight * 0.42), 260);
-        return { width, height: Math.max(height, 180) };
-      }, 
-      formatsToSupport: formats,
-      disableFlip: true
-    };
-
-    let started = false;
-
-    const applyCameraTuning = async () => {
-      const videoEl = document.querySelector("#reader video");
-      if (!videoEl || !videoEl.srcObject) return;
-      const tracks = videoEl.srcObject.getVideoTracks();
-      if (!tracks.length) return;
-      const track = tracks[0];
-      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-      const advanced = [];
-      if (capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
-        advanced.push({ focusMode: "continuous" });
-      }
-      if (capabilities.zoom && typeof capabilities.zoom.min === "number") {
-        const targetZoom = Math.min(capabilities.zoom.max || 1, Math.max(capabilities.zoom.min || 1, 1.4));
-        advanced.push({ zoom: targetZoom });
-      }
-      if (advanced.length) {
-        await track.applyConstraints({ advanced });
-      }
-    };
-
-    if (!started) {
+    // Try with cached camera first
+    if (cachedCameraId) {
       try {
-        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
-        started = true;
-      } catch(e1) {}
+        const cameraConstraints = {
+          deviceId: { exact: cachedCameraId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        };
+        await html5QrCode.start(cameraConstraints, config, onScanSuccess, () => {});
+        didStart = true;
+      } catch (e) {
+        cachedCameraId = null;
+      }
     }
 
-    if (!started && cameras.length > 0) {
+    // If cache failed or empty, request cameras
+    if (!didStart) {
       try {
-        try { await html5QrCode.clear(); } catch(ce){}
-        html5QrCode = new Html5Qrcode("reader", { 
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-          verbose: false
-        });
-        let backCam = cameras.find(c => /back|rear|environment|หลัง/i.test(c.label));
-        let selectedCam = backCam || cameras[cameras.length - 1];
-        await html5QrCode.start({ deviceId: { exact: selectedCam.id } }, config, onScanSuccess, () => {});
-        started = true;
-      } catch(e2) {}
-    }
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) {
+          throw new Error("ไม่พบกล้องบนอุปกรณ์นี้");
+        }
+        const rearCamera = cameras.find(c => /back|rear|environment|หลัง/i.test(c.label));
+        cachedCameraId = rearCamera ? rearCamera.id : cameras[cameras.length - 1].id;
 
-    if (!started) {
-      try {
-        try { await html5QrCode.clear(); } catch(ce){}
-        html5QrCode = new Html5Qrcode("reader", { 
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-          verbose: false
-        });
-        await html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, () => {});
-        started = true;
-      } catch(e3) {}
-    }
-
-    if (!started) {
-      throw new Error("ไม่สามารถเปิดกล้องได้ในทุกโหมด — กรุณาตรวจสอบสิทธิ์กล้องและลองอีกครั้ง");
+        const cameraConstraints = {
+          deviceId: { exact: cachedCameraId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        };
+        await html5QrCode.start(cameraConstraints, config, onScanSuccess, () => {});
+        didStart = true;
+      } catch (error) {
+        cachedCameraId = null;
+        const fallbackConstraints = {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        };
+        await html5QrCode.start(fallbackConstraints, config, onScanSuccess, () => {});
+        didStart = true;
+      }
     }
 
     isScanning = true;
     document.getElementById("btn-start").classList.add("hidden");
     document.getElementById("btn-stop").classList.remove("hidden");
-
-    try { await applyCameraTuning(); } catch(focusErr) {}
-
-  } catch(err) {
+    try { await applyCameraFocus(); } catch (focusErr) { console.warn('applyCameraFocus failed', focusErr); }
+  } catch (err) {
     let errMsg = "ไม่สามารถเปิดกล้องได้";
     const errStr = String(err);
     if (errStr.includes("NotAllowedError") || errStr.includes("Permission")) {
-      errMsg = "กรุณาอนุญาตให้ใช้งานกล้องในเบราว์เซอร์ (ตั้งค่า → อนุญาตกล้อง)";
+      errMsg = "กรุณาอนุญาตให้ใช้งานกล้องในเบราว์เซอร์";
     } else if (errStr.includes("ไม่พบกล้อง")) {
       errMsg = "ไม่พบกล้องบนอุปกรณ์นี้";
     } else if (window.location.protocol === "file:") {
-      errMsg = "กล้องต้องใช้ HTTPS เท่านั้น — กรุณาอัปโหลดขึ้นเซิร์ฟเวอร์ หรือใช้ localhost";
+      errMsg = "กล้องต้องใช้ HTTPS เท่านั้น";
     } else if (errStr.includes("OverconstrainedError")) {
-      errMsg = "กล้องไม่รองรับการตั้งค่าที่ระบุ — กรุณาลองอีกครั้ง";
+      errMsg = "กล้องไม่รองรับการตั้งค่านี้ กรุณาลองอีกครั้ง";
     }
     showError(errMsg);
     console.error("Camera Error:", err);
-    if (html5QrCode) { try { await html5QrCode.clear(); } catch(ce){} }
+    if (html5QrCode) { try { await html5QrCode.clear(); } catch (ce) {} }
     html5QrCode = null;
     reader.innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p style="font-size:14px;font-weight:600;color:var(--text);">ไม่สามารถเปิดกล้องได้</p><p style="color:red;font-size:12px;margin-top:8px;">${escHtml(errMsg)}</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
   }
@@ -2631,9 +2635,12 @@ async function startScanner() {
 
 async function stopScanner() {
   if (!html5QrCode || !isScanning) return;
-  try { await html5QrCode.stop(); } catch(e){}
-  try { await html5QrCode.clear(); } catch(e){}
-  html5QrCode = null; isScanning = false; isProcessing = false;
+  try { await html5QrCode.stop(); } catch (e) {}
+  try { await html5QrCode.clear(); } catch (e) {}
+  html5QrCode = null;
+  isScanning = false;
+  isProcessing = false;
+
   document.getElementById("btn-start").classList.remove("hidden");
   document.getElementById("btn-stop").classList.add("hidden");
   document.getElementById("reader").innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p>แตะ "เปิดกล้อง" เพื่อสแกน</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
