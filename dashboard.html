@@ -246,7 +246,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 
 /* SUMMARY CARDS */
 .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.summary-card { background: var(--bg-card); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); position: relative; overflow: hidden; transition: 0.2s; }
+.summary-card { background: var(--bg-card); border-radius: var(--radius); padding: 18px 20px; border: 1px solid var(--border); box-shadow: var(--shadow); position: relative; overflow: hidden; transition: 0.2s; min-height: 156px; display: flex; flex-direction: column; justify-content: center; }
 .summary-card:hover { transform: translateY(-2px); border-color: rgba(0,0,0,0.08); background: var(--bg-card-hover); }
 .summary-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--text-muted); }
 .summary-card.blue::before { background: #0284c7; }
@@ -254,14 +254,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .summary-card.red::before { background: var(--danger); }
 .summary-card.orange::before { background: var(--warning); }
 .card-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.card-title { font-size: 11px; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.card-number { font-size: 36px; font-weight: 900; margin: 4px 0; color: var(--text); }
-.card-footer { font-size: 11px; color: var(--text-muted); }
+.card-title { font-size: 13px; color: var(--text-dim); font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
+.card-number { font-size: 42px; font-weight: 900; margin: 6px 0; color: var(--text); line-height: 1; }
+.card-footer { font-size: 12px; color: var(--text-muted); font-weight: 600; }
 
 /* Circular Progress Chart inside card */
-.progress-ring-container { position: absolute; right: 20px; top: 20px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+.progress-ring-container { width: 62px; height: 62px; display: flex; align-items: center; justify-content: center; }
 .progress-ring { transform: rotate(-90deg); }
 .progress-ring__circle { transition: stroke-dashoffset 0.35s; transform-origin: 50% 50%; }
+.progress-card { align-items: stretch; }
+.progress-duo { display: flex; align-items: flex-start; justify-content: center; gap: 28px; margin-top: 4px; width: 100%; }
+.progress-metric { display: grid; justify-items: center; gap: 6px; min-width: 84px; }
+.progress-metric-label { font-size: 11px; color: var(--text-dim); font-weight: 700; }
+.progress-metric-value { font-size: 18px; color: var(--text); font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+.progress-ring-wrap { position: relative; width: 62px; height: 62px; display: grid; place-items: center; }
+.progress-ring-wrap .progress-metric-value { position: absolute; font-size: 14px; }
+.progress-duration-pill { display: inline-flex; align-items: center; justify-content: center; width: fit-content; margin: 8px auto 0; padding: 5px 10px; border-radius: 999px; background: rgba(217,119,6,0.1); color: #92400e; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* NAVIGATION PILLARS */
 .pillar-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
@@ -279,7 +287,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 /* DATA TABLES */
 .table-container { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); overflow-x: auto; box-shadow: var(--shadow); }
 .table-header, .table-row { display: grid; grid-template-columns: 120px 100px 80px 60px 1fr 90px 80px 80px 90px 90px 90px 90px; gap: 12px; padding: 14px 20px; align-items: center; min-width: 1320px; }
-.table-header.unreg, .table-row.unreg { display: grid; grid-template-columns: 140px 110px 80px 70px 1fr 100px 1fr 160px; min-width: 1100px; }
+.table-header.unreg, .table-row.unreg { display: grid; grid-template-columns: 140px 110px 80px 70px 1fr 100px 1fr 90px 160px; min-width: 1190px; }
 
 .table-header { background: rgba(0,0,0,0.01); font-weight: 800; color: var(--text-dim); border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; }
 .table-row { border-bottom: 1px solid var(--border-light); font-size: 13px; transition: 0.15s; }
@@ -503,23 +511,42 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
     </div>
     
     <!-- Progress circular ring layout -->
-    <div class="summary-card orange" style="padding-right: 90px;">
+    <div class="summary-card orange progress-card">
       <div class="card-header-row"><div class="card-title">ความคืบหน้า</div></div>
-      <div class="card-number" id="dash-pct-checked">0%</div>
-      <div class="card-footer" id="dash-pct-pending">ค้าง 0%</div>
-      <div class="card-footer">รวมเวลาบันทึก <b id="dash-total-duration">00:00:00</b></div>
-      <div class="progress-ring-container">
-        <svg class="progress-ring" width="60" height="60">
-          <circle class="progress-ring__circle" stroke="rgba(15,23,42,0.06)" stroke-width="4" fill="transparent" r="26" cx="30" cy="30"/>
-          <circle id="progress-circle" class="progress-ring__circle" stroke="var(--warning)" stroke-width="4" fill="transparent" r="26" cx="30" cy="30" stroke-dasharray="163.36 163.36" stroke-dashoffset="163.36"/>
-        </svg>
+      <div class="progress-duo">
+        <div class="progress-metric">
+          <div class="progress-ring-wrap">
+            <svg class="progress-ring" width="62" height="62">
+              <circle class="progress-ring__circle" stroke="rgba(15,23,42,0.06)" stroke-width="4" fill="transparent" r="26" cx="31" cy="31"/>
+              <circle id="progress-circle" class="progress-ring__circle" stroke="var(--success)" stroke-width="4" fill="transparent" r="26" cx="31" cy="31" stroke-dasharray="163.36 163.36" stroke-dashoffset="163.36"/>
+            </svg>
+            <div class="progress-metric-value" id="dash-pct-checked">0%</div>
+          </div>
+          <div class="progress-metric-label">ความคืบหน้า</div>
+        </div>
+        <div class="progress-metric">
+          <div class="progress-ring-wrap">
+            <svg class="progress-ring" width="62" height="62">
+              <circle class="progress-ring__circle" stroke="rgba(15,23,42,0.06)" stroke-width="4" fill="transparent" r="26" cx="31" cy="31"/>
+              <circle id="pending-circle" class="progress-ring__circle" stroke="var(--warning)" stroke-width="4" fill="transparent" r="26" cx="31" cy="31" stroke-dasharray="163.36 163.36" stroke-dashoffset="0"/>
+            </svg>
+            <div class="progress-metric-value" id="dash-pct-pending">100%</div>
+          </div>
+          <div class="progress-metric-label">คงเหลือ</div>
+        </div>
       </div>
+      <div class="progress-duration-pill">รวมเวลาบันทึก <span id="dash-total-duration" style="margin-left:6px;">00:00:00</span></div>
     </div>
   </div>
 
   <!-- SUMMARY CARDS FOR UNREG -->
   <div id="summary-unreg" class="summary-row hidden">
     <div class="summary-card red"><div class="card-title">สินค้านอกระบบรออนุมัติ</div><div class="card-number" id="dash-pillar-unreg">-</div><div class="card-footer">รายการรอยืนยันเข้าระบบหลัก</div></div>
+    <div class="summary-card orange">
+      <div class="card-header-row"><div class="card-title">เวลาบันทึกสินค้านอกระบบ</div></div>
+      <div class="card-number" id="dash-unreg-duration">00:00:00</div>
+      <div class="card-footer">รวมเวลาบันทึกสินค้านอกระบบ</div>
+    </div>
   </div>
 
   <!-- TABS FILTERS -->
@@ -562,7 +589,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
       </button>
     </div>
     <div class="table-header unreg">
-      <div>วันที่เพิ่ม</div><div>Temp ID</div><div>หมวดหมู่</div><div>รูปภาพ</div><div>ชื่อทรัพย์สิน / พื้นที่</div><div>คลัง</div><div>หมายเหตุ</div><div>ดำเนินการ</div>
+      <div>วันที่เพิ่ม</div><div>Temp ID</div><div>หมวดหมู่</div><div>รูปภาพ</div><div>ชื่อทรัพย์สิน / พื้นที่</div><div>คลัง</div><div>หมายเหตุ</div><div>ใช้เวลา</div><div>ดำเนินการ</div>
     </div>
     <div id="table-unreg-body"></div>
   </div>
@@ -690,7 +717,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 const API_URL = "https://script.google.com/macros/s/AKfycbzji7bEWa6sauFw1l21Su6GEDkYw7rAiBaiSzdnMuPHanmmW9atThQ0v9C8PsLvuYkxfw/exec";
 const API_SECRET = "VESPA2025SECRET";
 
-let allAssets = [], allUnregAssets = [], exportHeaders = [], scanDurationByAsset = {};
+let allAssets = [], allUnregAssets = [], exportHeaders = [], scanDurationByAsset = {}, unregAddedDurationByAsset = {};
 let scanDurationTotalMs = 0;
 let currentPillar = 'count', currentTab = 'all', currentWarehouse = 'all', selectedAssetNo = "";
 let approveAuth = JSON.parse(sessionStorage.getItem("approveAuth") || "null");
@@ -820,7 +847,7 @@ async function loadDashboard() {
       document.getElementById("dash-pending").textContent = (r1.summary.totalAssets - r1.summary.checked).toLocaleString();
       let pct = Math.round((r1.summary.checked / r1.summary.totalAssets) * 100) || 0;
       document.getElementById("dash-pct-checked").textContent = pct + "%";
-      document.getElementById("dash-pct-pending").textContent = "ค้าง " + (100 - pct) + "%";
+      document.getElementById("dash-pct-pending").textContent = (100 - pct) + "%";
       if (r1.summary.currentMonthName) document.getElementById("dash-month-label").textContent = r1.summary.currentMonthName;
       
       // Update circular progress svg offset
@@ -830,6 +857,12 @@ async function loadDashboard() {
         const offset = circumference - (pct / 100) * circumference;
         circle.style.strokeDashoffset = offset;
       }
+      const pendingCircle = document.getElementById("pending-circle");
+      if (pendingCircle) {
+        const circumference = 2 * Math.PI * 26;
+        const pendingPct = Math.max(0, 100 - pct);
+        pendingCircle.style.strokeDashoffset = circumference - (pendingPct / 100) * circumference;
+      }
     }
     
     if(r2 && Array.isArray(r2.assets)) {
@@ -837,9 +870,11 @@ async function loadDashboard() {
       allUnregAssets = Array.isArray(r2.unregAssets) ? r2.unregAssets : [];
       exportHeaders = Array.isArray(r2.headers) ? r2.headers : [];
       scanDurationByAsset = r2.scanDurationByAsset || {};
-      scanDurationTotalMs = Number(r2.scanDurationTotalMs || 0);
+      unregAddedDurationByAsset = r2.unregAddedDurationByAsset || {};
+      scanDurationTotalMs = Object.values(scanDurationByAsset).reduce((sum, item) => sum + Number((item && item.durationMs) || 0), 0);
       document.getElementById("dash-pillar-unreg").textContent = allUnregAssets.length.toLocaleString();
       document.getElementById("dash-total-duration").textContent = formatDurationHms(scanDurationTotalMs);
+      document.getElementById("dash-unreg-duration").textContent = formatDurationHms(r2.unregAddedDurationTotalMs || 0);
       filterTable();
     } else {
       throw new Error("ไม่สามารถอ่านข้อมูลจาก Server ได้");
@@ -924,6 +959,11 @@ function formatDurationHms(ms) {
 function getAssetDurationMs(assetNo) {
   const key = String(assetNo || "").trim().toUpperCase();
   return Number((scanDurationByAsset[key] && scanDurationByAsset[key].durationMs) || 0);
+}
+
+function getUnregDurationMs(tempId) {
+  const key = String(tempId || "").trim().toUpperCase();
+  return Number((unregAddedDurationByAsset[key] && unregAddedDurationByAsset[key].durationMs) || 0);
 }
 
 function renderMasterTable(data) {
@@ -1016,6 +1056,7 @@ function renderUnregTable(data) {
     // Unregistered image link is Column H / r[7]
     const imageLink = r[7] || "";
     const imageHtml = getRowImageHtml(imageLink);
+    const durationText = formatDurationHms(getUnregDurationMs(r[0]));
 
     return `
       <div class="table-row unreg">
@@ -1029,6 +1070,7 @@ function renderUnregTable(data) {
         </div>
         <div>${warehouse || '-'}</div>
         <div style="color:var(--danger); font-size:11px; text-align:left;">${remarks || '-'}</div>
+        <div style="font-size:11px; font-weight:700; color:var(--warning);">${durationText}</div>
         <div style="display:flex; gap:4px; justify-content:center;">
           <button class="row-btn detail" onclick="viewUnregAssetDetail('${r[0]}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> ข้อมูล</button>
           <button class="row-btn approve-action" onclick="confirmUnreg('${r[0]}', this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> อนุมัติ</button>
@@ -1270,7 +1312,7 @@ function viewUnregAssetDetail(tempId) {
   document.getElementById("modal-status").innerHTML          = `<span class="status-badge warn" style="background:#fef3c7;color:#b45309;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;">นอกระบบ</span>`;
   document.getElementById("modal-last-scan").textContent     = formatDateTime(row[6]);
   document.getElementById("modal-last-result").textContent   = "Unregistered Asset";
-  document.getElementById("modal-save-duration").textContent = "-";
+  document.getElementById("modal-save-duration").textContent = formatDurationHms(getUnregDurationMs(tempId));
 
   let remarkText = row[5] || "";
   let imageLink = row[7] || "";
