@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -640,6 +640,44 @@ body {
 }
 .form-field input:focus,
 .form-field select:focus { outline: none; border-color: var(--primary); }
+.manual-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.manual-mode-btn {
+  min-height: 58px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  line-height: 1.3;
+}
+.manual-mode-btn.active {
+  border-color: var(--primary);
+  background: #eff6ff;
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.manual-mode-note {
+  margin: -2px 0 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.45;
+}
 
 /* ===== LABEL ===== */
 .label-preview {
@@ -1331,17 +1369,30 @@ input[type="file"] { display: none; }
         </span>
         <div>
           <div class="modal-title" style="color: var(--text-dim);">บันทึกสินค้าบาร์โค้ดเสียหาย / นอกระบบ</div>
-          <div class="modal-subtitle" style="color:var(--text-muted);font-size:12px;font-weight:400;margin-top:2px;">ถ่ายรูปและเพิ่มข้อมูลเข้าระบบ</div>
+          <div class="modal-subtitle" id="manual-modal-subtitle" style="color:var(--text-muted);font-size:12px;font-weight:400;margin-top:2px;">เลือกประเภทก่อนบันทึกข้อมูล</div>
         </div>
       </div>
       <button class="modal-close" onclick="closeManualAddModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-field">
-        <label>รหัสทรัพย์สิน (กรณีระบุได้)</label>
-        <input type="text" id="manual-asset-no" placeholder="เช่น OFF00123 หรือเว้นว่างให้ระบบสร้างรหัสชั่วคราว">
+      <div class="manual-mode-tabs" role="group" aria-label="เลือกประเภทการบันทึก">
+        <button type="button" class="manual-mode-btn active" id="manual-mode-damaged" onclick="setManualAddMode('damaged')">
+          <span>สแกนบาร์โค้ดเสียหาย</span>
+        </button>
+        <button type="button" class="manual-mode-btn" id="manual-mode-unregistered" onclick="setManualAddMode('unregistered')">
+          <span>สินค้านอกระบบ</span>
+        </button>
       </div>
-      <div class="form-field">
+      <div class="manual-mode-note" id="manual-mode-note">ใช้เมื่อทรัพย์สินมีอยู่ในระบบ แต่บาร์โค้ด/ป้ายเสียหาย ให้กรอกรหัสเพื่อค้นหาและบันทึกการตรวจนับ</div>
+      <div class="form-field" id="manual-asset-no-field">
+        <label id="manual-asset-no-label">รหัสทรัพย์สิน <span class="req">*</span></label>
+        <input type="text" id="manual-asset-no" placeholder="เช่น OFF00123">
+      </div>
+      <div class="form-field" id="manual-name-field">
+        <label>ชื่อทรัพย์สิน / โมเดล <span class="req">*</span></label>
+        <input type="text" id="manual-name" placeholder="กรอกชื่อหรือโมเดลสินค้า" autocomplete="off" onpointerdown="ensureManualNameEditable()" onclick="ensureManualNameEditable()">
+      </div>
+      <div class="form-field" id="manual-category-field">
         <label>หมวดหมู่ทรัพย์สิน <span class="req">*</span></label>
         <select id="manual-category">
           <option value="">เลือก</option>
@@ -3797,11 +3848,88 @@ function exportExcel() {
 // ==================== MANUAL ADD (UPLOAD IMAGE) ====================
 let manualImageBase64 = null;
 let manualImageCompressToken = 0;
+let manualAddMode = "unregistered";
+
+function ensureManualNameEditable() {
+  const nameInput = document.getElementById("manual-name");
+  if (!nameInput) return null;
+  nameInput.disabled = false;
+  nameInput.readOnly = false;
+  nameInput.removeAttribute("disabled");
+  nameInput.removeAttribute("readonly");
+  return nameInput;
+}
+
+function setManualAddMode(mode) {
+  manualAddMode = mode === "damaged" ? "damaged" : "unregistered";
+  const isDamaged = manualAddMode === "damaged";
+  const damagedBtn = document.getElementById("manual-mode-damaged");
+  const unregBtn = document.getElementById("manual-mode-unregistered");
+  const assetField = document.getElementById("manual-asset-no-field");
+  const assetInput = document.getElementById("manual-asset-no");
+  const assetLabel = document.getElementById("manual-asset-no-label");
+  const nameField = document.getElementById("manual-name-field");
+  const nameInput = document.getElementById("manual-name");
+  const categoryField = document.getElementById("manual-category-field");
+  const categoryInput = document.getElementById("manual-category");
+  const note = document.getElementById("manual-mode-note");
+  const subtitle = document.getElementById("manual-modal-subtitle");
+  const submitBtn = document.getElementById("btn-manual-submit");
+  ensureManualNameEditable();
+
+  if (damagedBtn) damagedBtn.classList.toggle("active", isDamaged);
+  if (unregBtn) unregBtn.classList.toggle("active", !isDamaged);
+  if (assetField) assetField.classList.remove("hidden");
+  if (assetLabel) {
+    assetLabel.innerHTML = isDamaged
+      ? 'รหัสทรัพย์สิน <span class="req">*</span>'
+      : 'รหัสทรัพย์สิน';
+  }
+  if (assetInput) {
+    assetInput.disabled = false;
+    assetInput.readOnly = false;
+    assetInput.removeAttribute("disabled");
+    assetInput.removeAttribute("readonly");
+    assetInput.placeholder = isDamaged ? "เช่น OFF00123" : "ใส่ก็ได้ หรือเว้นว่างให้ระบบสร้าง TEMP";
+  }
+  if (nameField) nameField.classList.toggle("hidden", !isDamaged);
+  if (nameInput) {
+    nameInput.disabled = !isDamaged;
+    nameInput.readOnly = !isDamaged;
+    if (!isDamaged) nameInput.value = "";
+  }
+  if (categoryField) categoryField.classList.toggle("hidden", isDamaged);
+  if (categoryInput) {
+    categoryInput.disabled = isDamaged;
+    if (isDamaged) categoryInput.value = "";
+  }
+  if (note) {
+    note.textContent = isDamaged
+      ? "ใช้เมื่อทรัพย์สินมีอยู่ในระบบ แต่บาร์โค้ด/ป้ายเสียหาย ให้กรอกรหัสเพื่อค้นหาและบันทึกการตรวจนับ"
+      : "ใช้เมื่อเป็นสินค้านอกระบบจริง จะใส่รหัสทรัพย์สินหรือเว้นว่างก็ได้ หากเว้นว่างระบบจะสร้างรหัสชั่วคราว TEMP ให้อัตโนมัติ";
+  }
+  if (subtitle) {
+    subtitle.textContent = isDamaged
+      ? "ค้นหาจากรหัสเดิมและบันทึกการตรวจนับ"
+      : "ถ่ายรูปและบันทึกเป็นรายการรออนุมัติ";
+  }
+  if (submitBtn && !submitBtn.disabled) {
+    submitBtn.innerHTML = isDamaged
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกบาร์โค้ดเสียหาย'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกสินค้านอกระบบ';
+  }
+}
 
 function openManualAddModal(prefillAssetNo = "") {
   document.getElementById("modal-manual-add").classList.remove("hidden");
   document.body.style.overflow = "hidden";
-  document.getElementById("manual-asset-no").value = (typeof prefillAssetNo === 'string' ? prefillAssetNo : "");
+  const cleanPrefill = (typeof prefillAssetNo === 'string' ? prefillAssetNo.trim() : "");
+  setManualAddMode(cleanPrefill ? "damaged" : "unregistered");
+  document.getElementById("manual-asset-no").value = cleanPrefill;
+  setTimeout(() => {
+    const focusEl = cleanPrefill ? ensureManualNameEditable() : document.getElementById("manual-asset-no");
+    if (focusEl) focusEl.focus();
+  }, 50);
 }
 
 function closeManualAddModal() {
@@ -3809,7 +3937,8 @@ function closeManualAddModal() {
   document.body.style.overflow = "";
   // Reset form
   document.getElementById("manual-asset-no").value = "";
-  document.getElementById("manual-name").value = "";
+  const nameInput = ensureManualNameEditable();
+  if (nameInput) nameInput.value = "";
   document.getElementById("manual-category").value = "";
   document.getElementById("manual-loc-group").value = "";
   document.getElementById("manual-area").innerHTML = '<option value="">โปรดเลือกโซนหลักก่อน</option>';
@@ -3821,7 +3950,7 @@ function closeManualAddModal() {
   document.getElementById("manual-upload-placeholder").classList.remove("hidden");
   const btn = document.getElementById("btn-manual-submit");
   btn.disabled = false;
-  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกและอัปโหลด';
+  setManualAddMode("unregistered");
 }
 
 function previewManualImage(event) {
@@ -3848,7 +3977,7 @@ function previewManualImage(event) {
       manualImageBase64 = base64;
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกและอัปโหลด';
+        setManualAddMode(manualAddMode);
       }
     })
     .catch(() => {
@@ -3856,29 +3985,38 @@ function previewManualImage(event) {
       manualImageBase64 = null;
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกและอัปโหลด';
+        setManualAddMode(manualAddMode);
       }
       alert("ไม่สามารถเตรียมรูปภาพได้ กรุณาถ่ายใหม่อีกครั้ง");
     });
 }
 
 async function submitManualAdd() {
-  const assetNo   = String(document.getElementById("manual-asset-no").value || "").trim();
-  const assetName = String(document.getElementById("manual-name").value || "").trim();
+  const isDamagedMode = manualAddMode === "damaged";
+  if (isDamagedMode) ensureManualNameEditable();
+  const assetNo   = String(document.getElementById("manual-asset-no").value || "").trim().toUpperCase();
+  const assetNameInput = String(document.getElementById("manual-name").value || "").trim();
+  const assetName = isDamagedMode ? assetNameInput : "สินค้านอกระบบ";
   const category  = document.getElementById("manual-category").value;
   const group     = document.getElementById("manual-loc-group").value;
   const zone      = document.getElementById("manual-area").value;
   const status    = document.getElementById("manual-status").value;
   const remarks   = "";
   let masterAsset = null;
+
+  if (isDamagedMode && !assetNo) {
+    alert("❌ กรุณากรอกรหัสทรัพย์สินสำหรับโหมดบาร์โค้ดเสียหาย");
+    document.getElementById("manual-asset-no").focus();
+    return;
+  }
   
-  if (!assetName || assetName.length === 0) {
+  if (isDamagedMode && (!assetNameInput || assetNameInput.length === 0)) {
     alert("❌ กรุณากรอกชื่อทรัพย์สิน / โมเดล");
     document.getElementById("manual-name").focus();
     return;
   }
 
-  if (!category) {
+  if (!isDamagedMode && !category) {
     alert("กรุณาเลือกหมวดหมู่ทรัพย์สิน");
     return;
   }
@@ -3895,22 +4033,27 @@ async function submitManualAdd() {
     return;
   }
 
-  if (assetNo) {
+  if (isDamagedMode) {
     try {
       const lookupData = await fetchAssetLookupWithTimeout(assetNo, 6000);
       if (lookupData && lookupData.status === "success" && lookupData.found) {
         masterAsset = lookupData;
       }
     } catch (e) {}
+    if (!masterAsset || masterAsset.isUnregistered) {
+      alert("❌ ไม่พบรหัสนี้ในระบบหลัก กรุณาตรวจสอบรหัส หรือใช้โหมดสินค้านอกระบบหากเป็นสินค้าใหม่จริง");
+      document.getElementById("manual-asset-no").focus();
+      return;
+    }
   }
 
   const btn = document.getElementById("btn-manual-submit");
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-sm" style="margin-right:6px;"></span>กำลังอัปโหลด...';
+  btn.innerHTML = '<span class="spinner-sm" style="margin-right:6px;"></span>กำลังบันทึก...';
 
   try {
     await yieldToUI();
-    const payload = masterAsset
+    const payload = isDamagedMode
       ? {
           key: API_SECRET,
           action: "updateAsset",
@@ -3951,8 +4094,8 @@ async function submitManualAdd() {
     
     const data = await response.json().catch(() => null);
     
-    if (masterAsset && data && data.status === "success") {
-      const assetInfo = data || masterAsset || {};
+    if (isDamagedMode && data && data.status === "success") {
+      const assetInfo = { ...(masterAsset || {}), ...(data || {}) };
       closeManualAddModal();
       showSuccess({
         assetNo: assetInfo.assetNo || assetNo,
@@ -3966,11 +4109,11 @@ async function submitManualAdd() {
         lastResult: assetInfo.lastResult || "",
         isUnregistered: false
       });
-    } else if (!masterAsset && data && data.status === "success") {
+    } else if (!isDamagedMode && data && data.status === "success") {
       const assetInfo = data || {};
       closeManualAddModal();
       showUnregExistsModal({
-        assetNo: assetInfo.assetNo || assetNo,
+        assetNo: assetInfo.tempId || assetInfo.assetNo || "TEMP",
         assetName: assetInfo.assetName || assetName,
         category: assetInfo.category || category,
         area: assetInfo.area || zone,
@@ -3989,13 +4132,13 @@ async function submitManualAdd() {
     } else {
       alert("❌ บันทึกไม่สำเร็จ: " + (data ? data.message : "ไม่มีข้อความตอบกลับ"));
       btn.disabled = false;
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกและอัปโหลด';
+      setManualAddMode(manualAddMode);
       return;
     }  } catch (error) {
     alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ: " + error.toString());
     console.error(error);
     btn.disabled = false;
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกและอัปโหลด';
+    setManualAddMode(manualAddMode);
   }
 }
 
