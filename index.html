@@ -827,6 +827,46 @@ input[type="file"] { display: none; }
 
 .modal-footer .btn { min-width: 90px; font-size: 12px; padding: 10px; }
 
+.handheld-scan-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(4px);
+}
+.handheld-scan-popup.hidden { display: none; }
+.handheld-scan-box {
+  width: min(320px, 92vw);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+  padding: 20px 16px;
+  text-align: center;
+}
+.handheld-scan-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.handheld-scan-code {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--primary);
+  word-break: break-word;
+  margin-bottom: 10px;
+}
+.handheld-scan-status {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
 /* Dashboard action bar */
 .dash-action-bar {
   display: flex;
@@ -1034,7 +1074,7 @@ input[type="file"] { display: none; }
       
       <button class="btn btn-secondary" onclick="refreshCurrentView()" style="margin: 0 auto 16px; display: inline-flex;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>รีเฟรชหน้าจอ</button>
 
-      <input type="text" id="handheld-input" style="width: 100%; padding: 20px; border: 3px solid var(--primary); border-radius: var(--radius); font-size: 24px; text-align: center; background: var(--bg); color: var(--text); font-weight: 900; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);" placeholder="ยิงสแกนบาร์โค้ดที่นี่..." autocomplete="off">
+      <div id="handheld-input" tabindex="0" role="textbox" aria-label="ยิงสแกนบาร์โค้ดที่นี่" style="width: 100%; min-height: 72px; padding: 16px 12px; border: 3px solid var(--primary); border-radius: var(--radius); font-size: 22px; text-align: center; background: var(--bg); color: var(--text); font-weight: 900; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; word-break:break-word; outline:none;">ยิงสแกนบาร์โค้ดที่นี่</div>
       
       <div style="margin-top: 16px; font-size: 12px; color: var(--text-muted); font-weight: 600;">
         * ระบบจะบันทึกข้อมูลและดึงผลลัพธ์อัตโนมัติ
@@ -1750,6 +1790,15 @@ input[type="file"] { display: none; }
   </div>
 </div>
 
+<div id="handheld-scan-popup" class="handheld-scan-popup hidden">
+  <div class="handheld-scan-box">
+    <div class="spinner"></div>
+    <div class="handheld-scan-title">กำลังตรวจสอบข้อมูล</div>
+    <div id="handheld-scan-popup-code" class="handheld-scan-code">-</div>
+    <div class="handheld-scan-status">กรุณารอสักครู่...</div>
+  </div>
+</div>
+
 <div class="bottom-nav">
   <button class="active" onclick="showPage('home')" id="nav-home"><span class="icon" style="display:inline-flex; align-items:center; justify-content:center; margin-right:4px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span><span>หน้าหลัก</span></button>
 </div>
@@ -1902,7 +1951,7 @@ async function refreshCurrentView() {
   if (currentPage === "handheld") {
     const hhInput = document.getElementById("handheld-input");
     if (hhInput) {
-      hhInput.value = "";
+      setHandheldDisplay(HANDHELD_PLACEHOLDER, true);
       hhInput.focus();
     }
   }
@@ -1924,6 +1973,7 @@ async function fetchScanStatusWithTimeout(cleanCode, timeoutMs = 5000) {
 }
 
 function showScanStatusNotice(assetNo, scanStatus) {
+  closeHandheldScanPopup();
   const state = String(scanStatus.scanStatus || "").toLowerCase();
   const ref = scanStatus.requestId ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Ref: ${escHtml(scanStatus.requestId)}</div>` : "";
   const timeText = scanStatus.createdAt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${escHtml(formatDateTime(scanStatus.createdAt))}</div>` : "";
@@ -2135,7 +2185,7 @@ function setResult(html) {
   if (r2) r2.innerHTML = html;
 }
 function showLoading(msg)    { setResult(`<div class="result-card" style="padding:20px;"><div class="spinner"></div><div style="font-size:13px;color:var(--text-muted);">${msg}</div></div>`); }
-function showError(msg)      { setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">❌</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ผิดพลาด</div><div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(msg)}</div></div>`); }
+function showError(msg)      { closeHandheldScanPopup(); setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">❌</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ผิดพลาด</div><div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(msg)}</div></div>`); }
 
 // ✅ Escape HTML เพื่อป้องกัน XSS จากค่าที่ scan มา
 function escHtml(str) {
@@ -2159,6 +2209,7 @@ function yieldToUI() {
 let pendingScanData = null;
 
 function showStockCountModal(data) {
+  closeHandheldScanPopup();
   if (data && data.isUnregistered) {
     showUnregExistsModal(data);
     return;
@@ -2233,6 +2284,7 @@ function resumeScannerAfterAction() {
 }
 
 function showUnregExistsModal(data) {
+  closeHandheldScanPopup();
   document.getElementById("unreg-exists-assetno").textContent = data.assetNo || "-";
   document.getElementById("unreg-exists-name").textContent = data.assetName || "-";
   document.getElementById("unreg-exists-cat").textContent = data.category || "-";
@@ -2248,7 +2300,7 @@ function closeUnregExistsModal() {
     setTimeout(() => {
       const hhInput = document.getElementById("handheld-input");
       if (hhInput) {
-        hhInput.value = "";
+        setHandheldDisplay(HANDHELD_PLACEHOLDER, true);
         hhInput.focus();
       }
     }, 100);
@@ -2592,6 +2644,7 @@ async function confirmScanCount() {
 }
 
 function showNotFound(assetNo) {
+  closeHandheldScanPopup();
   const safeNo = escHtml(assetNo);
   const rawNo = String(assetNo).trim().toUpperCase();
   // #region agent log
@@ -4199,6 +4252,15 @@ setTimeout(() => {
 let handheldBuffer = "";
 let lastHandheldTime = Date.now();
 let handheldInputTimer = null;
+const HANDHELD_PLACEHOLDER = "ยิงสแกนบาร์โค้ดที่นี่";
+
+function setHandheldDisplay(text, isPlaceholder) {
+  const display = document.getElementById("handheld-input");
+  if (!display) return;
+
+  display.textContent = text || HANDHELD_PLACEHOLDER;
+  display.style.color = isPlaceholder ? "var(--text-muted)" : "var(--text)";
+}
 
 function playHandheldBeep() {
   try {
@@ -4232,13 +4294,29 @@ function showHandheldAccepted(cleanCode) {
     <div class="result-card warning">
       <div style="font-size:18px;font-weight:800;">รับรหัสแล้ว</div>
       <div style="margin-top:6px;font-size:24px;font-weight:900;color:var(--primary);word-break:break-word;">
-        ${cleanCode}
+        ${escHtml(cleanCode)}
       </div>
       <div style="margin-top:6px;font-size:13px;color:var(--text-muted);font-weight:600;">
         กำลังตรวจสอบข้อมูล...
       </div>
     </div>
   `;
+}
+
+function showHandheldScanPopup(cleanCode) {
+  const popup = document.getElementById("handheld-scan-popup");
+  const codeEl = document.getElementById("handheld-scan-popup-code");
+  if (!popup || !codeEl) return;
+
+  codeEl.textContent = cleanCode;
+  popup.classList.remove("hidden");
+}
+
+function closeHandheldScanPopup() {
+  const popup = document.getElementById("handheld-scan-popup");
+  if (popup) {
+    popup.classList.add("hidden");
+  }
 }
 
 function flashHandheldInput(sourceInput) {
@@ -4262,6 +4340,7 @@ function submitHandheldCode(code, sourceInput) {
   }
 
   showHandheldAccepted(cleanCode);
+  showHandheldScanPopup(cleanCode);
   flashHandheldInput(sourceInput);
   playHandheldBeep();
 
@@ -4269,7 +4348,7 @@ function submitHandheldCode(code, sourceInput) {
   handheldBuffer = "";
 
   if (sourceInput) {
-    sourceInput.value = "";
+    setHandheldDisplay(HANDHELD_PLACEHOLDER, true);
     sourceInput.focus();
   }
 }
@@ -4292,10 +4371,20 @@ document.addEventListener("keydown", function(e) {
   if (isEnter) {
     if (handheldBuffer.length > 0) {
       e.preventDefault();
-      submitHandheldCode(handheldBuffer);
+      submitHandheldCode(handheldBuffer, document.getElementById("handheld-input"));
     }
   } else if (e.key && e.key.length === 1) {
     handheldBuffer += e.key;
+    setHandheldDisplay(handheldBuffer, false);
+
+    if (handheldInputTimer) {
+      clearTimeout(handheldInputTimer);
+    }
+
+    handheldInputTimer = setTimeout(() => {
+      submitHandheldCode(handheldBuffer, document.getElementById("handheld-input"));
+      handheldInputTimer = null;
+    }, 250);
   }
 });
 
@@ -4309,20 +4398,11 @@ handheldInput.addEventListener('keydown', function(e) {
       clearTimeout(handheldInputTimer);
       handheldInputTimer = null;
     }
-    submitHandheldCode(this.value, this);
+    submitHandheldCode(handheldBuffer, this);
   }
 });
 
-handheldInput.addEventListener('input', function() {
-  if (handheldInputTimer) {
-    clearTimeout(handheldInputTimer);
-  }
-
-  handheldInputTimer = setTimeout(() => {
-    submitHandheldCode(this.value, this);
-    handheldInputTimer = null;
-  }, 250);
-});
+setHandheldDisplay(HANDHELD_PLACEHOLDER, true);
 
 </script>
 </body>
