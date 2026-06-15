@@ -4200,6 +4200,59 @@ let handheldBuffer = "";
 let lastHandheldTime = Date.now();
 let handheldInputTimer = null;
 
+function playHandheldBeep() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gainNode.gain.value = 0.08;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start();
+
+    setTimeout(() => {
+      oscillator.stop();
+      audioContext.close();
+    }, 90);
+  } catch (e) {}
+}
+
+function showHandheldAccepted(cleanCode) {
+  const resultBox = document.getElementById("result-handheld");
+  if (!resultBox) return;
+
+  resultBox.innerHTML = `
+    <div class="result-card warning">
+      <div style="font-size:18px;font-weight:800;">รับรหัสแล้ว</div>
+      <div style="margin-top:6px;font-size:24px;font-weight:900;color:var(--primary);word-break:break-word;">
+        ${cleanCode}
+      </div>
+      <div style="margin-top:6px;font-size:13px;color:var(--text-muted);font-weight:600;">
+        กำลังตรวจสอบข้อมูล...
+      </div>
+    </div>
+  `;
+}
+
+function flashHandheldInput(sourceInput) {
+  if (!sourceInput) return;
+
+  sourceInput.style.borderColor = "var(--success)";
+  sourceInput.style.boxShadow = "0 0 0 4px rgba(5, 150, 105, 0.14), inset 0 2px 4px rgba(0,0,0,0.05)";
+
+  setTimeout(() => {
+    sourceInput.style.borderColor = "var(--primary)";
+    sourceInput.style.boxShadow = "inset 0 2px 4px rgba(0,0,0,0.05)";
+  }, 350);
+}
+
 function submitHandheldCode(code, sourceInput) {
   const cleanCode = String(code || "").trim();
   if (!cleanCode || cleanCode.length < 3) return;
@@ -4207,6 +4260,10 @@ function submitHandheldCode(code, sourceInput) {
   if (currentPage !== "handheld") {
     showPage("handheld");
   }
+
+  showHandheldAccepted(cleanCode);
+  flashHandheldInput(sourceInput);
+  playHandheldBeep();
 
   onScanSuccess(cleanCode, true);
   handheldBuffer = "";
