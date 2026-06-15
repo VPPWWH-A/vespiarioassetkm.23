@@ -1,4 +1,4 @@
-﻿﻿﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -4198,6 +4198,24 @@ setTimeout(() => {
 // ==================== HANDHELD SCANNER ====================
 let handheldBuffer = "";
 let lastHandheldTime = Date.now();
+let handheldInputTimer = null;
+
+function submitHandheldCode(code, sourceInput) {
+  const cleanCode = String(code || "").trim();
+  if (!cleanCode || cleanCode.length < 3) return;
+
+  if (currentPage !== "handheld") {
+    showPage("handheld");
+  }
+
+  onScanSuccess(cleanCode, true);
+  handheldBuffer = "";
+
+  if (sourceInput) {
+    sourceInput.value = "";
+    sourceInput.focus();
+  }
+}
 
 document.addEventListener("keydown", function(e) {
   // ไม่ดักจับถ้ากำลังพิมพ์ใน input, textarea หรือ select
@@ -4217,11 +4235,7 @@ document.addEventListener("keydown", function(e) {
   if (isEnter) {
     if (handheldBuffer.length > 0) {
       e.preventDefault();
-      if (currentPage !== "handheld") {
-        showPage("handheld");
-      }
-      onScanSuccess(handheldBuffer, true);
-      handheldBuffer = "";
+      submitHandheldCode(handheldBuffer);
     }
   } else if (e.key && e.key.length === 1) {
     handheldBuffer += e.key;
@@ -4229,19 +4243,28 @@ document.addEventListener("keydown", function(e) {
 });
 
 // Listener แยกเฉพาะสำหรับช่องสแกน Handheld
-document.getElementById('handheld-input').addEventListener('keydown', function(e) {
-  if (e.key === "Enter" || e.keyCode === 13) {
+const handheldInput = document.getElementById('handheld-input');
+
+handheldInput.addEventListener('keydown', function(e) {
+  if (e.key === "Enter" || e.keyCode === 13 || e.key === "Tab" || e.keyCode === 9) {
     e.preventDefault();
-    const code = this.value.trim();
-    if (code) {
-      if (currentPage !== "handheld") {
-        showPage("handheld");
-      }
-      onScanSuccess(code, true);
-      this.value = "";
+    if (handheldInputTimer) {
+      clearTimeout(handheldInputTimer);
+      handheldInputTimer = null;
     }
+    submitHandheldCode(this.value, this);
+  }
+});
+
+handheldInput.addEventListener('input', function() {
+  if (handheldInputTimer) {
+    clearTimeout(handheldInputTimer);
   }
 
+  handheldInputTimer = setTimeout(() => {
+    submitHandheldCode(this.value, this);
+    handheldInputTimer = null;
+  }, 250);
 });
 
 </script>
