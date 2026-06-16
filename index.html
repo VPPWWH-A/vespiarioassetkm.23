@@ -1165,6 +1165,11 @@ input[type="file"] { display: none; }
     <div class="btn-group">
       <button id="btn-start" class="btn btn-primary btn-full" onclick="startScanner()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>เปิดกล้องสแกน</button>
       <button id="btn-stop" class="btn btn-danger btn-full hidden" onclick="stopScanner()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg>ปิดกล้อง</button>
+      
+      <!-- Hidden file input for photo scanning -->
+      <input type="file" id="scan-via-photo" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoScan(event)">
+      <button class="btn btn-secondary btn-full" onclick="triggerPhotoScan()" style="margin-top:4px; background: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>📷 ถ่ายรูปเพื่อสแกน (สำหรับจุดมืด/iPhone)</button>
+      
       <button class="btn btn-primary btn-full" onclick="openManualAddModal()" style="margin-top:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>บาร์โค้ดเสียหาย</button>
       <button class="btn btn-secondary btn-full" onclick="refreshCurrentView()" style="margin-top:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>รีเฟรชแอป</button>
       <button class="btn btn-gold btn-full" onclick="showInstallModal()" style="margin-top:4px; font-weight: bold;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>นำแอปลงหน้าจอหลัก (Install)</button>
@@ -2509,15 +2514,22 @@ async function applyCameraFocus() {
     const zoomValue = Math.min(capabilities.zoom.max || 2, Math.max(capabilities.zoom.min || 1, 1.2));
     advanced.push({ zoom: zoomValue });
   }
-  if (capabilities.torch) {
-    advanced.push({ torch: true });
-  }
 
-  if (advanced.length) {
-    try {
-      await track.applyConstraints({ advanced });
-    } catch (err) {
-      console.warn("Camera focus constraints not applied", err);
+  // Force add torch constraint to try enabling the flash
+  const advancedWithTorch = [...advanced, { torch: true }];
+
+  try {
+    // Try with torch first
+    await track.applyConstraints({ advanced: advancedWithTorch });
+  } catch (torchErr) {
+    console.warn("Failed to apply constraints with torch, trying without torch...", torchErr);
+    // Fallback to applying constraints without torch
+    if (advanced.length) {
+      try {
+        await track.applyConstraints({ advanced });
+      } catch (err) {
+        console.warn("Camera focus constraints not applied", err);
+      }
     }
   }
 }
@@ -3003,6 +3015,40 @@ async function onScanSuccess(decodedText, isHandheld = false) {
 
 
 
+function triggerPhotoScan() {
+  document.getElementById("scan-via-photo").click();
+}
+
+async function handlePhotoScan(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  setResult(`<div style="padding:15px;text-align:center;color:var(--primary);font-weight:700;"><span class="spinner-sm" style="margin-right:6px;"></span>กำลังถอดรหัสรูปภาพ...</div>`);
+
+  let tempHtml5QrCode = html5QrCode;
+  let needToClearTemp = false;
+  if (!tempHtml5QrCode) {
+    tempHtml5QrCode = new Html5Qrcode("reader", { 
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false 
+    });
+    needToClearTemp = true;
+  }
+
+  try {
+    const decodedText = await tempHtml5QrCode.scanFile(file, true);
+    onScanSuccess(decodedText);
+  } catch (err) {
+    alert("❌ ไม่สามารถถอดรหัสจากรูปภาพนี้ได้\nกรุณาตรวจสอบว่าถ่ายภาพบาร์โค้ดได้ตรง คมชัด และหลีกเลี่ยงแสงสะท้อน");
+    setResult("");
+  } finally {
+    if (needToClearTemp) {
+      try { await tempHtml5QrCode.clear(); } catch(e){}
+    }
+    event.target.value = "";
+  }
+}
+
 async function startScanner() {
   // ดักจับ iPhone และแสดงคู่มือ (ทำแค่ครั้งเดียวเพื่อไม่ให้รบกวนการทำงาน)
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -3034,7 +3080,14 @@ async function startScanner() {
     const formats = [
       Html5QrcodeSupportedFormats.QR_CODE,
       Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_93,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.DATA_MATRIX
     ];
     const config = {
       fps: 30,
