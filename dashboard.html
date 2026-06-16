@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -31,6 +31,24 @@
   --shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
   --radius: 12px;
   --radius-sm: 8px;
+}
+.table-blink-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+  animation: tableBadgeFlash 1.2s infinite alternate;
+}
+@keyframes tableBadgeFlash {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 40px; font-size: 14px; background-image: radial-gradient(circle at 50% 0%, #f1f5f9 0%, #f8fafc 100%); background-attachment: fixed; }
@@ -1009,6 +1027,11 @@ function renderMasterTable(data) {
     const imageHtml = getRowImageHtml(imageLink);
     const durationText = formatDurationHms(getAssetDurationMs(r[0]));
     
+    const isStickerDamaged = [String(r[1]), String(r[2]), lastResultText, remarkText, String(r[6] || "")].join(" ").includes("บาร์โค้ดเสียหาย") || String(r[2]).toUpperCase() === "UNKNOWN";
+    const stickerBadge = isStickerDamaged
+      ? '<span class="table-blink-badge">⚠️ บาร์โค้ดเสียหาย</span>'
+      : "";
+
     return `
       <div class="table-row">
         <div style="font-weight:600; color:var(--primary); font-size:12px;">${checkDateStr}</div>
@@ -1017,6 +1040,7 @@ function renderMasterTable(data) {
         <div>${imageHtml}</div>
         <div style="line-height:1.3; text-align:left;">
           <div style="font-weight:600; color:var(--text);">${r[1] || '-'}</div>
+          ${stickerBadge}
           <div style="font-size:11px; color:var(--text-dim);">${r[3] || '-'}</div>
         </div>
         <div>${r[4] || '-'}</div>
@@ -1052,7 +1076,7 @@ function renderUnregTable(data) {
     const status = String(r[9] || "").trim();
     const isStickerDamaged = [assetName, category, remarks, status].join(" ").includes("บาร์โค้ดเสียหาย") || category.toUpperCase() === "UNKNOWN";
     const stickerBadge = isStickerDamaged
-      ? '<span class="status-badge warn" style="display:inline-block;margin-top:4px;background:#fef3c7;color:#b45309;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;">สติ๊กเกอร์เสียหาย</span>'
+      ? '<span class="table-blink-badge">⚠️ บาร์โค้ดเสียหาย</span>'
       : "";
     
     const cat = category.toLowerCase();
