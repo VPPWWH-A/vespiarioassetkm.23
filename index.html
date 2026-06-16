@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -47,6 +47,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   font-size: 14px;
   background-image: radial-gradient(circle at 50% 0%, #f1f5f9 0%, #f8fafc 100%);
@@ -206,6 +207,7 @@ body {
 /* ===== MAIN CONTENT ===== */
 .main-content {
   padding: 20px 20px 110px;
+  padding-bottom: calc(110px + env(safe-area-inset-bottom));
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -701,7 +703,7 @@ body {
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
-  padding: 6px 0;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
   z-index: 100;
   box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);
 }
@@ -745,6 +747,7 @@ input[type="file"] { display: none; }
   border-radius: 14px;
   width: 100%;
   max-width: 480px;
+  max-height: calc(100dvh - 32px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
   overflow: hidden;
   animation: slideUp 0.25s ease;
@@ -787,8 +790,9 @@ input[type="file"] { display: none; }
 
 .modal-body { 
   padding: 12px 16px; 
-  max-height: 60vh; 
+  max-height: min(60vh, calc(100dvh - 150px)); 
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-grid {
@@ -902,7 +906,81 @@ input[type="file"] { display: none; }
 .refresh-btn.spinning .refresh-icon { display: inline-block; animation: spin 0.8s linear infinite; }
 
 @media (max-width: 768px) {
-  .main-content { padding: 16px 16px 100px; }
+  .top-bar-inner { flex-direction: column; align-items: stretch; }
+  .filter-row { justify-content: stretch; }
+  .search-box { max-width: none; }
+  .main-content { padding: 16px 16px calc(100px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 600px) {
+  body { font-size: 13px; }
+  .top-bar { padding: 10px 12px; }
+  .top-bar-inner { gap: 10px; }
+  .brand-icon { width: 32px; height: 32px; }
+  .brand-text .name { font-size: 14px; }
+  .brand-text .sub { font-size: 10px; }
+  .main-content { padding: 12px 12px calc(92px + env(safe-area-inset-bottom)); }
+  .summary-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .summary-card { padding: 12px; min-width: 0; }
+  .home-grid { grid-template-columns: 1fr; gap: 10px; }
+  .home-card { min-height: 132px; padding: 18px 12px; }
+  .home-card-title { font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+  .btn, .action-btn, .control-btn { min-height: 44px; white-space: normal; line-height: 1.25; }
+  .btn-group { gap: 8px; }
+  .form-row, .modal-grid { grid-template-columns: 1fr; }
+  .form-field input, .form-field select { min-height: 44px; font-size: 16px; }
+  #reader { max-height: 42dvh; }
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+  .modal-box {
+    max-width: none;
+    border-radius: 14px 14px 10px 10px;
+    max-height: calc(100dvh - 16px - env(safe-area-inset-bottom));
+  }
+  .modal-header { padding: 10px 12px; }
+  .modal-title-row { min-width: 0; }
+  .modal-title, .modal-subtitle { overflow-wrap: anywhere; }
+  .modal-body {
+    padding: 10px 12px;
+    max-height: calc(100dvh - 138px - env(safe-area-inset-bottom));
+  }
+  .modal-footer {
+    padding: 8px 12px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  .modal-footer .btn { flex: 1 1 0; min-width: 0; }
+  .manual-mode-btn { min-height: 50px; padding: 10px 8px; }
+  .bottom-nav button { flex: 1; min-width: 0; padding: 4px 2px; font-size: 9px; }
+  .bottom-nav button .icon { font-size: 18px; }
+  .table-row, .table-row.unreg { padding: 12px; }
+  .table-row > .cell { gap: 10px; align-items: flex-start; }
+  .table-row > .cell::before { flex: 0 0 92px; white-space: normal; }
+  .cell-name, .cell-sub, .cell-code { overflow-wrap: anywhere; }
+}
+
+@media (max-width: 380px) {
+  .main-content { padding-left: 8px; padding-right: 8px; }
+  .summary-row { grid-template-columns: 1fr; }
+  .home-card { min-height: 118px; }
+  .modal-overlay { padding-left: 4px; padding-right: 4px; }
+  .modal-body { padding-left: 10px; padding-right: 10px; }
+  .modal-footer { flex-direction: column; }
+  .modal-footer .btn { width: 100%; }
+  .table-row > .cell { flex-direction: column; align-items: stretch; text-align: left; }
+  .table-row > .cell::before { flex: none; margin-right: 0; }
+  .cell-name, .cell-sub { text-align: left; }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .top-bar { position: static; padding: 8px 12px; }
+  .main-content { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  #reader { max-height: 58dvh; aspect-ratio: 16 / 9; }
+  .modal-overlay { align-items: center; }
+  .modal-body { max-height: calc(100dvh - 116px); }
 }
 
 /* Home Grid Menu Cards */
@@ -965,6 +1043,16 @@ input[type="file"] { display: none; }
   font-weight: 700;
   letter-spacing: 0.5px;
 }
+
+@media (max-width: 600px) {
+  .home-grid { grid-template-columns: 1fr; gap: 10px; }
+  .home-card { min-height: 132px; padding: 18px 12px; }
+  .home-card-title { font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+}
+
+@media (max-width: 380px) {
+  .home-card { min-height: 118px; }
+}
 </style>
 <base target="_blank">
 </head>
@@ -1025,7 +1113,7 @@ input[type="file"] { display: none; }
           <div class="home-card-icon">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           </div>
-          <div class="home-card-title">3. สินค้านอกระบบ</div>
+          <div class="home-card-title">3. สินค้าบาร์โค๊ดเสียหาย</div>
         </div>
 
         <div onclick="showPage('dashboard')" class="home-card amber">
@@ -1058,7 +1146,7 @@ input[type="file"] { display: none; }
     <div class="btn-group">
       <button id="btn-start" class="btn btn-primary btn-full" onclick="startScanner()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>เปิดกล้องสแกน</button>
       <button id="btn-stop" class="btn btn-danger btn-full hidden" onclick="stopScanner()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg>ปิดกล้อง</button>
-      <button class="btn btn-primary btn-full" onclick="openManualAddModal()" style="margin-top:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>สินค้านอกระบบ</button>
+      <button class="btn btn-primary btn-full" onclick="openManualAddModal()" style="margin-top:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>บาร์โค้ดเสียหาย</button>
       <button class="btn btn-secondary btn-full" onclick="refreshCurrentView()" style="margin-top:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>รีเฟรชแอป</button>
       <button class="btn btn-gold btn-full" onclick="showInstallModal()" style="margin-top:4px; font-weight: bold;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>นำแอปลงหน้าจอหลัก (Install)</button>
     </div>
@@ -1408,14 +1496,14 @@ input[type="file"] { display: none; }
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warning);"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
         </span>
         <div>
-          <div class="modal-title" style="color: var(--text-dim);">บันทึกสินค้าบาร์โค้ดเสียหาย / นอกระบบ</div>
+          <div class="modal-title" style="color: var(--text-dim);">บันทึกสินค้าบาร์โค้ดเสียหาย</div>
           <div class="modal-subtitle" id="manual-modal-subtitle" style="color:var(--text-muted);font-size:12px;font-weight:400;margin-top:2px;">เลือกประเภทก่อนบันทึกข้อมูล</div>
         </div>
       </div>
       <button class="modal-close" onclick="closeManualAddModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="manual-mode-tabs" role="group" aria-label="เลือกประเภทการบันทึก">
+      <div class="manual-mode-tabs hidden" role="group" aria-label="เลือกประเภทการบันทึก">
         <button type="button" class="manual-mode-btn active" id="manual-mode-damaged" onclick="setManualAddMode('damaged')">
           <span>สแกนบาร์โค้ดเสียหาย</span>
         </button>
@@ -1424,6 +1512,14 @@ input[type="file"] { display: none; }
         </button>
       </div>
       <div class="manual-mode-note" id="manual-mode-note">ใช้เมื่อทรัพย์สินมีอยู่ในระบบ แต่บาร์โค้ด/ป้ายเสียหาย ให้กรอกรหัสเพื่อค้นหาและบันทึกการตรวจนับ</div>
+      <div id="manual-choice-actions" style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;">
+        <button type="button" class="manual-mode-btn" onclick="setManualAddMode('lookup')">
+          <span>บาร์โค้ดเสียหาย แต่ยังเห็นรหัส</span>
+        </button>
+        <button type="button" class="manual-mode-btn" onclick="setManualAddMode('unknown-damaged')">
+          <span>บาร์โค้ดเสียหาย ไม่ทราบรหัส</span>
+        </button>
+      </div>
       <div class="form-field" id="manual-asset-no-field">
         <label id="manual-asset-no-label">รหัสทรัพย์สิน <span class="req">*</span></label>
         <input type="text" id="manual-asset-no" placeholder="เช่น OFF00123">
@@ -1443,7 +1539,7 @@ input[type="file"] { display: none; }
           <option value="VEH">ยานพาหนะ (VEH)</option>
         </select>
       </div>
-      <div class="form-row">
+      <div class="form-row" id="manual-location-fields">
         <div class="form-field">
           <label>คลัง / โซนหลัก <span class="req">*</span></label>
           <select id="manual-loc-group" onchange="updateManualZones()">
@@ -1462,7 +1558,7 @@ input[type="file"] { display: none; }
           </select>
         </div>
       </div>
-      <div class="form-field">
+      <div class="form-field" id="manual-status-field">
         <label>สถานะ</label>
         <select id="manual-status">
           <option value="ใช้งานอยู่">ใช้งานอยู่</option>
@@ -1472,7 +1568,7 @@ input[type="file"] { display: none; }
         </select>
       </div>
       <!-- Upload Image Section -->
-      <div style="margin-top:12px;border:1px dashed var(--border);padding:16px;border-radius:8px;text-align:center;background:#f8fafc;">
+      <div id="manual-upload-field" style="margin-top:12px;border:1px dashed var(--border);padding:16px;border-radius:8px;text-align:center;background:#f8fafc;">
         <input type="file" id="manual-image" accept="image/*" capture="environment" onchange="previewManualImage(event)" style="display:none;">
         <div id="manual-preview-container" class="hidden">
           <img id="manual-image-preview" style="max-width:100%;max-height:200px;border-radius:8px;margin-bottom:8px;">
@@ -1730,6 +1826,13 @@ input[type="file"] { display: none; }
           <option value="ไม่ได้ใช้งาน">ไม่ได้ใช้งาน</option>
           <option value="ชำรุดเสียหาย">ชำรุดเสียหาย</option>
           <option value="ซ่อมบำรุง">ซ่อมบำรุง</option>
+        </select>
+      </div>
+      <div class="form-field" style="margin-top:8px;">
+        <label>รอบนับ</label>
+        <select id="scan-count-round">
+          <option value="1">Count 1</option>
+          <option value="2">Count 2</option>
         </select>
       </div>
 
@@ -1996,6 +2099,16 @@ function showScanStatusNotice(assetNo, scanStatus) {
 
 let isDashboardLoading = false;
 
+function getCurrentBaseCountColName() {
+  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const d = new Date();
+  return "เช็ค " + months[d.getMonth()] + " " + d.getFullYear();
+}
+
+function getCurrentCountColName(round = "1") {
+  return getCurrentBaseCountColName() + " Count " + (String(round) === "2" ? "2" : "1");
+}
+
 function applyExportData(data2) {
   // ✅ Validate input data structure
   if (!data2 || typeof data2 !== 'object') {
@@ -2037,16 +2150,16 @@ function applyExportData(data2) {
   if (dashTotalEl) dashTotalEl.textContent = totalAssets.toLocaleString();
 
   // --- Calculate Dashboard Summary on Frontend ---
-  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-  const d = new Date();
-  const currentMonthName = "เช็ค " + months[d.getMonth()] + " " + d.getFullYear();
+  const currentMonthName = getCurrentCountColName("1");
+  const legacyMonthName = getCurrentBaseCountColName();
   
   let currentMonthIndex = exportHeaders.indexOf(currentMonthName);
+  const legacyMonthIndex = exportHeaders.indexOf(legacyMonthName);
   if (currentMonthIndex === -1) currentMonthIndex = exportHeaders.length; // fallback
   
   let checkedCount = 0;
   allAssets.forEach(row => {
-    if (row && (row[currentMonthIndex] === "Count" || row[currentMonthIndex] === "Checked")) {
+    if (row && (row[currentMonthIndex] === "Count" || row[currentMonthIndex] === "Checked" || row[legacyMonthIndex] === "Count" || row[legacyMonthIndex] === "Checked")) {
       checkedCount++;
     }
   });
@@ -2245,6 +2358,7 @@ function showStockCountModal(data) {
   document.getElementById("scan-update-warehouse").value = "";
   document.getElementById("scan-update-area").innerHTML = '<option value="">ไม่เปลี่ยน</option>';
   document.getElementById("scan-update-status").value = "";
+  document.getElementById("scan-count-round").value = "1";
   document.getElementById("scan-update-image").value = "";
   document.getElementById("scan-img-preview-container").classList.add("hidden");
   document.getElementById("scan-img-placeholder").style.display = "";
@@ -2528,6 +2642,7 @@ async function confirmScanCount() {
   const newWarehouse = document.getElementById("scan-update-warehouse").value;
   const newArea = document.getElementById("scan-update-area").value;
   const newStatus = document.getElementById("scan-update-status").value;
+  const countRound = document.getElementById("scan-count-round").value || "1";
   const fileInput = document.getElementById("scan-update-image");
   const hasImage = fileInput.files && fileInput.files[0];
   const imageFile = hasImage ? fileInput.files[0] : null;
@@ -2549,6 +2664,7 @@ async function confirmScanCount() {
       warehouse: newWarehouse,
       area: newArea,
       status: newStatus,
+      countRound: countRound,
       image: "",
       hasDeferredImage: !!imageFile
     };
@@ -2609,6 +2725,14 @@ async function confirmScanCount() {
       if (assetIdx > -1) {
         allAssets[assetIdx][7] = new Date().toISOString();
         allAssets[assetIdx][8] = "Count";
+        const roundColName = getCurrentCountColName(countRound);
+        let roundColIndex = exportHeaders.indexOf(roundColName);
+        if (roundColIndex === -1) {
+          roundColIndex = exportHeaders.length;
+          exportHeaders.push(roundColName);
+        }
+        while (allAssets[assetIdx].length <= roundColIndex) allAssets[assetIdx].push("");
+        allAssets[assetIdx][roundColIndex] = "Count";
         if (newStatus) allAssets[assetIdx][6] = newStatus;
         if (newArea) allAssets[assetIdx][3] = newArea;
         if (newWarehouse) allAssets[assetIdx][4] = newWarehouse;
@@ -2632,6 +2756,7 @@ async function confirmScanCount() {
         <div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(pendingScanData.assetNo)}</div>
         <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(pendingScanData.assetName)}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Ref: ${escHtml(responseRequestId)}${escHtml(durationText)}</div>
+        <div style="font-size:12px;color:var(--success);margin-top:4px;">Count ${escHtml(countRound)}</div>
         ${hasLocationUpdate ? '<div style="font-size:12px;color:var(--primary);margin-top:6px;">📍 อัปเดตตำแหน่งแล้ว</div>' : ''}
         ${imageFile ? '<div style="font-size:12px;color:var(--primary);margin-top:4px;">📷 กำลังอัปโหลดรูปตามหลัง</div>' : ''}
       </div>`);
@@ -2691,7 +2816,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
   const scanStatus = await fetchScanStatusWithTimeout(cleanCode, isHandheld ? 4000 : 5000);
   if (scanStatus && scanStatus.found) {
     const state = String(scanStatus.scanStatus || "").toLowerCase();
-    if (state === "done" || state === "received" || state === "processing") {
+    if (state === "received" || state === "processing") {
       showScanStatusNotice(cleanCode, scanStatus);
       setTimeout(async () => {
           isProcessing = false;
@@ -2932,7 +3057,7 @@ async function stopScanner() {
 
 // ==================== ADD FORM ====================
 function showAddForm(assetNo) {
-  openManualAddModal(assetNo);
+  openManualAddModal(assetNo, "unregistered");
 }
 
 async function submitAdd() {
@@ -3267,6 +3392,14 @@ function renderUnregTable() {
     const remarks   = escHtml(row[5] || "-");
     const dateAdded = formatDateTime(row[6]);
     const imageLink = row[7] || "";
+    const rawAssetName = String(row[1] || "");
+    const rawCategory = String(row[2] || "");
+    const rawRemarks = String(row[5] || "");
+    const rawStatus = String(row[9] || "");
+    const isStickerDamaged = [rawAssetName, rawCategory, rawRemarks, rawStatus].join(" ").includes("บาร์โค้ดเสียหาย") || rawCategory.toUpperCase() === "UNKNOWN";
+    const stickerBadge = isStickerDamaged
+      ? '<span class="status-badge warn" style="display:inline-block;margin-top:4px;padding:4px 8px;font-size:11px;">สติ๊กเกอร์เสียหาย</span>'
+      : "";
     
     // safe escape for alert
     const safeName = escHtml(assetName).replace(/'/g, "\\'");
@@ -3283,6 +3416,7 @@ function renderUnregTable() {
         <div class="cell"><span class="cat-tag" style="background:#fef3c7;color:#b45309;">${category}</span></div>
         <div class="cell">
           <div class="cell-name">${assetName}</div>
+          ${stickerBadge}
           <div class="cell-sub">${area}</div>
         </div>
         <div class="cell">${warehouse}</div>
@@ -3901,7 +4035,7 @@ function exportExcel() {
 // ==================== MANUAL ADD (UPLOAD IMAGE) ====================
 let manualImageBase64 = null;
 let manualImageCompressToken = 0;
-let manualAddMode = "unregistered";
+let manualAddMode = "choice";
 
 function ensureManualNameEditable() {
   const nameInput = document.getElementById("manual-name");
@@ -3914,10 +4048,14 @@ function ensureManualNameEditable() {
 }
 
 function setManualAddMode(mode) {
-  manualAddMode = mode === "damaged" ? "damaged" : "unregistered";
+  manualAddMode = mode === "unregistered" ? "unregistered" : (mode === "unknown-damaged" ? "unknown-damaged" : (mode === "damaged" ? "damaged" : (mode === "lookup" ? "lookup" : "choice")));
+  const isChoice = manualAddMode === "choice";
+  const isLookup = manualAddMode === "lookup";
+  const isUnknownDamaged = manualAddMode === "unknown-damaged";
   const isDamaged = manualAddMode === "damaged";
   const damagedBtn = document.getElementById("manual-mode-damaged");
   const unregBtn = document.getElementById("manual-mode-unregistered");
+  const modeTabs = document.querySelector("#modal-manual-add .manual-mode-tabs");
   const assetField = document.getElementById("manual-asset-no-field");
   const assetInput = document.getElementById("manual-asset-no");
   const assetLabel = document.getElementById("manual-asset-no-label");
@@ -3925,16 +4063,24 @@ function setManualAddMode(mode) {
   const nameInput = document.getElementById("manual-name");
   const categoryField = document.getElementById("manual-category-field");
   const categoryInput = document.getElementById("manual-category");
+  const locationFields = document.getElementById("manual-location-fields");
+  const statusField = document.getElementById("manual-status-field");
+  const statusInput = document.getElementById("manual-status");
+  const uploadField = document.getElementById("manual-upload-field");
+  const choiceActions = document.getElementById("manual-choice-actions");
   const note = document.getElementById("manual-mode-note");
   const subtitle = document.getElementById("manual-modal-subtitle");
   const submitBtn = document.getElementById("btn-manual-submit");
+  const cancelBtn = submitBtn ? submitBtn.nextElementSibling : null;
   ensureManualNameEditable();
 
+  if (modeTabs) modeTabs.classList.add("hidden");
+  if (choiceActions) choiceActions.classList.toggle("hidden", !isChoice);
   if (damagedBtn) damagedBtn.classList.toggle("active", isDamaged);
-  if (unregBtn) unregBtn.classList.toggle("active", !isDamaged);
-  if (assetField) assetField.classList.remove("hidden");
+  if (unregBtn) unregBtn.classList.toggle("active", manualAddMode === "unregistered");
+  if (assetField) assetField.classList.toggle("hidden", isUnknownDamaged || isChoice);
   if (assetLabel) {
-    assetLabel.innerHTML = isDamaged
+    assetLabel.innerHTML = (isDamaged || isLookup)
       ? 'รหัสทรัพย์สิน <span class="req">*</span>'
       : 'รหัสทรัพย์สิน';
   }
@@ -3943,7 +4089,8 @@ function setManualAddMode(mode) {
     assetInput.readOnly = false;
     assetInput.removeAttribute("disabled");
     assetInput.removeAttribute("readonly");
-    assetInput.placeholder = isDamaged ? "เช่น OFF00123" : "ใส่ก็ได้ หรือเว้นว่างให้ระบบสร้าง TEMP";
+    if (isUnknownDamaged) assetInput.value = "";
+    assetInput.placeholder = (isDamaged || isLookup) ? "เช่น OFF00123" : "ใส่ก็ได้ หรือเว้นว่างให้ระบบสร้าง TEMP";
   }
   if (nameField) nameField.classList.toggle("hidden", !isDamaged);
   if (nameInput) {
@@ -3951,36 +4098,58 @@ function setManualAddMode(mode) {
     nameInput.readOnly = !isDamaged;
     if (!isDamaged) nameInput.value = "";
   }
-  if (categoryField) categoryField.classList.toggle("hidden", isDamaged);
+  if (categoryField) categoryField.classList.toggle("hidden", isDamaged || isLookup || isUnknownDamaged || isChoice);
   if (categoryInput) {
-    categoryInput.disabled = isDamaged;
-    if (isDamaged) categoryInput.value = "";
+    categoryInput.disabled = isDamaged || isLookup || isUnknownDamaged;
+    if (isDamaged || isLookup || isUnknownDamaged) categoryInput.value = "";
   }
+  if (locationFields) locationFields.classList.toggle("hidden", isLookup || isChoice);
+  if (statusField) statusField.classList.toggle("hidden", isLookup || isChoice);
+  if (statusInput && isUnknownDamaged) statusInput.value = "ชำรุดเสียหาย";
+  if (uploadField) uploadField.classList.toggle("hidden", isLookup || isChoice);
   if (note) {
-    note.textContent = isDamaged
+    note.textContent = isChoice
+      ? "เลือกประเภทปัญหาบาร์โค้ดก่อน เพื่อเปิดชุดข้อมูลที่ต้องกรอกให้ถูกต้อง"
+      : isLookup
+      ? "กรอกรหัสเพื่อค้นหาสินค้าในระบบก่อน หากไม่พบ ระบบจะพาไปบันทึกสินค้านอกระบบ"
+      : isUnknownDamaged
+      ? "ใช้เมื่อบาร์โค้ดเสียหายจนไม่ทราบรหัส ให้เลือกตำแหน่งและถ่ายรูปเพื่อรอตรวจสอบจับคู่ภายหลัง"
+      : isDamaged
       ? "ใช้เมื่อทรัพย์สินมีอยู่ในระบบ แต่บาร์โค้ด/ป้ายเสียหาย ให้กรอกรหัสเพื่อค้นหาและบันทึกการตรวจนับ"
       : "ใช้เมื่อเป็นสินค้านอกระบบจริง จะใส่รหัสทรัพย์สินหรือเว้นว่างก็ได้ หากเว้นว่างระบบจะสร้างรหัสชั่วคราว TEMP ให้อัตโนมัติ";
   }
   if (subtitle) {
-    subtitle.textContent = isDamaged
+    subtitle.textContent = isChoice
+      ? "เลือกประเภทปัญหา"
+      : isLookup
+      ? "ค้นจากฐานข้อมูลระบบก่อน"
+      : isUnknownDamaged
+      ? "เลือกตำแหน่งและถ่ายรูป"
+      : isDamaged
       ? "ค้นหาจากรหัสเดิมและบันทึกการตรวจนับ"
       : "ถ่ายรูปและบันทึกเป็นรายการรออนุมัติ";
   }
   if (submitBtn && !submitBtn.disabled) {
-    submitBtn.innerHTML = isDamaged
+    submitBtn.classList.toggle("hidden", isChoice);
+    if (cancelBtn) cancelBtn.classList.toggle("btn-full", isChoice);
+    submitBtn.innerHTML = isLookup
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg> ค้นหาสินค้าในระบบ'
+      : isUnknownDamaged
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกรอตรวจสอบ'
+      : isDamaged
       ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกบาร์โค้ดเสียหาย'
       : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> บันทึกสินค้านอกระบบ';
   }
 }
 
-function openManualAddModal(prefillAssetNo = "") {
+function openManualAddModal(prefillAssetNo = "", mode = "choice") {
   document.getElementById("modal-manual-add").classList.remove("hidden");
   document.body.style.overflow = "hidden";
   const cleanPrefill = (typeof prefillAssetNo === 'string' ? prefillAssetNo.trim() : "");
-  setManualAddMode(cleanPrefill ? "damaged" : "unregistered");
+  setManualAddMode(mode);
   document.getElementById("manual-asset-no").value = cleanPrefill;
   setTimeout(() => {
-    const focusEl = cleanPrefill ? ensureManualNameEditable() : document.getElementById("manual-asset-no");
+    const focusEl = mode === "choice" ? document.querySelector("#manual-choice-actions button") : document.getElementById("manual-asset-no");
     if (focusEl) focusEl.focus();
   }, 50);
 }
@@ -4003,7 +4172,7 @@ function closeManualAddModal() {
   document.getElementById("manual-upload-placeholder").classList.remove("hidden");
   const btn = document.getElementById("btn-manual-submit");
   btn.disabled = false;
-  setManualAddMode("unregistered");
+  setManualAddMode("choice");
 }
 
 function previewManualImage(event) {
@@ -4045,17 +4214,53 @@ function previewManualImage(event) {
 }
 
 async function submitManualAdd() {
+  const isLookupMode = manualAddMode === "lookup";
+  const isUnknownDamagedMode = manualAddMode === "unknown-damaged";
   const isDamagedMode = manualAddMode === "damaged";
   if (isDamagedMode) ensureManualNameEditable();
   const assetNo   = String(document.getElementById("manual-asset-no").value || "").trim().toUpperCase();
   const assetNameInput = String(document.getElementById("manual-name").value || "").trim();
-  const assetName = isDamagedMode ? assetNameInput : "สินค้านอกระบบ";
-  const category  = document.getElementById("manual-category").value;
+  const assetName = isDamagedMode ? assetNameInput : (isUnknownDamagedMode ? "บาร์โค้ดเสียหาย ไม่ทราบรหัส" : "สินค้านอกระบบ");
+  const category  = isUnknownDamagedMode ? "UNKNOWN" : document.getElementById("manual-category").value;
   const group     = document.getElementById("manual-loc-group").value;
   const zone      = document.getElementById("manual-area").value;
-  const status    = document.getElementById("manual-status").value;
-  const remarks   = "";
+  const status    = isUnknownDamagedMode ? "ชำรุดเสียหาย" : document.getElementById("manual-status").value;
+  const remarks   = isUnknownDamagedMode ? "บาร์โค้ดเสียหาย ไม่ทราบรหัส - รอตรวจสอบจับคู่ทรัพย์สินเดิม" : "";
   let masterAsset = null;
+
+  if (isLookupMode) {
+    if (!assetNo) {
+      alert("❌ กรุณากรอกรหัสทรัพย์สินเพื่อค้นหา");
+      document.getElementById("manual-asset-no").focus();
+      return;
+    }
+
+    const btn = document.getElementById("btn-manual-submit");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-sm" style="margin-right:6px;"></span>กำลังค้นหา...';
+
+    try {
+      const lookupData = await fetchAssetLookupWithTimeout(assetNo, 6000, true);
+      btn.disabled = false;
+      setManualAddMode("lookup");
+
+      if (lookupData && lookupData.status === "success" && lookupData.found && !lookupData.isUnregistered) {
+        closeManualAddModal();
+        showStockCountModal(lookupData);
+        return;
+      }
+
+      setManualAddMode("unregistered");
+      document.getElementById("manual-asset-no").value = assetNo;
+      document.getElementById("manual-category").focus();
+      return;
+    } catch (error) {
+      btn.disabled = false;
+      setManualAddMode("lookup");
+      alert("❌ ค้นหาไม่สำเร็จ: " + (error.message || error.toString()));
+      return;
+    }
+  }
 
   if (isDamagedMode && !assetNo) {
     alert("❌ กรุณากรอกรหัสทรัพย์สินสำหรับโหมดบาร์โค้ดเสียหาย");
@@ -4069,7 +4274,7 @@ async function submitManualAdd() {
     return;
   }
 
-  if (!isDamagedMode && !category) {
+  if (!isDamagedMode && !isUnknownDamagedMode && !category) {
     alert("กรุณาเลือกหมวดหมู่ทรัพย์สิน");
     return;
   }

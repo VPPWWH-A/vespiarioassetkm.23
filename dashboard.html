@@ -1049,6 +1049,11 @@ function renderUnregTable(data) {
     const warehouse = String(r[3] || "").trim();
     const area = String(r[4] || "").trim();
     const remarks = String(r[5] || "").trim();
+    const status = String(r[9] || "").trim();
+    const isStickerDamaged = [assetName, category, remarks, status].join(" ").includes("บาร์โค้ดเสียหาย") || category.toUpperCase() === "UNKNOWN";
+    const stickerBadge = isStickerDamaged
+      ? '<span class="status-badge warn" style="display:inline-block;margin-top:4px;background:#fef3c7;color:#b45309;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;">สติ๊กเกอร์เสียหาย</span>'
+      : "";
     
     const cat = category.toLowerCase();
     const catClass = `cat-tag ${cat}`;
@@ -1066,6 +1071,7 @@ function renderUnregTable(data) {
         <div>${imageHtml}</div>
         <div style="line-height:1.3; text-align:left;">
           <div style="font-weight:700; color:var(--text);">${assetName || '<span style="color:var(--danger);">ไม่ระบุชื่อ/โมเดล</span>'}</div>
+          ${stickerBadge}
           <div style="font-size:11px; color:var(--text-dim); margin-top:3px;">${area || '-'}</div>
         </div>
         <div>${warehouse || '-'}</div>
