@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -1146,12 +1146,6 @@ input[type="file"] { display: none; }
           <div class="home-card-title">3. สินค้าบาร์โค๊ดเสียหาย</div>
         </div>
 
-        <div onclick="showPage('dashboard')" class="home-card amber">
-          <div class="home-card-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-          </div>
-          <div class="home-card-title">4. Dashboard</div>
-        </div>
       </div>
 
       <button class="btn btn-secondary btn-full" onclick="refreshCurrentView()" style="margin-top: 20px; padding: 14px; font-size: 13px;">
@@ -1291,164 +1285,10 @@ input[type="file"] { display: none; }
       </div>
       <div class="btn-group" style="margin-top:12px;">
         <button class="btn btn-primary btn-full" onclick="printLabel()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>พิมพ์ / บันทึก PNG</button>
-        <button class="btn btn-secondary btn-full" onclick="showPage('dashboard')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>ยกเลิก</button>
+        <button class="btn btn-secondary btn-full" onclick="showPage('home')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>ยกเลิก</button>
       </div>
     </div>
   </div>
-
-  <!-- ===== DASHBOARD PAGE ===== -->
-  <div id="page-dashboard" class="page hidden">
-
-    <div class="dash-action-bar">
-      <h3>สรุปผลการตรวจนับ</h3>
-      <button class="refresh-btn" id="refresh-btn" onclick="loadDashboard(false, true)">
-        <span class="refresh-icon" style="display:inline-flex; align-items:center; justify-content:center;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-        </span>
-        รีเฟรช
-      </button>
-    </div>
-
-    <!-- Pillar Nav -->
-    <div class="pillar-nav">
-      <button class="pillar-btn active" id="pillar-count" onclick="setPillar('count')">
-        <span class="icon" style="display:inline-flex; align-items:center; justify-content:center; margin-right:4px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-        </span>
-        <span class="label">Stock Count</span>
-      </button>
-      <button class="pillar-btn" id="pillar-unreg" onclick="setPillar('unreg')">
-        <span class="icon" style="display:inline-flex; align-items:center; justify-content:center; margin-right:4px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        </span>
-        <span class="label">Unregistered</span>
-      </button>
-    </div>
-
-    <!-- Summary Cards (Count) -->
-    <div id="summary-count" class="summary-row">
-      <div class="summary-card blue">
-        <div class="card-header">
-          <span class="card-title">ทรัพย์สินทั้งหมด</span>
-          <span class="card-badge blue">รวม</span>
-        </div>
-        <div class="card-number" id="dash-total">-</div>
-        <div class="card-footer"><span class="icon">📦</span><span>รายการ</span></div>
-      </div>
-      
-      <div class="summary-card red">
-        <div class="card-header">
-          <span class="card-title">ยังไม่ได้นับ</span>
-          <span class="card-badge red">ค้าง</span>
-        </div>
-        <div class="card-number" id="dash-pending">-</div>
-        <div class="card-footer"><span class="icon">⏳</span><span>รายการ</span></div>
-      </div>
-
-      <div class="summary-card green">
-        <div class="card-header">
-          <span class="card-title">ตรวจสอบแล้ว</span>
-          <span class="card-badge green">สำเร็จ</span>
-        </div>
-        <div class="card-number" id="dash-checked">-</div>
-        <div class="card-footer"><span class="icon">✅</span><span id="dash-month-label">เดือนนี้</span></div>
-      </div>
-
-      <div class="summary-card orange">
-        <div class="card-header">
-          <span class="card-title">ความคืบหน้า</span>
-          <span class="card-badge orange">%</span>
-        </div>
-        <div style="margin-top: 15px;">
-          <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:800; margin-bottom:6px;">
-            <span style="color:var(--success);" id="dash-pct-checked">0%</span>
-            <span style="color:var(--danger);" id="dash-pct-pending">0%</span>
-          </div>
-          <div style="width:100%; height:12px; background:var(--danger); border-radius:6px; overflow:hidden;">
-            <div id="dash-progress-bar" style="width:0%; height:100%; background:var(--success); transition:width 0.8s ease;"></div>
-          </div>
-          <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; color:var(--text-muted); margin-top:8px;">
-            <span>ตรวจแล้ว</span>
-            <span>ยังไม่ได้นับ</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Summary Cards (Unregistered) -->
-    <div id="summary-unreg" class="summary-row hidden">
-      <div class="summary-card red">
-        <div class="card-header">
-          <span class="card-title">สินค้านอกระบบทั้งหมด</span>
-          <span class="card-badge red">เตือน</span>
-        </div>
-        <div class="card-number" id="dash-pillar-unreg">-</div>
-        <div class="card-footer"><span class="icon">⚠️</span><span>รายการทั้งหมดในชีท Unregistered</span></div>
-      </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tab-bar">
-      <button class="tab-btn active" onclick="setTab('all', this)">รายการทั้งหมด</button>
-      <button class="tab-btn" onclick="setTab('off',  this)">อุปกรณ์สำนักงาน (OFF)</button>
-      <button class="tab-btn" onclick="setTab('com',  this)">คอมพิวเตอร์ (COM)</button>
-      <button class="tab-btn" onclick="setTab('tol',  this)">เครื่องมือช่าง (TOL)</button>
-      <button class="tab-btn" onclick="setTab('vpot', this)">อุปกรณ์ VPOT (VPOT)</button>
-      <button class="tab-btn" onclick="setTab('veh',  this)">ยานพาหนะ (VEH)</button>
-    </div>
-
-    <!-- Warehouse Filter -->
-    <div class="tab-bar" id="warehouse-filter-bar" style="margin-top:0; border-top:1px solid var(--border-light); padding-top:6px; gap:4px;">
-      <button class="tab-btn wh-btn active" onclick="setWarehouse('all', this)" style="font-size:11px; padding:6px 10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; display:inline-block; vertical-align:middle;"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="16"></line><line x1="15" y1="22" x2="15" y2="16"></line><line x1="9" y1="16" x2="15" y2="16"></line><path d="M9 6h6"></path><path d="M9 10h6"></path></svg> ทั้งหมด</button>
-      <button class="tab-btn wh-btn" onclick="setWarehouse('WH-A', this)" style="font-size:11px; padding:6px 10px;">WH-A</button>
-      <button class="tab-btn wh-btn" onclick="setWarehouse('WH-B', this)" style="font-size:11px; padding:6px 10px;">WH-B</button>
-      <button class="tab-btn wh-btn" onclick="setWarehouse('WHD', this)" style="font-size:11px; padding:6px 10px;">WHD</button>
-      <button class="tab-btn wh-btn" onclick="setWarehouse('Office', this)" style="font-size:11px; padding:6px 10px;">Office</button>
-      <button class="tab-btn wh-btn" onclick="setWarehouse('HR', this)" style="font-size:11px; padding:6px 10px;">HR</button>
-    </div>
-
-    <!-- Data Table -->
-    <div class="table-container" id="table-master-container">
-      <!-- 10 คอลัมน์ที่ถูกต้อง -->
-      <div class="table-header">
-        <div class="cell">วันที่เช็ค</div>
-        <div class="cell">รหัส</div>
-        <div class="cell">หมวดหมู่</div>
-        <div class="cell">ชื่อทรัพย์สิน / พื้นที่</div>
-        <div class="cell">คลัง</div>
-        <div class="cell">วันที่ได้มา</div>
-        <div class="cell">สถานะ</div>
-        <div class="cell">ผลเช็ค</div>
-        <div class="cell">Label</div>
-        <div class="cell">ข้อมูล</div>
-      </div>
-      <div id="table-body">
-        <!-- JS renders rows -->
-      </div>
-    </div>
-
-    <!-- Data Table UNREG -->
-    <div class="table-container hidden" id="table-unreg-container">
-      <div style="padding: 12px; background: white; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <div style="font-weight: 700; color: var(--text);">รายการสินค้าที่รอการยืนยัน (Unregistered)</div>
-        <button id="btn-confirm-all" class="btn btn-success" onclick="confirmAllUnreg()" style="padding: 6px 12px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Approve ALL</button>
-      </div>
-      <div class="table-header unreg">
-        <div class="cell">วันที่เพิ่ม</div>
-        <div class="cell">Temp ID</div>
-        <div class="cell">หมวดหมู่</div>
-        <div class="cell">ชื่อทรัพย์สิน / พื้นที่</div>
-        <div class="cell">คลัง</div>
-        <div class="cell">หมายเหตุ</div>
-        <div class="cell" style="text-align:right;">Add data</div>
-      </div>
-      <div id="table-unreg-body">
-      </div>
-    </div>
-
-  </div>
-
-</div>
 
 <!-- ASSET DETAIL MODAL -->
 <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal()">
@@ -2191,8 +2031,7 @@ let currentWarehouse = "all";
 function showPage(page) {
   if (page === "dashboard") {
     localStorage.setItem("lastActivePage", "home");
-    window.location.href = "dashboard.html";
-    return;
+    page = "home";
   }
 
   currentPage = page;
