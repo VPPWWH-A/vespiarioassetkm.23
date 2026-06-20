@@ -1,7 +1,7 @@
 {
   "name": "KM-23 Asset Management",
   "short_name": "Asset KM-23",
-  "description": "ระบบจัดการทรัพย์สินและสแกนบาร์โค้ด",
+  "description": "Asset management and barcode scanning system",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",

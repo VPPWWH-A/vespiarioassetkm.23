@@ -1183,7 +1183,6 @@ input[type="file"] { display: none; }
       
       <button class="btn btn-primary btn-full" onclick="openManualAddModal()" style="margin-top:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>บาร์โค้ดเสียหาย</button>
       <button class="btn btn-secondary btn-full" onclick="refreshCurrentView()" style="margin-top:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>รีเฟรชแอป</button>
-      <button class="btn btn-gold btn-full" onclick="showInstallModal()" style="margin-top:4px; font-weight: bold;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>นำแอปลงหน้าจอหลัก (Install)</button>
     </div>
     <div id="result"></div>
   </div>
@@ -1670,46 +1669,6 @@ input[type="file"] { display: none; }
 
  
 
-<!-- Modal Install App -->
-<div id="modal-install" class="modal-overlay hidden" onclick="closeInstallModal()">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-header" style="background: #ffffff; border-bottom: 1px solid var(--border); color: var(--text);">
-      <div class="modal-title-row">
-        <span class="modal-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--gold);"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-        </span>
-        <div>
-          <div class="modal-title" style="color: var(--text-dim);">นำแอปลงหน้าจอหลัก</div>
-          <div class="modal-subtitle" style="color:var(--text-muted);font-size:12px;font-weight:400;margin-top:2px;">เพื่อการใช้งานที่สะดวกรวดเร็วแบบแอปพลิเคชัน</div>
-        </div>
-      </div>
-      <button class="modal-close" onclick="closeInstallModal()">✕</button>
-    </div>
-    <div class="modal-body" style="padding:20px;">
-      <div style="font-size:14px;color:var(--text);line-height:1.6;">
-        <p style="font-weight:bold;margin-bottom:8px;color:var(--primary);">📱 สำหรับผู้ใช้ iPhone / iPad (Safari)</p>
-        <ol style="margin-left:20px;margin-bottom:15px;">
-          <li>แตะไอคอน <strong>Share (แชร์)</strong> ตรงแถบด้านล่างของหน้าจอ</li>
-          <li>เลื่อนหาแล้วเลือก <strong>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</strong></li>
-          <li>กดปุ่ม <strong>"เพิ่ม" (Add)</strong> มุมขวาบน</li>
-        </ol>
-        <p style="font-weight:bold;margin-bottom:8px;color:var(--primary);">📱 สำหรับผู้ใช้ Android (Chrome / อื่นๆ)</p>
-        <ol style="margin-left:20px;margin-bottom:15px;">
-          <li>แตะไอคอน <strong>เมนู (3 จุด)</strong> ที่มุมขวาบน</li>
-          <li>เลื่อนหาแล้วเลือก <strong>"เพิ่มลงในหน้าจอหลัก" (Add to Home screen)</strong></li>
-          <li>กดปุ่ม <strong>"เพิ่ม" (Add)</strong></li>
-        </ol>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" style="width:100%;" onclick="closeInstallModal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        ปิดหน้าต่าง
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- Modal Confirm Unreg -->
 <div id="modal-confirm-unreg" class="modal-overlay hidden" onclick="closeConfirmUnregModal()">
   <div class="modal-box" onclick="event.stopPropagation()">
@@ -1942,19 +1901,9 @@ input[type="file"] { display: none; }
 </div>
 
 <script>
-// ============================================================
-// PWA & Install Prompt Setup
-// ============================================================
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-});
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('ServiceWorker registered!', reg))
-      .catch(err => console.log('ServiceWorker failed:', err));
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
 }
 
@@ -2037,16 +1986,25 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
         return {
           status: "success", found: true, isUnregistered: true,
           assetNo: unregRow[0], assetName: unregRow[1], category: unregRow[2],
-          warehouse: unregRow[3], area: unregRow[4]
+          warehouse: unregRow[3], area: unregRow[4],
+          remark: unregRow[5] || "",
+          dateAdded: unregRow[6] || "",
+          imageUrl: unregRow[7] || "",
+          unregStatus: unregRow[8] || "Pending",
+          assetStatus: unregRow[9] || ""
         };
       }
       return { status: "success", found: false, assetNo: cleanCode };
     }
+    const c1Idx = (exp.headers || []).indexOf(getCurrentCountColName("1"));
+    const c2Idx = (exp.headers || []).indexOf(getCurrentCountColName("2"));
     return {
-      status: "success", found: true,
+      status: "success", found: true, isUnregistered: false,
       assetNo: row[0], assetName: row[1], category: row[2],
       area: row[3], warehouse: row[4], acquisitionDate: row[5],
-      assetStatus: row[6], lastScan: row[7], lastResult: row[8]
+      assetStatus: row[6], lastScan: row[7], lastResult: row[8],
+      hasCount1: c1Idx !== -1 && (row[c1Idx] === "Count" || row[c1Idx] === "Checked"),
+      hasCount2: c2Idx !== -1 && (row[c2Idx] === "Count" || row[c2Idx] === "Checked")
     };
   } catch (e) {
     return { status: "error", message: "❌ หมดเวลากระหว่างค้นหา - ตรวจสอบเครือข่าย" };
@@ -2947,6 +2905,8 @@ async function onScanSuccess(decodedText, isHandheld = false) {
       assetStatus: chosen ? chosen.assetStatus : localMatch[6],
       lastResult: liveLastResult,
       lastScan: liveLastScan,
+      hasCount1: chosen ? chosen.hasCount1 : undefined,
+      hasCount2: chosen ? chosen.hasCount2 : undefined,
       isUnregistered: isUnregisteredRow
     };
     if (isUnregisteredRow) {
@@ -3022,7 +2982,9 @@ async function onScanSuccess(decodedText, isHandheld = false) {
             acquisitionDate: data.acquisitionDate,
             assetStatus: data.assetStatus,
             lastResult: data.lastResult,
-            lastScan: data.lastScan
+            lastScan: data.lastScan,
+            hasCount1: data.hasCount1,
+            hasCount2: data.hasCount2
           });
         }
       } else if (data && data.status === "error") {
@@ -3648,13 +3610,18 @@ function openConfirmUnregModal(tempId) {
 async function deleteUnregAsset(tempId) {
   if (!confirm(`คุณต้องการลบข้อมูล ${tempId} ใช่หรือไม่? (รูปภาพใน Drive จะถูกลบด้วย)`)) return;
   
+  const user = prompt("Approve username");
+  if (!user) return;
+  const pass = prompt("Approve password");
+  if (!pass) return;
+
   const footerDiv = document.getElementById('modal-confirm-unreg-footer');
   footerDiv.innerHTML = `<span class="spinner-sm" style="margin-right:6px;"></span><span style="font-size:13px; color:var(--text-muted);">กำลังลบข้อมูล...</span>`;
   
   try {
     const controller = new AbortController();
     const timerId = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(apiUrl({ action: "deleteUnreg", tempId: tempId }), {
+    const res = await fetch(apiUrl({ action: "deleteUnreg", tempId: tempId, user: user, pass: pass }), {
       signal: controller.signal
     }).catch(e => {
       if (e.name === "AbortError") throw new Error("❌ หมดเวลา - ตรวจสอบเครือข่าย");
@@ -3701,13 +3668,17 @@ async function submitConfirmUnreg(tempId) {
 
   const btn = document.getElementById("btn-confirm-unreg-submit");
   const originalText = btn.innerHTML;
+  const user = prompt("Approve username");
+  if (!user) return;
+  const pass = prompt("Approve password");
+  if (!pass) return;
   btn.innerHTML = '<span class="spinner-sm" style="margin-right:6px;"></span>กำลังดำเนินการ...';
   btn.disabled = true;
 
   try {
     const controller = new AbortController();
     const timerId = setTimeout(() => controller.abort(), 15000);
-    const url = apiUrl({ action: "confirmUnreg", tempId: tempId });
+    const url = apiUrl({ action: "confirmUnreg", tempId: tempId, user: user, pass: pass });
     const res = await fetch(url, { signal: controller.signal }).catch(e => {
       if (e.name === "AbortError") throw new Error("❌ หมดเวลาการเชื่อมต่อ");
       throw e;
@@ -4004,20 +3975,6 @@ function viewUnregAssetDetail(tempId) {
 function closeModal() {
   document.getElementById("modal-overlay").classList.add("hidden");
   document.body.style.overflow = "";
-}
-
-function showInstallModal() {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult) => {
-      deferredPrompt = null;
-    });
-  } else {
-    document.getElementById("modal-install").classList.remove("hidden");
-  }
-}
-function closeInstallModal() {
-  document.getElementById("modal-install").classList.add("hidden");
 }
 
 function printModalLabel() {
@@ -4557,7 +4514,24 @@ async function submitManualAdd() {
         lastResult: assetInfo.lastResult || "",
         isUnregistered: false
       });
-    } else if (!isDamagedMode && data && data.status === "success") {
+    } else if (!isDamagedMode && data && data.status === "exists" && data.isUnregistered === false) {
+      closeManualAddModal();
+      alert("Asset already exists in master list: " + (data.assetNo || assetNo));
+      showSuccess({
+        assetNo: data.assetNo || assetNo,
+        assetName: data.assetName || assetName,
+        category: data.category || category,
+        area: data.area || zone,
+        warehouse: data.warehouse || group,
+        acquisitionDate: data.acquisitionDate || "",
+        assetStatus: data.assetStatus || status,
+        lastScan: data.lastScan || "",
+        lastResult: data.lastResult || "",
+        hasCount1: data.hasCount1,
+        hasCount2: data.hasCount2,
+        isUnregistered: false
+      });
+    } else if (!isDamagedMode && data && (data.status === "success" || data.status === "exists")) {
       const assetInfo = data || {};
       closeManualAddModal();
       showUnregExistsModal({
@@ -4566,10 +4540,10 @@ async function submitManualAdd() {
         category: assetInfo.category || category,
         area: assetInfo.area || zone,
         warehouse: assetInfo.warehouse || group,
-        remark: remarks
+        remark: assetInfo.remark || remarks
       });
       
-      if (assetInfo.tempId || data.tempId) {
+      if (data.status === "success" && (assetInfo.tempId || data.tempId)) {
         const newUnregRow = [
           assetInfo.tempId || data.tempId, assetName, category, group, zone, remarks, new Date().toISOString(), assetInfo.fileUrl || data.fileUrl || "", "Pending", status
         ];
