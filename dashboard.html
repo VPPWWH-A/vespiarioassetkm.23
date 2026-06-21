@@ -880,6 +880,10 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
         ส่งออก Excel
       </button>
+      <button class="control-btn control-btn-success" onclick="openCountSheetModal()" style="background: rgba(16, 185, 129, 0.08); color: #10b981; border-color: rgba(16, 185, 129, 0.2);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+        ส่งออก Count Sheet (พิมพ์)
+      </button>
       <button class="control-btn control-btn-primary" onclick="enterPresentation()" id="present-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="2" y="3" width="20" height="14" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path></svg>
         นำเสนอเต็มจอ
@@ -1023,7 +1027,7 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
         <button class="tab-btn wh-btn" onclick="setWarehouse('WH-A', this)">WH-A</button>
         <button class="tab-btn wh-btn" onclick="setWarehouse('WH-B', this)">WH-B</button>
         <button class="tab-btn wh-btn" onclick="setWarehouse('WHD', this)">WHD</button>
-        <button class="tab-btn wh-btn" onclick="setWarehouse('Office', this)">Office</button>
+        <button class="tab-btn wh-btn" onclick="setWarehouse('OFFICE', this)">OFFICE</button>
         <button class="tab-btn wh-btn" onclick="setWarehouse('HR', this)">HR</button>
       </div>
     </div>
@@ -1204,7 +1208,46 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
   </div>
 </div>
 
+<!-- Modal เลือกชุดนับ Count Sheet (1 หรือ 2) -->
+<div id="modal-countsheet-select" class="modal-overlay hidden" onclick="closeCountSheetModal()">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title-row">
+        <span class="modal-icon" style="font-size:20px;">📄</span>
+        <div>
+          <div class="modal-title" style="font-size:16px;">เลือกชุดตรวจนับ (Count Sheet)</div>
+          <div class="modal-subtitle" style="font-size:11px;">โปรดเลือกชุดที่จะพิมพ์ใบตรวจนับ</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeCountSheetModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding: 20px 24px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button class="btn btn-primary" onclick="triggerExportCountSheet(1)" style="padding: 14px; font-size: 14px; font-weight: bold; justify-content: center; background: #0284c7; border-color: #0284c7;">
+          📄 ดาวน์โหลดชุดที่ 1 (Count Sheet 1)
+        </button>
+        <button class="btn btn-primary" onclick="triggerExportCountSheet(2)" style="padding: 14px; font-size: 14px; font-weight: bold; justify-content: center; background: #0f766e; border-color: #0f766e;">
+          📄 ดาวน์โหลดชุดที่ 2 (Count Sheet 2)
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding: 12px 24px;">
+      <button class="btn btn-secondary" onclick="closeCountSheetModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
 <script>
+function openCountSheetModal() {
+  document.getElementById("modal-countsheet-select").classList.remove("hidden");
+}
+function closeCountSheetModal() {
+  document.getElementById("modal-countsheet-select").classList.add("hidden");
+}
+function triggerExportCountSheet(roundNum) {
+  closeCountSheetModal();
+  exportCountSheet(roundNum);
+}
 const API_URL = "https://script.google.com/macros/s/AKfycbzji7bEWa6sauFw1l21Su6GEDkYw7rAiBaiSzdnMuPHanmmW9atThQ0v9C8PsLvuYkxfw/exec";
 const API_SECRET = "VESPA2025SECRET";
 
@@ -1459,13 +1502,13 @@ function buildPriorityBreakdown(warehouseRows, zoneRows) {
 }
 
 function buildWarehouseZoneOverview(rows, countIndex) {
-  const warehouseOrder = ["Warehouse A", "Warehouse B", "Office", "WHD", "HR", "Diff"];
+  const warehouseOrder = ["Warehouse A", "Warehouse B", "OFFICE", "WHD", "HR", "Diff"];
   const normalizeWarehouseDisplay = (value) => {
     const text = String(value || "").trim();
     const lower = text.toLowerCase();
     if (["warehouse a", "wh-a", "wha", "wh a"].includes(lower)) return "Warehouse A";
     if (["warehouse b", "wh-b", "whb", "wh b"].includes(lower)) return "Warehouse B";
-    if (lower === "office") return "Office";
+    if (lower === "office") return "OFFICE";
     if (lower === "whd") return "WHD";
     if (lower === "hr") return "HR";
     return "Diff";
@@ -1639,13 +1682,13 @@ function closeTypeOverviewModal() {
 }
 
 function buildUnregWarehouseZoneOverview(unregRows) {
-  const warehouseOrder = ["Warehouse A", "Warehouse B", "Office", "WHD", "HR", "Diff"];
+  const warehouseOrder = ["Warehouse A", "Warehouse B", "OFFICE", "WHD", "HR", "Diff"];
   const normalizeWarehouseDisplay = (value) => {
     const text = String(value || "").trim();
     const lower = text.toLowerCase();
     if (["warehouse a", "wh-a", "wha", "wh a"].includes(lower)) return "Warehouse A";
     if (["warehouse b", "wh-b", "whb", "wh b"].includes(lower)) return "Warehouse B";
-    if (lower === "office") return "Office";
+    if (lower === "office") return "OFFICE";
     if (lower === "whd") return "WHD";
     if (lower === "hr") return "HR";
     return "Diff";
@@ -2516,6 +2559,256 @@ function exportExcel() {
   XLSX.utils.book_append_sheet(wb, wsUnreg, "Unregistered_Assets");
 
   XLSX.writeFile(wb, `Vespa_Assets_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ==================== EXPORT COUNT SHEET FOR PRINTING ====================
+function exportCountSheet(roundNum = 1) {
+  try {
+    if (allAssets.length === 0) {
+      alert("กรุณาโหลดข้อมูลก่อน");
+      return;
+    }
+
+    // 1. แยกกลุ่มข้อมูลทรัพย์สินตามคลังหลัก
+    const warehouseGroups = {};
+    allAssets.forEach(row => {
+      const rawWh = String(row[4] || "ไม่ระบุคลัง").trim();
+      let whGroup = "Diff";
+      if (rawWh.toUpperCase().includes("WH-A") || rawWh.toUpperCase().includes("WAREHOUSE A") || rawWh.toUpperCase().includes("WHA")) {
+        whGroup = "Warehouse A";
+      } else if (rawWh.toUpperCase().includes("WH-B") || rawWh.toUpperCase().includes("WAREHOUSE B") || rawWh.toUpperCase().includes("WHB")) {
+        whGroup = "Warehouse B";
+      } else if (rawWh.toUpperCase().includes("WHD")) {
+        whGroup = "WHD";
+      } else if (rawWh.toUpperCase().includes("OFFICE")) {
+        whGroup = "OFFICE";
+      } else if (rawWh.toUpperCase().includes("HR")) {
+        whGroup = "HR";
+      }
+      
+      if (!warehouseGroups[whGroup]) warehouseGroups[whGroup] = [];
+      warehouseGroups[whGroup].push(row);
+    });
+
+    const wb = XLSX.utils.book_new();
+
+    // 2. สร้างชีตแยกตามคลัง
+    Object.keys(warehouseGroups).forEach(whName => {
+      const groupRows = warehouseGroups[whName];
+      // เรียงตาม: พื้นที่ย่อย --> หมวดหมู่ --> สถานะระบบ เพื่อความสะดวกในการเดินนับตรวจงาน
+      groupRows.sort((a, b) => {
+        const areaA = String(a[3] || "");
+        const areaB = String(b[3] || "");
+        const areaCompare = areaA.localeCompare(areaB, "th");
+        if (areaCompare !== 0) return areaCompare;
+
+        const catA = String(a[2] || "");
+        const catB = String(b[2] || "");
+        const catCompare = catA.localeCompare(catB, "th");
+        if (catCompare !== 0) return catCompare;
+
+        const statusA = String(a[6] || "");
+        const statusB = String(b[6] || "");
+        const statusCompare = statusA.localeCompare(statusB, "th");
+        if (statusCompare !== 0) return statusCompare;
+
+        return String(a[0]).localeCompare(String(b[0]));
+      });
+
+      const sheetData = [];
+
+      // หัวข้อเอกสาร
+      sheetData.push([`ใบตรวจนับทรัพย์สิน (COUNT SHEET ${roundNum}) - คลัง: ${whName.toUpperCase()}`]);
+      sheetData.push([`พิมพ์เมื่อวันที่: ${new Date().toLocaleDateString("th-TH")} | ผู้ตรวจสอบ: คลัง 2 คน, บัญชี 1 คน`]);
+      sheetData.push([]); // บรรทัดว่าง
+
+      // Headers ตารางการนับ
+      const tableHeaders = [
+        "รหัสทรัพย์สิน", 
+        "ชื่อทรัพย์สิน / รายละเอียด", 
+        "หมวดหมู่", 
+        "พื้นที่ย่อย", 
+        "คลังสินค้า", 
+        "สถานะระบบ", 
+        "คลังคนที 1", 
+        "คลังคนที 2", 
+        "บัญชี", 
+        "ผลการตรวจนับ / หมายเหตุ"
+      ];
+      sheetData.push(tableHeaders);
+
+      // เติมข้อมูลลงตาราง
+      groupRows.forEach(row => {
+        sheetData.push([
+          row[0] || "", // รหัสทรัพย์สิน
+          row[1] || "", // ชื่อทรัพย์สิน
+          row[2] || "", // หมวดหมู่
+          row[3] || "", // พื้นที่
+          row[4] || "", // คลัง
+          row[6] || "Active", // สถานะระบบ
+          "", // คลังคนที่ 1 (ว่างไว้เขียนมือ)
+          "", // คลังคนที่ 2 (ว่างไว้เขียนมือ)
+          "", // บัญชี (ว่างไว้เขียนมือ)
+          row[8] === "Count" || row[8] === "Checked" ? "✓ ตรวจแล้วในระบบ" : "" // หมายเหตุเดิม
+        ]);
+      });
+
+      // เพิ่มบรรทัดว่างก่อนเซ็นชื่อ
+      sheetData.push([]);
+      sheetData.push([]);
+
+      // บล็อกลายเซ็นผู้ตรวจสอบ 3 ท่าน (จัดเตรียมข้อมูลแบบแบ่งช่องเป็นกล่อง)
+      const sigStartRow = sheetData.length;
+      sheetData.push(["", "ผู้ตรวจนับคลัง 1 (คลังคนที่ 1)", "", "", "ผู้ตรวจนับคลัง 2 (คลังคนที่ 2)", "", "", "ผู้ตรวจสอบบัญชี", "", ""]);
+      sheetData.push(["", "ลงชื่อ: ________________________", "", "", "ลงชื่อ: ________________________", "", "", "ลงชื่อ: ________________________", "", ""]);
+      sheetData.push(["", "วันที่: ____/____/________", "", "", "วันที่: ____/____/________", "", "", "วันที่: ____/____/________", "", ""]);
+
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // กำหนดความกว้างของคอลัมน์ให้อ่านง่ายเหมาะสำหรับพิมพ์
+      ws["!cols"] = [
+        { wch: 15 }, // รหัสทรัพย์สิน
+        { wch: 38 }, // รายละเอียดสินค้า
+        { wch: 11 }, // หมวดหมู่
+        { wch: 14 }, // พื้นที่ย่อย
+        { wch: 12 }, // คลังสินค้า
+        { wch: 11 }, // สถานะ
+        { wch: 12 }, // คลังคนที่ 1
+        { wch: 12 }, // คลังคนที่ 2
+        { wch: 12 }, // บัญชี
+        { wch: 25 }  // หมายเหตุ
+      ];
+
+      // ตั้งความสูงของแถว (Row Heights) เพื่อให้มีพื้นที่เซ็นชื่อคล้าย Text Box โดยไม่ต้องดึงยืดเอง
+      const wsRows = [];
+      for (let i = 0; i < sheetData.length; i++) {
+        if (i === 0) {
+          wsRows.push({ hpt: 25 }); // หัวข้อหลัก
+        } else if (i === 1) {
+          wsRows.push({ hpt: 18 }); // พิมพ์เมื่อวันที่
+        } else if (i === 3) {
+          wsRows.push({ hpt: 24 }); // Header ตาราง
+        } else if (i === sigStartRow) {
+          wsRows.push({ hpt: 20 }); // แถวผู้ตรวจนับ (หัวกล่อง)
+        } else if (i === sigStartRow + 1) {
+          wsRows.push({ hpt: 40 }); // แถวลงชื่อ (มีช่องว่างให้เซ็นเยอะๆ สูง 40pt)
+        } else if (i === sigStartRow + 2) {
+          wsRows.push({ hpt: 20 }); // วันที่
+        } else if (i > 3 && i < sigStartRow - 2) {
+          wsRows.push({ hpt: 20 }); // แถวข้อมูลตาราง
+        } else {
+          wsRows.push({ hpt: 18 }); // แถวทั่วไป
+        }
+      }
+      ws["!rows"] = wsRows;
+
+      // ตกแต่งสไตล์ให้สวยงามเหมาะกับการพิมพ์กระดาษ (Printable Design)
+      try {
+        if (ws['!ref']) {
+          const range = XLSX.utils.decode_range(ws['!ref']);
+          // ขอบเขตข้อมูลตาราง ไม่รวมแถวลายเซ็นท้ายแผ่น
+          const lastDataRow = sigStartRow - 1;
+
+          for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+              const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+              if (!ws[cellRef]) ws[cellRef] = { t: "s", v: "" };
+
+              // สไตล์ตัวอักษรพื้นฐาน
+              ws[cellRef].s = {
+                font: { name: "Tahoma", sz: 9 },
+                alignment: { vertical: "center", wrapText: true }
+              };
+
+              // ตกแต่งส่วนหัวตารางและเนื้อหาข้อมูล
+              if (R >= 3 && R <= lastDataRow) {
+                ws[cellRef].s.border = {
+                  top: { style: "thin", color: { auto: 1 } },
+                  bottom: { style: "thin", color: { auto: 1 } },
+                  left: { style: "thin", color: { auto: 1 } },
+                  right: { style: "thin", color: { auto: 1 } }
+                };
+                
+                // คอลัมน์ที่ต้องเขียนนับมือให้ชิดกลาง
+                if (C >= 6 && C <= 8) {
+                  ws[cellRef].s.alignment.horizontal = "center";
+                }
+              }
+
+              // ตกแต่งหัวตาราง (Header Row)
+              if (R === 3) {
+                ws[cellRef].s.fill = { fgColor: { rgb: "0284C7" } }; // แถบสีน้ำเงินเด่นชัด
+                ws[cellRef].s.font = { name: "Tahoma", sz: 9, bold: true, color: { rgb: "FFFFFF" } }; // ตัวหนังสือสีขาวหนา
+                ws[cellRef].s.alignment.horizontal = "center";
+              }
+              
+              // ตกแต่งชื่อหัวข้อหลักของชีต (Title Row)
+              if (R === 0) {
+                ws[cellRef].s.font = { name: "Tahoma", sz: 14, bold: true, color: { rgb: "0F172A" } };
+                ws[cellRef].s.alignment = { horizontal: "left", vertical: "center" };
+              }
+              
+              // ตกแต่งบรรทัดเซ็นชื่อ (Signature Block - ทําเป็นกล่องกรอบสวยงาม)
+              if (R >= sigStartRow && R <= sigStartRow + 2) {
+                ws[cellRef].s.font = { name: "Tahoma", sz: 9, bold: R === sigStartRow };
+                ws[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
+                
+                // คำนวณขอบของกล่อง 3 ใบ
+                const isLeftEdge = (C === 1 || C === 4 || C === 7);
+                const isRightEdge = (C === 3 || C === 6 || C === 9);
+                const isTopEdge = (R === sigStartRow);
+                const isBottomEdge = (R === sigStartRow + 2);
+                
+                ws[cellRef].s.border = {
+                  left: isLeftEdge ? { style: "thin", color: { rgb: "94A3B8" } } : undefined,
+                  right: isRightEdge ? { style: "thin", color: { rgb: "94A3B8" } } : undefined,
+                  top: isTopEdge ? { style: "thin", color: { rgb: "94A3B8" } } : undefined,
+                  bottom: isBottomEdge ? { style: "thin", color: { rgb: "94A3B8" } } : undefined
+                };
+                
+                // ให้หัวกล่องชื่อบุคคลมีสีพื้นหลังเทาอ่อนเพื่อให้เห็นขอบเขตชัดเจน
+                if (R === sigStartRow && (C >= 1 && C <= 9)) {
+                  ws[cellRef].s.fill = { fgColor: { rgb: "F1F5F9" } };
+                }
+              }
+            }
+          }
+          
+          // ผสานเซลล์แถวหัวข้อหลัก และรวมถึงเซลล์ในกล่องลายเซ็นแต่ละกล่อง
+          ws["!merges"] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },
+            
+            // Signature Box 1 (ผู้ตรวจนับคลัง 1)
+            { s: { r: sigStartRow, c: 1 }, e: { r: sigStartRow, c: 3 } },
+            { s: { r: sigStartRow + 1, c: 1 }, e: { r: sigStartRow + 1, c: 3 } },
+            { s: { r: sigStartRow + 2, c: 1 }, e: { r: sigStartRow + 2, c: 3 } },
+            
+            // Signature Box 2 (ผู้ตรวจนับคลัง 2)
+            { s: { r: sigStartRow, c: 4 }, e: { r: sigStartRow, c: 6 } },
+            { s: { r: sigStartRow + 1, c: 4 }, e: { r: sigStartRow + 1, c: 6 } },
+            { s: { r: sigStartRow + 2, c: 4 }, e: { r: sigStartRow + 2, c: 6 } },
+            
+            // Signature Box 3 (ผู้ตรวจสอบบัญชี)
+            { s: { r: sigStartRow, c: 7 }, e: { r: sigStartRow, c: 9 } },
+            { s: { r: sigStartRow + 1, c: 7 }, e: { r: sigStartRow + 1, c: 9 } },
+            { s: { r: sigStartRow + 2, c: 7 }, e: { r: sigStartRow + 2, c: 9 } }
+          ];
+        }
+      } catch(styleErr) {
+        console.warn("Styling Excel failed, exporting unstyled version:", styleErr);
+      }
+
+      // ป้องกันชื่อชีตมีอักขระพิเศษที่ Excel ห้ามใช้ (เช่น / \ ? * : [ ])
+      const safeSheetName = whName.replace(/[:\/\\\?\*\[\]]/g, "").substring(0, 30);
+      XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+    });
+
+    XLSX.writeFile(wb, `Vespa_Print_CountSheet${roundNum}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (err) {
+    alert("❌ ไม่สามารถดาวน์โหลดได้เนื่องจาก: " + err.message);
+    console.error(err);
+  }
 }
 
 // โหลดข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ
