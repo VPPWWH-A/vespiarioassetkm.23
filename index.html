@@ -917,8 +917,8 @@ input[type="file"] { display: none; }
   box-shadow: 0 4px 14px rgba(202, 138, 4, 0.2);
 }
 .home-card.purple {
-  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.2);
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  box-shadow: 0 4px 14px rgba(71, 85, 105, 0.15);
 }
 .home-card-icon {
   display: flex;
@@ -1617,7 +1617,7 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
     dbgLog('index.html:fetchAssetLookup', 'export fallback', { cleanCode }, 'H1');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
-    const expRes = await fetch(apiUrl({ action: "export" }), { signal: controller.signal });
+    const expRes = await fetch(apiUrl({ action: "export", ...(forceFresh ? { nocache: "1" } : {}) }), { signal: controller.signal });
     const exp = await expRes.json().catch(() => null);
     clearTimeout(timer);
     
@@ -1648,6 +1648,8 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
       assetNo: row[0], assetName: row[1], category: row[2],
       area: row[3], warehouse: row[4], acquisitionDate: row[5],
       assetStatus: row[6], lastScan: row[7], lastResult: row[8],
+      remark: row[9] || "",
+      imageUrl: row[10] || "",
       hasCount1: c1Idx !== -1 && (row[c1Idx] === "Count" || row[c1Idx] === "Checked"),
       hasCount2: c2Idx !== -1 && (row[c2Idx] === "Count" || row[c2Idx] === "Checked")
     };
@@ -3108,11 +3110,51 @@ async function performInspectSearch() {
     showInspectLoading(false);
     
     if (lookupData && lookupData.status === "success" && lookupData.found) {
-      closeInspectSearchModal();
       if (lookupData.isUnregistered) {
-        viewUnregAssetDetail(assetNoInput);
+        // Cache the lookup results into allUnregAssets so viewUnregAssetDetail can read them
+        const unregRowData = [
+          lookupData.assetNo,
+          lookupData.assetName || "-",
+          lookupData.category || "-",
+          lookupData.warehouse || "-",
+          lookupData.area || "-",
+          lookupData.remark || "",
+          lookupData.dateAdded || lookupData.lastScan || new Date().toISOString(),
+          lookupData.imageUrl || "",
+          lookupData.unregStatus || "Pending",
+          lookupData.assetStatus || ""
+        ];
+        const existsIndex = allUnregAssets.findIndex(r => String(r[0]).trim().toUpperCase() === lookupData.assetNo.toUpperCase());
+        if (existsIndex > -1) {
+          allUnregAssets[existsIndex] = unregRowData;
+        } else {
+          allUnregAssets.push(unregRowData);
+        }
+        closeInspectSearchModal();
+        viewUnregAssetDetail(lookupData.assetNo);
       } else {
-        viewAssetDetail(assetNoInput);
+        // Cache the lookup results into allAssets so viewAssetDetail can read them
+        const rowData = [
+          lookupData.assetNo,
+          lookupData.assetName || "-",
+          lookupData.category || "-",
+          lookupData.area || "-",
+          lookupData.warehouse || "-",
+          lookupData.acquisitionDate || "",
+          lookupData.assetStatus || "",
+          lookupData.lastScan || "",
+          lookupData.lastResult || "",
+          lookupData.remark || "",
+          lookupData.imageUrl || ""
+        ];
+        const existsIndex = allAssets.findIndex(r => String(r[0]).trim().toUpperCase() === lookupData.assetNo.toUpperCase());
+        if (existsIndex > -1) {
+          allAssets[existsIndex] = rowData;
+        } else {
+          allAssets.push(rowData);
+        }
+        closeInspectSearchModal();
+        viewAssetDetail(lookupData.assetNo);
       }
     } else {
       showInspectError("ไม่พบรหัสทรัพย์สินนี้ในระบบ");
