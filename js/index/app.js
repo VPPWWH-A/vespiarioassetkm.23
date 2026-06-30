@@ -1,0 +1,1100 @@
+﻿// ==================== SCANNER ====================
+function setResult(html) {
+  const r1 = document.getElementById("result");
+  const r2 = document.getElementById("result-handheld");
+  if (r1) r1.innerHTML = html;
+  if (r2) r2.innerHTML = html;
+}
+function showLoading(msg)    { setResult(`<div class="result-card" style="padding:20px;"><div class="spinner"></div><div style="font-size:13px;color:var(--text-muted);">${msg}</div></div>`); }
+function showError(msg)      { closeHandheldScanPopup(); setResult(`<div class="result-card error"><div style="font-size:36px;margin-bottom:8px;">❌</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ผิดพลาด</div><div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(msg)}</div></div>`); }
+
+// ✅ Escape HTML เพื่อป้องกัน XSS จากค่าที่ scan มา
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function yieldToUI() {
+  return new Promise(resolve => {
+    if (window.requestAnimationFrame) {
+      requestAnimationFrame(() => setTimeout(resolve, 0));
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
+let pendingScanData = null;
+
+function showStockCountModal(data) {
+  closeHandheldScanPopup();
+  if (data && data.isUnregistered) {
+    showUnregExistsModal(data);
+    return;
+  }
+  pendingScanData = data;
+  let statusText = "พบข้อมูลทรัพย์สิน — รอยืนยันการนับ";
+  let badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dbeafe;color:var(--primary);">✅ รอยืนยันการนับ</span>`;
+  const hasRealPhoto = !!(data.imageUrl || data.fileUrl || data.photoUrl || data.image);
+  const isDamagedLabel = String(data.assetStatus || data.status || "").includes("ชำรุดเสียหาย") && hasRealPhoto;
+
+  if (isAlreadyCounted(data)) {
+    statusText = "พบข้อมูลทรัพย์สิน (นับแล้วในรอบนี้)";
+    badgeHtml = `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-top:10px;text-transform:uppercase;background:#dcfce7;color:var(--success);">✅ นับแล้ว (Count)</span>`;
+  }
+
+  setResult(`
+    <div class="result-card success">
+      <div style="font-size:36px;margin-bottom:8px;">✅</div>
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">${statusText}</div>
+      <div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(data.assetNo)}</div>
+      ${badgeHtml}
+    </div>`);
+
+  document.getElementById("scan-confirm-assetno").textContent = data.assetNo;
+  document.getElementById("scan-confirm-name").textContent = data.assetName || "-";
+  document.getElementById("scan-confirm-cat").textContent = data.category || "-";
+  document.getElementById("scan-confirm-area").textContent = data.area || "-";
+  document.getElementById("scan-confirm-wh").textContent = data.warehouse || "-";
+
+  document.getElementById("scan-update-warehouse").value = "";
+  if (document.getElementById("scan-update-station-field")) {
+    document.getElementById("scan-update-station-field").classList.add("hidden");
+    document.getElementById("scan-update-station").innerHTML = '<option value="">เลือกแผนก</option>';
+  }
+  document.getElementById("scan-update-area").innerHTML = '<option value="">ไม่เปลี่ยน</option>';
+  document.getElementById("scan-update-status").value = "";
+  const c1Name = getCurrentCountColName("1");
+  const c2Name = getCurrentCountColName("2");
+  const c1Idx = exportHeaders.indexOf(c1Name);
+  const c2Idx = exportHeaders.indexOf(c2Name);
+  
+  const localAsset = allAssets.find(row => String(row[0]).trim().toUpperCase() === String(data.assetNo).trim().toUpperCase());
+  const localVal1 = localAsset && c1Idx !== -1 ? String(localAsset[c1Idx] || "").trim() : "";
+  const localVal2 = localAsset && c2Idx !== -1 ? String(localAsset[c2Idx] || "").trim() : "";
+  const hasCount1 = (data.hasCount1 !== undefined) ? data.hasCount1 : (localVal1 === "Count" || localVal1 === "Checked");
+  const hasCount2 = (data.hasCount2 !== undefined) ? data.hasCount2 : (localVal2 === "Count" || localVal2 === "Checked");
+
+  const roundSelect = document.getElementById("scan-count-round");
+  const opt1 = roundSelect.querySelector('option[value="1"]');
+  const opt2 = roundSelect.querySelector('option[value="2"]');
+
+  opt1.disabled = false;
+  opt2.disabled = false;
+
+  // บังคับสิทธิ์การเลือกตามรอบอย่างเคร่งครัด
+  if (!hasCount1 && !hasCount2) {
+    // ถ้ายังไม่เคยนับเลย บังคับนับ Count 1 เท่านั้น (ปิดการเลือก Count 2)
+    opt2.disabled = true;
+    roundSelect.value = "1";
+  } else if (hasCount1 && !hasCount2) {
+    // ถ้านับ Count 1 ไปแล้ว บังคับนับ Count 2 เท่านั้น (ปิดการเลือก Count 1)
+    opt1.disabled = true;
+    roundSelect.value = "2";
+  } else if (hasCount1 && hasCount2) {
+    // ถ้านับครบทั้งคู่แล้ว ปิดตัวเลือกทั้งหมด
+    opt1.disabled = true;
+    opt2.disabled = true;
+    roundSelect.value = "1";
+  } else {
+    // กรณีพิเศษอื่น ๆ
+    opt1.disabled = false;
+    opt2.disabled = false;
+    roundSelect.value = "1";
+  }
+
+  document.getElementById("scan-update-image").value = "";
+  document.getElementById("scan-img-preview-container").classList.add("hidden");
+  document.getElementById("scan-img-placeholder").style.display = "";
+  
+  const btn = document.getElementById("btn-scan-confirm");
+  if (hasCount1 && hasCount2) {
+    btn.disabled = true;
+    btn.innerHTML = '❌ นับครบทุกรอบแล้ว';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ยืนยันนับสต๊อก';
+  }
+
+  const confirmModal = document.getElementById("modal-scan-confirm");
+  if (currentPage === "handheld") {
+    confirmModal.classList.add("handheld-layout");
+  } else {
+    confirmModal.classList.remove("handheld-layout");
+  }
+  confirmModal.classList.remove("hidden");
+}
+
+function showSuccess(data) {
+  return showStockCountModal(data);
+}
+
+function closeScanConfirmModal() {
+  document.getElementById("modal-scan-confirm").classList.add("hidden");
+  if (currentPage === "handheld") {
+    setTimeout(() => {
+      const hhInput = document.getElementById("handheld-input");
+      if (hhInput) hhInput.focus();
+    }, 100);
+  } else if (currentPage === "scan" && html5QrCode && isScanning) {
+    setTimeout(() => {
+      try { html5QrCode.resume(); } catch(e) {}
+    }, 150);
+  }
+}
+
+function resumeScannerAfterAction() {
+  isProcessing = false;
+  if (currentPage === "scan" && html5QrCode && isScanning) {
+    setTimeout(() => {
+      try { html5QrCode.resume(); } catch(e) {}
+    }, 150);
+  }
+}
+
+function showUnregExistsModal(data) {
+  closeHandheldScanPopup();
+  document.getElementById("unreg-exists-assetno").textContent = data.assetNo || "-";
+  document.getElementById("unreg-exists-name").textContent = data.assetName || "-";
+  document.getElementById("unreg-exists-cat").textContent = data.category || "-";
+  document.getElementById("unreg-exists-wh").textContent = (data.warehouse || "-") + " / " + (data.area || "-");
+  document.getElementById("unreg-exists-remark").textContent = data.remark || "-";
+  
+  document.getElementById("modal-unreg-exists").classList.remove("hidden");
+}
+
+function closeUnregExistsModal() {
+  document.getElementById("modal-unreg-exists").classList.add("hidden");
+  if (currentPage === "handheld") {
+    setTimeout(() => {
+      const hhInput = document.getElementById("handheld-input");
+      if (hhInput) {
+        setHandheldDisplay(HANDHELD_PLACEHOLDER, true);
+        hhInput.focus();
+      }
+    }, 100);
+  } else if (currentPage === "scan") {
+    if (html5QrCode && isScanning) {
+      setTimeout(() => {
+        try { html5QrCode.resume(); } catch(e){}
+      }, 500);
+    }
+  }
+}
+
+function closeIosFastScanModal(startScan = false) {
+  document.getElementById("modal-ios-fastscan").classList.add("hidden");
+  localStorage.setItem('iosFastScanTipShown', 'true');
+  if (startScan) {
+    startScanner();
+  }
+}
+
+async function applyCameraFocus() {
+  const videoEl = document.querySelector("#reader video");
+  if (!videoEl || !videoEl.srcObject) return;
+  const tracks = videoEl.srcObject.getVideoTracks();
+  if (!tracks.length) return;
+  const track = tracks[0];
+  if (typeof track.getCapabilities !== "function" || typeof track.applyConstraints !== "function") return;
+
+  const capabilities = track.getCapabilities();
+  const advanced = [];
+
+  if (capabilities.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("continuous")) {
+    advanced.push({ focusMode: "continuous" });
+  }
+  if (capabilities.exposureMode && Array.isArray(capabilities.exposureMode) && capabilities.exposureMode.includes("continuous")) {
+    advanced.push({ exposureMode: "continuous" });
+  }
+  if (capabilities.whiteBalanceMode && Array.isArray(capabilities.whiteBalanceMode) && capabilities.whiteBalanceMode.includes("continuous")) {
+    advanced.push({ whiteBalanceMode: "continuous" });
+  }
+  if (capabilities.zoom && typeof capabilities.zoom.min === "number") {
+    const zoomValue = Math.min(capabilities.zoom.max || 2, Math.max(capabilities.zoom.min || 1, 1.2));
+    advanced.push({ zoom: zoomValue });
+  }
+
+  // Force add torch constraint to try enabling the flash
+  const advancedWithTorch = [...advanced, { torch: true }];
+
+  try {
+    // Try with torch first
+    await track.applyConstraints({ advanced: advancedWithTorch });
+  } catch (torchErr) {
+    console.warn("Failed to apply constraints with torch, trying without torch...", torchErr);
+    // Fallback to applying constraints without torch
+    if (advanced.length) {
+      try {
+        await track.applyConstraints({ advanced });
+      } catch (err) {
+        console.warn("Camera focus constraints not applied", err);
+      }
+    }
+  }
+}
+
+async function compressImageToBase64(file, maxSizeMB = 0.18) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        let width = img.width;
+        let height = img.height;
+        
+        // ✅ Resize ครั้งเดียว (ไม่ loop)
+        const maxDim = 720;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // ✅ Binary search quality (ลด loop จาก 5 เหลือ max 3)
+        let quality = 0.6;
+        let base64String = canvas.toDataURL("image/jpeg", quality);
+        let sizeMB = (base64String.length * 0.75) / (1024 * 1024);
+        
+        let minQuality = 0.1;
+        let maxQuality = 0.6;
+        let iterations = 0;
+        const maxIterations = 3;  // ⚠️ Max 3 ครั้ง (ไม่ใช่ while loop)
+        
+        while (sizeMB > maxSizeMB && iterations < maxIterations && quality > minQuality) {
+          iterations++;
+          if (sizeMB > maxSizeMB) {
+            maxQuality = quality;
+            quality = (minQuality + quality) / 2;
+          } else {
+            break;
+          }
+          base64String = canvas.toDataURL("image/jpeg", quality);
+          sizeMB = (base64String.length * 0.75) / (1024 * 1024);
+        }
+        
+        // ✅ ถ้ายังใหญ่เกิน ลดขนาดครั้งเดียว
+        if (sizeMB > maxSizeMB) {
+          const newWidth = Math.round(width * 0.75);
+          const newHeight = Math.round(height * 0.75);
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+          ctx.drawImage(img, 0, 0, newWidth, newHeight);
+          base64String = canvas.toDataURL("image/jpeg", 0.5);
+        }
+        
+        resolve(base64String.split(",")[1]);
+      };
+      img.onerror = reject;
+      img.src = event.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function previewScanImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const previewUrl = URL.createObjectURL(file);
+  const preview = document.getElementById("scan-img-preview");
+  preview.onload = () => URL.revokeObjectURL(previewUrl);
+  preview.src = previewUrl;
+  document.getElementById("scan-img-preview-container").classList.remove("hidden");
+  document.getElementById("scan-img-placeholder").style.display = "none";
+}
+
+/* ==================== BACKGROUND UPLOAD QUEUE ==================== */
+const bgUploadQueue = [];
+let isBgUploading = false;
+
+function addBgUpload(payload) {
+  bgUploadQueue.push(payload);
+  renderBgUploadQueue();
+  if (!isBgUploading) processBgUploadQueue();
+}
+
+async function processBgUploadQueue() {
+  if (bgUploadQueue.length === 0) {
+    isBgUploading = false;
+    renderBgUploadQueue();
+    return;
+  }
+  isBgUploading = true;
+  renderBgUploadQueue();
+
+  const payload = bgUploadQueue[0];
+  try {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 30000);
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timerId);
+  } catch(e) {
+    console.warn("Background upload error", e);
+  }
+  bgUploadQueue.shift();
+  processBgUploadQueue();
+}
+
+function renderBgUploadQueue() {
+  let ui = document.getElementById("bg-upload-ui");
+  if (!ui) {
+    ui = document.createElement("div");
+    ui.id = "bg-upload-ui";
+    ui.style.cssText = "position:fixed; bottom:75px; left:50%; transform:translateX(-50%); background:var(--primary); color:white; padding:8px 16px; border-radius:20px; font-size:12px; font-weight:bold; box-shadow:0 4px 12px rgba(0,0,0,0.2); z-index:9999; display:none; pointer-events:none; transition:all 0.3s ease;";
+    document.body.appendChild(ui);
+  }
+
+  if (bgUploadQueue.length > 0) {
+    ui.innerHTML = `<span class="spinner-sm" style="border-width:2px; width:12px; height:12px; margin-right:6px; border-top-color:#fff;"></span>กำลังบันทึกและอัปโหลด (${bgUploadQueue.length} รายการ)`;
+    ui.style.background = "var(--primary)";
+    ui.style.display = "flex";
+  } else {
+    ui.innerHTML = `✅ อัปโหลดเสร็จสิ้น`;
+    ui.style.background = "var(--success)";
+    setTimeout(() => {
+      if (bgUploadQueue.length === 0) ui.style.display = "none";
+    }, 2500);
+  }
+}
+
+window.addEventListener("beforeunload", function (e) {
+  if (bgUploadQueue.length > 0) {
+    e.preventDefault();
+    e.returnValue = "ยังมีข้อมูลกำลังอัปโหลดเบื้องหลัง คุณแน่ใจหรือไม่ที่จะออกจากหน้านี้?";
+    return e.returnValue;
+  }
+});
+
+async function uploadScanImageInBackground(file, meta) {
+  if (!file || !meta || !meta.requestId || !meta.assetNo) return;
+  try {
+    const base64 = await compressImageToBase64(file);
+    addBgUpload({
+      key: API_SECRET,
+      action: "uploadScanImage",
+      requestId: meta.requestId,
+      assetNo: meta.assetNo,
+      assetName: meta.assetName || "",
+      image: base64
+    });
+  } catch (e) {
+    console.warn("Background image upload error", e.message);
+  }
+}
+
+async function confirmScanCount() {
+  if (!pendingScanData) return;
+  const requestId = "REQ-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+  // #region agent log
+  dbgLog('index.html:confirmScanCount:entry', 'confirm scan', { assetNo: pendingScanData.assetNo, isUnregistered: !!pendingScanData.isUnregistered }, 'H1-H4');
+  // #endregion
+  const btn = document.getElementById("btn-scan-confirm");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-sm" style="margin-right:6px;"></span>กำลังบันทึก...';
+
+  const newWarehouse = document.getElementById("scan-update-warehouse").value;
+  const newArea = document.getElementById("scan-update-area").value;
+  const newStatus = document.getElementById("scan-update-status").value;
+  const countRound = document.getElementById("scan-count-round").value || "1";
+  const fileInput = document.getElementById("scan-update-image");
+  const hasImage = fileInput.files && fileInput.files[0];
+  const imageFile = hasImage ? fileInput.files[0] : null;
+  const hasLocationUpdate = newWarehouse || newArea || newStatus;
+
+  if (newWarehouse === "Warehouse A" || newWarehouse === "Warehouse B") {
+    const station = document.getElementById("scan-update-station").value;
+    if (!station || !newArea || newArea === "โปรดเลือกแผนกก่อน" || newArea === "ไม่เปลี่ยน") {
+      alert("❌ กรุณาเลือกแผนกและพื้นที่ย่อยสำหรับ " + newWarehouse);
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ยืนยันนับสต๊อก';
+      return;
+    }
+  }
+
+  try {
+    await yieldToUI();
+
+    // 🚀 Single POST request for everything (Count mark, Location update, Image upload)
+    const payload = {
+      key: API_SECRET,
+      action: "updateAsset",
+      requestId: requestId,
+      clientSentAt: new Date().toISOString(),
+      assetNo: pendingScanData.assetNo,
+      assetName: pendingScanData.assetName || "",
+      isScan: true,
+      isUnregistered: pendingScanData.isUnregistered === true,
+      warehouse: newWarehouse,
+      area: newArea,
+      status: newStatus,
+      countRound: countRound,
+      image: "",
+      hasDeferredImage: !!imageFile,
+      remarks: pendingScanData.isBarcodeDamagedFlow ? "บาร์โค้ดเสียหาย แต่ยังเห็นรหัส" : ""
+    };
+
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), 18000);
+    const uploadRes = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    }).catch(e => {
+      if (e.name === "AbortError") throw new Error("❌ หมดเวลาในการบันทึก - ตรวจสอบเครือข่าย");
+      throw e;
+    });
+    clearTimeout(timerId);
+    
+    const uploadData = await uploadRes.json().catch(() => null);
+    // #region agent log
+    dbgLog('index.html:confirmScanCount:response', 'updateAsset response', { assetNo: pendingScanData.assetNo, status: uploadData && uploadData.status, message: uploadData && uploadData.message }, 'H1-H4');
+    // #endregion
+    if (!uploadData || uploadData.status === "error") {
+      throw new Error(uploadData ? uploadData.message : "การตอบกลับไม่ถูกต้อง");
+    }
+
+    const imageUrl = uploadData.imageUrl || "";
+    const responseRequestId = uploadData.requestId || requestId;
+    const durationText = uploadData.durationMs ? ` (${Math.round(uploadData.durationMs / 1000)}s)` : "";
+
+    // Update local data so UI reflects changes immediately
+    if (pendingScanData.isUnregistered) {
+      // Keep local cache updated after confirming an unregistered item.
+      const newRow = [
+        pendingScanData.assetNo,
+        pendingScanData.assetName,
+        pendingScanData.category || "",
+        newArea || pendingScanData.area || "",
+        newWarehouse || pendingScanData.warehouse || "",
+        new Date().toISOString(),
+        newStatus || "ใช้งานอยู่",
+        new Date().toISOString(),
+        "Unregistered",
+        "",
+        imageUrl
+      ];
+      allAssets.push(newRow);
+      
+      // Remove from allUnregAssets locally or mark as confirmed
+      const unregIdx = allUnregAssets.findIndex(row => String(row[0]).trim().toUpperCase() === String(pendingScanData.assetNo).trim().toUpperCase());
+      if (unregIdx > -1) {
+        allUnregAssets[unregIdx][8] = "Confirmed";
+      }
+    } else {
+      const assetIdx = allAssets.findIndex(row => String(row[0]).trim().toUpperCase() === String(pendingScanData.assetNo).trim().toUpperCase());
+      // #region agent log
+      dbgLog('index.html:confirmScanCount:localUpdate', 'local cache update', { assetNo: pendingScanData.assetNo, assetIdx }, 'H4');
+      // #endregion
+      if (assetIdx > -1) {
+        allAssets[assetIdx][7] = new Date().toISOString();
+        allAssets[assetIdx][8] = "Count";
+        const roundColName = getCurrentCountColName(countRound);
+        let roundColIndex = exportHeaders.indexOf(roundColName);
+        if (roundColIndex === -1) {
+          roundColIndex = exportHeaders.length;
+          exportHeaders.push(roundColName);
+        }
+        while (allAssets[assetIdx].length <= roundColIndex) allAssets[assetIdx].push("");
+        allAssets[assetIdx][roundColIndex] = "Count";
+        if (newStatus) allAssets[assetIdx][6] = newStatus;
+        if (newArea) allAssets[assetIdx][3] = newArea;
+        if (newWarehouse) allAssets[assetIdx][4] = newWarehouse;
+        if (imageUrl) allAssets[assetIdx][10] = imageUrl;
+        if (pendingScanData.isBarcodeDamagedFlow) {
+          allAssets[assetIdx][9] = "บาร์โค้ดเสียหาย แต่ยังเห็นรหัส";
+        }
+      }
+    }
+
+    closeScanConfirmModal();
+    resumeScannerAfterAction();
+    if (imageFile) {
+      uploadScanImageInBackground(imageFile, {
+        requestId: responseRequestId,
+        assetNo: pendingScanData.assetNo,
+        assetName: pendingScanData.assetName || ""
+      });
+    }
+    setResult(`
+      <div class="result-card success">
+        <div style="font-size:36px;margin-bottom:8px;">✅</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">นับสต๊อกสำเร็จ</div>
+        <div style="font-size:22px;font-weight:800;margin-top:4px;">${escHtml(pendingScanData.assetNo)}</div>
+        <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">${escHtml(pendingScanData.assetName)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Ref: ${escHtml(responseRequestId)}${escHtml(durationText)}</div>
+        <div style="font-size:12px;color:var(--success);margin-top:4px;">Count ${escHtml(countRound)}</div>
+        ${hasLocationUpdate ? '<div style="font-size:12px;color:var(--primary);margin-top:6px;">📍 อัปเดตตำแหน่งแล้ว</div>' : ''}
+        ${imageFile ? '<div style="font-size:12px;color:var(--primary);margin-top:4px;">📷 กำลังอัปโหลดรูปตามหลัง</div>' : ''}
+      </div>`);
+  } catch (err) {
+    alert("❌ เกิดข้อผิดพลาด: " + (err.message || "ไม่สามารถบันทึกได้"));
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ยืนยันนับสต๊อก';
+    resumeScannerAfterAction();
+  }
+}
+
+function showNotFound(assetNo) {
+  closeHandheldScanPopup();
+  const safeNo = escHtml(assetNo);
+  const rawNo = String(assetNo).trim().toUpperCase();
+  // #region agent log
+  dbgLog('index.html:showNotFound', 'asset not found', { raw: rawNo, escaped: safeNo }, 'H3');
+  // #endregion
+  setResult(`
+    <div class="result-card warning">
+      <div style="font-size:36px;margin-bottom:8px;">⚠️</div>
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">ไม่พบข้อมูลในระบบ (NEW ITEM)</div>
+      <div style="font-size:22px;font-weight:800;margin-top:4px;color:var(--warning);">${safeNo}</div>
+      <div style="font-size:14px;color:var(--text-dim);margin-top:4px;">รหัสนี้เกินจากระบบ (Over from system)</div>
+      <button class="btn btn-gold" id="btn-notfound-add" style="margin-top:10px;width:auto;padding:10px 20px;font-size:12px;">📸 ถ่ายรูปและเพิ่มข้อมูล</button>
+    </div>`);
+  const addBtn = document.getElementById("btn-notfound-add");
+  if (addBtn) addBtn.onclick = () => showAddForm(rawNo);
+
+  // setTimeout(() => { showAddForm(rawNo); }, 500); // Disabled auto-redirect to allow cumulative scanning
+}
+
+function decodeThaiKeyboard(str) {
+  const th = "ๅ/-ภถุึคตจขชๆไำพะัีรนยบลฃฟหกดเ้่าสวงผปแอิืทมใฝ๑๒๓๔ู฿๕๖๗๘๙๐\"ฎฑธํ๊ณฯญฐฅฤฆฏโฌ็๋ษศซฉฮฺ์ฒฬฦ";
+  const en = "1234567890-=qwertyuiop[]\\asdfghjkl;'zxcvbnm,./!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:\"ZXCVBNM<>?";
+  let result = "";
+  for(let i=0; i<str.length; i++) {
+    let char = str[i];
+    let idx = th.indexOf(char);
+    result += (idx !== -1) ? en[idx] : char;
+  }
+  return result;
+}
+
+async function onScanSuccess(decodedText, isHandheld = false) {
+  if (isProcessing) return;
+  isProcessing = true;
+  
+  // แปลงภาษาไทยกลับเป็นอังกฤษ (กรณีลืมเปลี่ยนภาษาที่เครื่องตอนสแกน)
+  let cleanCode = decodeThaiKeyboard(String(decodedText)).trim().toUpperCase();
+  
+  if (html5QrCode && isScanning) { try { await html5QrCode.pause(true); } catch(e){} }
+  // #region agent log
+  dbgLog('index.html:onScanSuccess:entry', 'scan started', { cleanCode, cacheSize: allAssets.length, unregSize: allUnregAssets.length }, 'H1-H2');
+  // #endregion
+  
+  const scanStatus = await fetchScanStatusWithTimeout(cleanCode, isHandheld ? 8000 : 10000);
+  if (scanStatus && scanStatus.found) {
+    const state = String(scanStatus.scanStatus || "").toLowerCase();
+    if (state === "received" || state === "processing") {
+      showScanStatusNotice(cleanCode, scanStatus);
+      setTimeout(async () => {
+          isProcessing = false;
+          if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
+        }, isHandheld ? 50 : 800);
+      return;
+    }
+  }
+
+  // 🚀 Instant Local Search (Performance Optimization)
+  const localMatch = allAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode);
+  const liveLookupPromise = localMatch ? fetchAssetLookupWithTimeout(cleanCode, isHandheld ? 4500 : 15000) : Promise.resolve(null);
+  
+  if (localMatch) {
+    const liveLookup = await liveLookupPromise;
+    const chosen = (liveLookup && liveLookup.status === "success" && liveLookup.found) ? liveLookup : null;
+    const liveLastResult = chosen ? chosen.lastResult : localMatch[8];
+    const liveLastScan = chosen ? chosen.lastScan : localMatch[7];
+    const isUnregisteredRow = !!(chosen && chosen.isUnregistered);
+    // #region agent log
+    dbgLog('index.html:onScanSuccess:local', 'local cache hit', { cleanCode, lastResult: liveLastResult, lastScan: liveLastScan, liveFresh: !!chosen }, 'H2');
+    // #endregion
+    const data = {
+      assetNo: chosen ? chosen.assetNo : localMatch[0],
+      assetName: chosen ? chosen.assetName : localMatch[1],
+      category: chosen ? chosen.category : localMatch[2],
+      area: chosen ? chosen.area : localMatch[3],
+      warehouse: chosen ? chosen.warehouse : localMatch[4],
+      acquisitionDate: chosen ? chosen.acquisitionDate : localMatch[5],
+      assetStatus: chosen ? chosen.assetStatus : localMatch[6],
+      lastResult: liveLastResult,
+      lastScan: liveLastScan,
+      hasCount1: chosen ? chosen.hasCount1 : undefined,
+      hasCount2: chosen ? chosen.hasCount2 : undefined,
+      isUnregistered: isUnregisteredRow
+    };
+    if (isUnregisteredRow) {
+      showUnregExistsModal({
+        assetNo: data.assetNo,
+        assetName: data.assetName,
+        category: data.category,
+        warehouse: data.warehouse,
+        area: data.area,
+        remark: chosen ? (chosen.remark || "") : ""
+      });
+    } else {
+      showSuccess(data);
+    }
+    
+    // Note: We keep a delay before resuming scanner to prevent double scans
+    setTimeout(async () => {
+      isProcessing = false;
+      if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
+    }, isHandheld ? 50 : 800);
+  } else {
+    // Check if it exists in Unregistered assets first
+    if (allUnregAssets) {
+      const unregMatch = allUnregAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode);
+      if (unregMatch) {
+        const data = {
+          assetNo: unregMatch[0],
+          assetName: unregMatch[1],
+          category: unregMatch[2],
+          warehouse: unregMatch[3],
+          area: unregMatch[4],
+          remark: unregMatch[5]
+        };
+        showUnregExistsModal(data);
+        isProcessing = false;
+        return;
+      }
+    }
+
+    // 🔍 Fallback: read-only lookup (export if lookup API not deployed yet)
+    showLoading("ไม่พบในเครื่อง กำลังตรวจสอบกับเซิร์ฟเวอร์แบบเรียลไทม์...");
+    try {
+      const data = await fetchAssetLookup(cleanCode);
+      if (data && data.status === "success" && data.found) {
+        if (data.isUnregistered) {
+          showUnregExistsModal({
+            assetNo: data.assetNo,
+            assetName: data.assetName,
+            category: data.category,
+            warehouse: data.warehouse,
+            area: data.area,
+            remark: data.remark || ""
+          });
+        } else {
+          const newAssetRow = [
+            data.assetNo,
+            data.assetName,
+            data.category,
+            data.area,
+            data.warehouse,
+            data.acquisitionDate,
+            data.assetStatus,
+            data.lastScan || "",
+            data.lastResult || ""
+          ];
+          allAssets.push(newAssetRow);
+          showSuccess({
+            assetNo: data.assetNo,
+            assetName: data.assetName,
+            category: data.category,
+            area: data.area,
+            warehouse: data.warehouse,
+            acquisitionDate: data.acquisitionDate,
+            assetStatus: data.assetStatus,
+            lastResult: data.lastResult,
+            lastScan: data.lastScan,
+            hasCount1: data.hasCount1,
+            hasCount2: data.hasCount2
+          });
+        }
+      } else if (data && data.status === "error") {
+        showError(data.message || "ไม่สามารถตรวจสอบกับเซิร์ฟเวอร์ได้");
+      } else {
+        showNotFound(cleanCode);
+      }
+    } catch (err) {
+      showNotFound(cleanCode);
+    } finally {
+      // Resume scanner after a short delay
+      setTimeout(async () => {
+        isProcessing = false;
+        if (html5QrCode && isScanning) { try { await html5QrCode.resume(); } catch(e){} }
+      }, 800);
+    }
+  }
+}
+
+
+
+function triggerPhotoScan() {
+  document.getElementById("scan-via-photo").click();
+}
+
+async function handlePhotoScan(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  setResult(`<div style="padding:15px;text-align:center;color:var(--primary);font-weight:700;"><span class="spinner-sm" style="margin-right:6px;"></span>กำลังถอดรหัสรูปภาพ...</div>`);
+
+  let tempHtml5QrCode = html5QrCode;
+  let needToClearTemp = false;
+  if (!tempHtml5QrCode) {
+    tempHtml5QrCode = new Html5Qrcode("reader", { 
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false 
+    });
+    needToClearTemp = true;
+  }
+
+  try {
+    // ปรับขนาดภาพถ่ายให้อยู่ในช่วง 1200px เพื่อให้ AI ถอดรหัสภาพบาร์โค้ด/QR Code ได้คมชัดและแม่นยำที่สุด
+    const optimizedBlob = await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const MAX_SIZE = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92);
+      };
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
+    });
+
+    const decodedText = await tempHtml5QrCode.scanFile(optimizedBlob, true);
+    onScanSuccess(decodedText);
+  } catch (err) {
+    alert("❌ ไม่สามารถถอดรหัสจากรูปภาพนี้ได้\nกรุณาตรวจสอบว่าถ่ายภาพบาร์โค้ดได้ตรง คมชัด และหลีกเลี่ยงแสงสะท้อน");
+    setResult("");
+  } finally {
+    if (needToClearTemp) {
+      try { await tempHtml5QrCode.clear(); } catch(e){}
+    }
+    event.target.value = "";
+  }
+}
+
+async function startScanner() {
+  // ดักจับ iPhone และแสดงคู่มือ (ทำแค่ครั้งเดียวเพื่อไม่ให้รบกวนการทำงาน)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isNativeSupported = ('BarcodeDetector' in window);
+  
+  if (isIOS && !isNativeSupported && !localStorage.getItem('iosFastScanTipShown')) {
+    document.getElementById("modal-ios-fastscan").classList.remove("hidden");
+    return; // หยุดกระบวนการเปิดกล้องไว้ก่อน เพื่อให้ผู้ใช้อ่าน
+  }
+
+  if (isScanning) return;
+  const reader = document.getElementById("reader");
+  reader.innerHTML = `<div style="padding:30px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-size:13px;color:var(--text-muted);">กำลังขออนุญาตเปิดกล้อง...</div></div>`;
+
+  try {
+    // ใส่ป้ายสถานะ Fast Scan / Standard Scan
+    const badgeHtml = isNativeSupported 
+      ? `<div style="position: absolute; top: 12px; left: 12px; background: rgba(5, 150, 105, 0.9); color: white; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">⚡ FAST SCAN ACTIVE</div>` 
+      : `<div style="position: absolute; top: 12px; left: 12px; background: rgba(71, 85, 105, 0.9); color: white; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; z-index: 10;">📷 STANDARD SCAN</div>`;
+
+    // วาดกรอบสี่เหลี่ยมก่อนสร้าง Scanner
+    reader.innerHTML = badgeHtml + `<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
+
+    html5QrCode = new Html5Qrcode("reader", { 
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false 
+    });
+
+    const formats = [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_93,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.DATA_MATRIX
+    ];
+    const config = {
+      fps: 30,
+      qrbox(viewfinderWidth, viewfinderHeight) {
+        const width = Math.floor(viewfinderWidth * 0.95);
+        const height = Math.floor(viewfinderHeight * 0.85);
+        return { width, height };
+      },
+      formatsToSupport: formats,
+      disableFlip: true
+    };
+
+    let didStart = false;
+
+    if (!didStart) {
+      try {
+        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
+        didStart = true;
+      } catch (e1) {}
+    }
+
+    // ลองบังคับเลือกกล้องหลังโดยตรง ถ้าระบบ Auto ทำงานไม่ได้
+    if (!didStart && cameras.length > 0) {
+      try {
+        try { await html5QrCode.clear(); } catch(ce){}
+        html5QrCode = new Html5Qrcode("reader", { experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+        let teleCam = cameras.find(c => /(telephoto|macro|close)/i.test(c.label) && /(back|rear|environment|หลัง)/i.test(c.label));
+        let mainCam = cameras.find(c => /(back|rear|environment|หลัง)/i.test(c.label) && !/(ultra|wide)/i.test(c.label));
+        let selectedCam = teleCam || mainCam || cameras.find(c => /(back|rear|environment|หลัง)/i.test(c.label)) || cameras[0];
+        await html5QrCode.start({ deviceId: { exact: selectedCam.id } }, config, onScanSuccess, () => {});
+        didStart = true;
+      } catch (e2) {}
+    }
+
+    
+
+    if (!didStart) {
+      throw new Error("ไม่สามารถเปิดกล้องได้ในทุกโหมด — กรุณาตรวจสอบสิทธิ์กล้องและลองอีกครั้ง");
+    }
+
+    isScanning = true;
+    document.getElementById("btn-start").classList.add("hidden");
+    document.getElementById("btn-stop").classList.remove("hidden");
+    try { await applyCameraFocus(); } catch (focusErr) { console.warn('applyCameraFocus failed', focusErr); }
+  } catch (err) {
+    let errMsg = "ไม่สามารถเปิดกล้องได้";
+    const errStr = String(err);
+    if (errStr.includes("NotAllowedError") || errStr.includes("Permission") || errStr.includes("NotReadableError")) {
+      errMsg = "กรุณาอนุญาตกล้องใน Safari (ไปที่ ตั้งค่า -> Safari -> กล้อง -> อนุญาต)";
+    } else if (errStr.includes("ไม่พบกล้อง") || errStr.includes("NotFoundError")) {
+      errMsg = "ไม่พบกล้องบนอุปกรณ์นี้";
+    } else if (window.location.protocol === "file:") {
+      errMsg = "กล้องต้องใช้ HTTPS เท่านั้น";
+    } else if (errStr.includes("OverconstrainedError")) {
+      errMsg = "กล้องไม่รองรับการตั้งค่านี้ กรุณาลองอีกครั้ง";
+    }
+    showError(errMsg);
+    console.error("Camera Error:", err);
+    if (html5QrCode) { try { await html5QrCode.clear(); } catch (ce) {} }
+    html5QrCode = null;
+    reader.innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p style="font-size:14px;font-weight:600;color:var(--text);">ไม่สามารถเปิดกล้องได้</p><p style="color:red;font-size:12px;margin-top:8px;">${escHtml(errMsg)}</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
+  }
+}
+
+async function stopScanner() {
+  if (!html5QrCode || !isScanning) return;
+  try { await html5QrCode.stop(); } catch (e) {}
+  try { await html5QrCode.clear(); } catch (e) {}
+  html5QrCode = null;
+  isScanning = false;
+  isProcessing = false;
+
+  document.getElementById("btn-start").classList.remove("hidden");
+  document.getElementById("btn-stop").classList.add("hidden");
+  document.getElementById("reader").innerHTML = `<div class="scanner-placeholder"><div class="big-icon">📷</div><p>แตะ "เปิดกล้อง" เพื่อสแกน</p></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>`;
+}
+
+// ==================== INIT ====================
+updateLabelPreview();
+
+// 🚀 โหลดหน้าล่าสุดที่ผู้ใช้เปิดค้างไว้ก่อนรีเฟรช (ถ้าไม่มีให้ไปหน้าแรก home)
+const initialParams = new URLSearchParams(window.location.search);
+const requestedPage = initialParams.get("page");
+if (requestedPage === "home") {
+  localStorage.setItem("lastActivePage", "home");
+}
+const storedLastPage = localStorage.getItem("lastActivePage") || "home";
+const lastPage = requestedPage || storedLastPage;
+showPage(lastPage);
+
+setTimeout(() => {
+  if (currentPage === "handheld") {
+    const hhInput = document.getElementById("handheld-input");
+    if (hhInput) hhInput.focus();
+  }
+}, 300);
+
+// ==================== HANDHELD SCANNER ====================
+let handheldBuffer = "";
+let lastHandheldTime = Date.now();
+let handheldInputTimer = null;
+const HANDHELD_PLACEHOLDER = "ยิงสแกนบาร์โค้ดที่นี่";
+
+function setHandheldDisplay(text, isPlaceholder) {
+  const display = document.getElementById("handheld-input");
+  if (!display) return;
+
+  display.value = isPlaceholder ? "" : (text || "");
+  display.placeholder = HANDHELD_PLACEHOLDER;
+  display.style.color = "var(--text)";
+}
+
+function playHandheldBeep() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gainNode.gain.value = 0.08;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start();
+
+    setTimeout(() => {
+      oscillator.stop();
+      audioContext.close();
+    }, 90);
+  } catch (e) {}
+}
+
+function showHandheldAccepted(cleanCode) {
+  const resultBox = document.getElementById("result-handheld");
+  if (!resultBox) return;
+
+  resultBox.innerHTML = `
+    <div class="result-card warning">
+      <div style="font-size:18px;font-weight:800;">รับรหัสแล้ว</div>
+      <div style="margin-top:6px;font-size:24px;font-weight:900;color:var(--primary);word-break:break-word;">
+        ${escHtml(cleanCode)}
+      </div>
+      <div style="margin-top:6px;font-size:13px;color:var(--text-muted);font-weight:600;">
+        กำลังตรวจสอบข้อมูล...
+      </div>
+    </div>
+  `;
+}
+
+function showHandheldScanPopup(cleanCode) {
+  const popup = document.getElementById("handheld-scan-popup");
+  const codeEl = document.getElementById("handheld-scan-popup-code");
+  if (!popup || !codeEl) return;
+
+  codeEl.textContent = cleanCode;
+  popup.classList.remove("hidden");
+}
+
+function closeHandheldScanPopup() {
+  const popup = document.getElementById("handheld-scan-popup");
+  if (popup) {
+    popup.classList.add("hidden");
+  }
+}
+
+function flashHandheldInput(sourceInput) {
+  if (!sourceInput) return;
+
+  sourceInput.style.borderColor = "var(--success)";
+  sourceInput.style.boxShadow = "0 0 0 4px rgba(5, 150, 105, 0.14), inset 0 2px 4px rgba(0,0,0,0.05)";
+
+  setTimeout(() => {
+    sourceInput.style.borderColor = "var(--primary)";
+    sourceInput.style.boxShadow = "inset 0 2px 4px rgba(0,0,0,0.05)";
+  }, 350);
+}
+
+function submitHandheldCode(code, sourceInput) {
+  const cleanCode = String(code || "").trim();
+  if (!cleanCode || cleanCode.length < 3) return;
+
+  if (currentPage !== "handheld") {
+    showPage("handheld");
+  }
+
+  showHandheldAccepted(cleanCode);
+  showHandheldScanPopup(cleanCode);
+  flashHandheldInput(sourceInput);
+  playHandheldBeep();
+
+  onScanSuccess(cleanCode, true);
+  handheldBuffer = "";
+
+  if (sourceInput) {
+    sourceInput.value = "";
+    sourceInput.blur();
+  }
+}
+
+document.addEventListener("keydown", function(e) {
+  // ไม่ดักจับถ้ากำลังพิมพ์ใน input, textarea หรือ select
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+    return;
+  }
+
+  const currentTime = Date.now();
+  if (currentTime - lastHandheldTime > 300) {
+    handheldBuffer = "";
+  }
+  
+  lastHandheldTime = currentTime;
+
+  const isEnter = (e.key === "Enter" || e.keyCode === 13);
+  
+  if (isEnter) {
+    if (handheldBuffer.length > 0) {
+      e.preventDefault();
+      submitHandheldCode(handheldBuffer, document.getElementById("handheld-input"));
+    }
+  } else if (e.key && e.key.length === 1) {
+    handheldBuffer += e.key;
+    setHandheldDisplay(handheldBuffer, false);
+
+    if (handheldInputTimer) {
+      clearTimeout(handheldInputTimer);
+    }
+
+    handheldInputTimer = setTimeout(() => {
+      submitHandheldCode(handheldBuffer, document.getElementById("handheld-input"));
+      handheldInputTimer = null;
+    }, 250);
+  }
+});
+
+// Listener แยกเฉพาะสำหรับช่องสแกน Handheld
+const handheldInput = document.getElementById('handheld-input');
+
+handheldInput.addEventListener('keydown', function(e) {
+  if (e.key === "Enter" || e.keyCode === 13 || e.key === "Tab" || e.keyCode === 9) {
+    e.preventDefault();
+    if (handheldInputTimer) {
+      clearTimeout(handheldInputTimer);
+      handheldInputTimer = null;
+    }
+    submitHandheldCode(this.value || handheldBuffer, this);
+  }
+});
+
+handheldInput.addEventListener('input', function() {
+  handheldBuffer = this.value;
+
+  if (handheldInputTimer) {
+    clearTimeout(handheldInputTimer);
+  }
+
+  handheldInputTimer = setTimeout(() => {
+    submitHandheldCode(this.value, this);
+    handheldInputTimer = null;
+  }, 250);
+});
+
+setHandheldDisplay(HANDHELD_PLACEHOLDER, true);
