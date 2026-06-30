@@ -584,94 +584,95 @@ async function onScanSuccess(decodedText, isHandheld = false) {
   if (isProcessing) return;
   isProcessing = true;
   
-  // แปลงภาษาไทยกลับเป็นอังกฤษ (กรณีลืมเปลี่ยนภาษาที่เครื่องตอนสแกน)
+  // à¹à¸›à¸¥à¸‡à¸ à¸²à¸©à¸²à¹„à¸—à¸¢à¸à¸¥à¸±à¸šà¹€à¸›à¹‡à¸™à¸­à¸±à¸‡à¸à¸¤à¸©
   let cleanCode = decodeThaiKeyboard(String(decodedText)).trim().toUpperCase();
   
   if (html5QrCode && isScanning) { try { await html5QrCode.pause(true); } catch(e){} }
-  // #region agent log
-  dbgLog('index.html:onScanSuccess:entry', 'scan started', { cleanCode, cacheSize: allAssets.length, unregSize: allUnregAssets.length }, 'H1-H2');
-  // #endregion
   
-  const scanStatus = await fetchScanStatusWithTimeout(cleanCode, isHandheld ? 8000 : 10000);
-  if (scanStatus && scanStatus.found) {
-    const state = String(scanStatus.scanStatus || "").toLowerCase();
-    if (state === "received" || state === "processing") {
-      showScanStatusNotice(cleanCode, scanStatus);
-      setTimeout(async () => {
-          isProcessing = false;
-          if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
-        }, isHandheld ? 50 : 800);
-      return;
-    }
-  }
-
-  // 🚀 Instant Local Search (Performance Optimization)
+  // ðŸš€ Instant Local Search (Performance Optimization) - Run FIRST and NON-BLOCKING!
   const localMatch = allAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode);
-  const liveLookupPromise = localMatch ? fetchAssetLookupWithTimeout(cleanCode, isHandheld ? 4500 : 15000) : Promise.resolve(null);
-  
-  if (localMatch) {
-    const liveLookup = await liveLookupPromise;
-    const chosen = (liveLookup && liveLookup.status === "success" && liveLookup.found) ? liveLookup : null;
-    const liveLastResult = chosen ? chosen.lastResult : localMatch[8];
-    const liveLastScan = chosen ? chosen.lastScan : localMatch[7];
-    const isUnregisteredRow = !!(chosen && chosen.isUnregistered);
-    // #region agent log
-    dbgLog('index.html:onScanSuccess:local', 'local cache hit', { cleanCode, lastResult: liveLastResult, lastScan: liveLastScan, liveFresh: !!chosen }, 'H2');
-    // #endregion
-    const data = {
-      assetNo: chosen ? chosen.assetNo : localMatch[0],
-      assetName: chosen ? chosen.assetName : localMatch[1],
-      category: chosen ? chosen.category : localMatch[2],
-      area: chosen ? chosen.area : localMatch[3],
-      warehouse: chosen ? chosen.warehouse : localMatch[4],
-      acquisitionDate: chosen ? chosen.acquisitionDate : localMatch[5],
-      assetStatus: chosen ? chosen.assetStatus : localMatch[6],
-      lastResult: liveLastResult,
-      lastScan: liveLastScan,
-      hasCount1: chosen ? chosen.hasCount1 : undefined,
-      hasCount2: chosen ? chosen.hasCount2 : undefined,
-      isUnregistered: isUnregisteredRow
-    };
-    if (isUnregisteredRow) {
-      showUnregExistsModal({
-        assetNo: data.assetNo,
-        assetName: data.assetName,
-        category: data.category,
-        warehouse: data.warehouse,
-        area: data.area,
-        remark: chosen ? (chosen.remark || "") : ""
-      });
-    } else {
+  const unregMatch = allUnregAssets ? allUnregAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode) : null;
+
+  if (localMatch || unregMatch) {
+    // Show local data instantly!
+    if (localMatch) {
+      const data = {
+        assetNo: localMatch[0],
+        assetName: localMatch[1],
+        category: localMatch[2],
+        area: localMatch[3],
+        warehouse: localMatch[4],
+        acquisitionDate: localMatch[5],
+        assetStatus: localMatch[6],
+        lastResult: localMatch[8],
+        lastScan: localMatch[7],
+        isUnregistered: false
+      };
       showSuccess(data);
+    } else {
+      const data = {
+        assetNo: unregMatch[0],
+        assetName: unregMatch[1],
+        category: unregMatch[2],
+        warehouse: unregMatch[3],
+        area: unregMatch[4],
+        remark: unregMatch[5]
+      };
+      showUnregExistsModal(data);
     }
-    
-    // Note: We keep a delay before resuming scanner to prevent double scans
+
+    // Resume scanner quickly for smooth workflow
     setTimeout(async () => {
       isProcessing = false;
       if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
     }, isHandheld ? 50 : 800);
-  } else {
-    // Check if it exists in Unregistered assets first
-    if (allUnregAssets) {
-      const unregMatch = allUnregAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode);
-      if (unregMatch) {
-        const data = {
-          assetNo: unregMatch[0],
-          assetName: unregMatch[1],
-          category: unregMatch[2],
-          warehouse: unregMatch[3],
-          area: unregMatch[4],
-          remark: unregMatch[5]
-        };
-        showUnregExistsModal(data);
-        isProcessing = false;
-        return;
-      }
-    }
 
-    // 🔍 Fallback: read-only lookup (export if lookup API not deployed yet)
-    showLoading("ไม่พบในเครื่อง กำลังตรวจสอบกับเซิร์ฟเวอร์แบบเรียลไทม์...");
+    // Run network check in the background (NON-BLOCKING) to check for updates or scanned status
+    (async () => {
+      try {
+        const scanStatus = await fetchScanStatusWithTimeout(cleanCode, 4000);
+        if (scanStatus && scanStatus.found) {
+          const state = String(scanStatus.scanStatus || "").toLowerCase();
+          if (state === "received" || state === "processing") {
+            showScanStatusNotice(cleanCode, scanStatus);
+            return;
+          }
+        }
+        
+        const liveLookup = await fetchAssetLookupWithTimeout(cleanCode, 5000);
+        if (liveLookup && liveLookup.status === "success" && liveLookup.found) {
+          const liveLastResult = liveLookup.lastResult;
+          const liveLastScan = liveLookup.lastScan;
+          if (localMatch) {
+            localMatch[8] = liveLastResult;
+            localMatch[7] = liveLastScan;
+            const currentSuccessAsset = document.getElementById("success-asset-no");
+            if (currentSuccessAsset && currentSuccessAsset.textContent === cleanCode) {
+              const resField = document.getElementById("success-last-result");
+              const scanField = document.getElementById("success-last-scan");
+              if (resField) resField.textContent = liveLastResult === "Count" ? "à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹à¸¥à¹‰à¸§" : liveLastResult;
+              if (scanField) scanField.textContent = formatDateTime(liveLastScan);
+            }
+          }
+        }
+      } catch (bgErr) {
+        console.warn("Background lookup failed", bgErr);
+      }
+    })();
+
+  } else {
+    // ðŸ” Fallback: read-only lookup since it is not found in local cache
+    showLoading("à¹„à¸¡à¹ˆà¸žà¸šà¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡ à¸à¸³à¸¥à¸±à¸‡à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸à¸±à¸šà¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¹à¸šà¸šà¹€à¸£à¸µà¸¢à¸¥à¹„à¸—à¸¡à¹Œ...");
     try {
+      const scanStatus = await fetchScanStatusWithTimeout(cleanCode, isHandheld ? 5000 : 8000);
+      if (scanStatus && scanStatus.found) {
+        const state = String(scanStatus.scanStatus || "").toLowerCase();
+        if (state === "received" || state === "processing") {
+          showScanStatusNotice(cleanCode, scanStatus);
+          return;
+        }
+      }
+
       const data = await fetchAssetLookup(cleanCode);
       if (data && data.status === "success" && data.found) {
         if (data.isUnregistered) {
@@ -711,7 +712,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
           });
         }
       } else if (data && data.status === "error") {
-        showError(data.message || "ไม่สามารถตรวจสอบกับเซิร์ฟเวอร์ได้");
+        showError(data.message || "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸à¸±à¸šà¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¹„à¸”à¹‰");
       } else {
         showNotFound(cleanCode);
       }
