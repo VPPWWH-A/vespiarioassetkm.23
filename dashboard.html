@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -11,925 +11,97 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-<style>
-:root {
-  --bg: #f8fafc; /* Slate 50 */
-  --bg-card: #ffffff;
-  --bg-card-hover: #f1f5f9; /* Slate 100 */
-  --border: #e2e8f0; /* Slate 200 */
-  --border-light: #f1f5f9; /* Slate 100 */
-  --text: #0f172a; /* Slate 900 */
-  --text-dim: #475569; /* Slate 700 */
-  --text-muted: #94a3b8; /* Slate 400 */
-  --primary: #0284c7; /* Sky 600 - clean blue */
-  --primary-light: #38bdf8; /* Sky 400 */
-  --primary-bg: rgba(2, 132, 199, 0.06);
-  --success: #059669; /* Emerald 600 */
-  --success-bg: rgba(5, 150, 105, 0.06);
-  --warning: #d97706; /* Amber 600 */
-  --warning-bg: rgba(217, 119, 6, 0.06);
-  --danger: #dc2626; /* Red 600 */
-  --danger-bg: rgba(220, 38, 38, 0.06);
-  --gold: #b45309;
-  --shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 16px -6px rgba(15, 23, 42, 0.05);
-  --radius: 16px;
-  --radius-sm: 10px;
-}
-.table-blink-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  background: #fef3c7;
-  color: #d97706;
-  border: 1px solid #fde68a;
-  animation: tableBadgeFlash 1.2s infinite alternate;
-}
-@keyframes tableBadgeFlash {
-  0% { opacity: 0.6; }
-  100% { opacity: 1; }
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body { 
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-  background: var(--bg); 
-  color: var(--text); 
-  padding-bottom: 40px; 
-  font-size: 14px; 
-  background-image: radial-gradient(circle at 50% 0%, #f1f5f9 0%, #f8fafc 100%); 
-  background-attachment: fixed; 
-}
-body.overview-fit { height: 100vh; overflow: hidden; padding-bottom: 0; }
-
-/* TOP BAR (SIDEBAR) */
-.top-bar { 
-  background: #ffffff; 
-  padding: 24px; 
-  border-right: 1px solid var(--border); 
-  display: flex; 
-  flex-direction: column; 
-  gap: 24px; 
-  position: fixed; 
-  left: 0;
-  top: 0; 
-  bottom: 0;
-  width: 292px;
-  z-index: 100; 
-  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.03); 
-  overflow-y: auto;
-}
-.top-bar-header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
-  width: 100%;
-}
-.top-bar-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
-  padding-top: 0;
-  border-top: 1px solid var(--border-light);
-  gap: 12px;
-}
-.table-tools {
-  margin-bottom: 16px;
-  padding: 16px 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #ffffff;
-  box-shadow: var(--shadow);
-}
-.table-tools .search-filter-group {
-  max-width: none;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-.table-tools .search-box {
-  flex: 1;
-  min-width: 280px;
-}
-.table-tools .search-box input { width: 100%; }
-.table-tools .date-range-group {
-  display: flex;
-  flex-direction: row !important;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: nowrap;
-}
-.table-tools .date-range-group input {
-  width: 140px;
-}
-body.in-presentation .top-bar {
-  display: none !important;
-}
-body.in-presentation .main-content {
-  margin-left: 0 !important;
-  padding: 14px;
-}
-body.in-presentation #summary-count,
-body.in-presentation #overview-panels {
-  display: grid !important;
-}
-body.in-presentation #summary-unreg,
-body.in-presentation #table-tools-container,
-body.in-presentation #filter-tab-container,
-body.in-presentation #table-master-container,
-body.in-presentation #table-unreg-container {
-  display: none !important;
-}
-
-.brand-text .name { 
-  font-family: 'Outfit', sans-serif;
-  font-size: 16px; 
-  font-weight: 800; 
-  color: var(--text); 
-  letter-spacing: 0.5px; 
-  background: linear-gradient(135deg, #0f172a 0%, #0284c7 100%); 
-  -webkit-background-clip: text; 
-  background-clip: text; 
-  -webkit-text-fill-color: transparent; 
-}
-.brand-text .sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; font-weight: 500; }
-
-.search-filter-group { 
-  display: flex; 
-  flex-direction: column;
-  align-items: stretch; 
-  gap: 10px; 
-}
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.search-icon {
-  position: absolute;
-  left: 12px;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-.search-box input { 
-  padding: 10px 14px 10px 36px; 
-  border: 1px solid var(--border); 
-  border-radius: var(--radius-sm); 
-  font-size: 13px; 
-  width: 250px; 
-  outline: none; 
-  background: #f8fafc; 
-  color: var(--text); 
-  transition: all 0.2s ease; 
-}
-.search-box input { width: 100%; }
-.search-box input:focus { 
-  border-color: var(--primary); 
-  background: #ffffff;
-  box-shadow: 0 0 0 3px var(--primary-bg); 
-}
-
-.date-range-group { 
-  display: flex; 
-  flex-direction: column;
-  align-items: stretch; 
-  gap: 8px; 
-}
-.filter-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-dim);
-}
-.date-range-group input { 
-  padding: 8px 12px; 
-  border: 1px solid var(--border); 
-  border-radius: var(--radius-sm); 
-  font-size: 12px; 
-  background: #f8fafc; 
-  color: var(--text); 
-  outline: none; 
-  transition: all 0.2s ease;
-}
-.date-range-group input:focus { 
-  border-color: var(--primary); 
-  background: #ffffff;
-  box-shadow: 0 0 0 3px var(--primary-bg); 
-}
-
-.action-btn-group { 
-  display: flex; 
-  flex-direction: column;
-  align-items: stretch; 
-  gap: 8px; 
-}
-
-/* AUTH PANEL BUTTONS */
-.auth-btn {
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border: 1px solid transparent;
-}
-.auth-btn:active {
-  transform: scale(0.97);
-}
-.auth-btn.login {
-  background: var(--primary);
-  color: #ffffff;
-}
-.auth-btn.login:hover {
-  background: var(--primary-light);
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
-}
-.auth-btn.logout {
-  background: rgba(220, 38, 38, 0.05);
-  color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.12);
-}
-.auth-btn.logout:hover {
-  background: #dc2626;
-  color: #ffffff;
-  border-color: #dc2626;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-}
-
-/* TOP CONTROL BUTTONS */
-.control-btn {
-  padding: 10px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border: 1px solid transparent;
-}
-.control-btn:active {
-  transform: scale(0.97);
-}
-.control-btn-primary {
-  background: var(--primary-bg);
-  color: var(--primary);
-  border-color: rgba(2, 132, 199, 0.12);
-}
-.control-btn-primary:hover {
-  background: var(--primary);
-  color: #ffffff;
-  border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
-}
-.control-btn-success {
-  background: var(--success-bg);
-  color: var(--success);
-  border-color: rgba(5, 150, 105, 0.15);
-}
-.control-btn-success:hover:not(:disabled) {
-  background: var(--success);
-  color: #ffffff;
-  border-color: var(--success);
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
-}
-.control-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-.main-content { padding: 24px; max-width: none; margin: 0 0 0 292px; }
-body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
-
-/* SUMMARY CARDS */
-.summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.summary-card { background: var(--bg-card); border-radius: var(--radius); padding: 16px 20px; border: 1px solid var(--border); box-shadow: var(--shadow); position: relative; overflow: hidden; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); min-height: 104px; display: flex; flex-direction: column; justify-content: center; }
-.summary-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08); }
-.summary-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--text-muted); }
-
-/* Differentiated Colors for Summary Cards */
-.summary-card.blue {
-  background: linear-gradient(135deg, #ffffff 0%, rgba(2, 132, 199, 0.02) 100%);
-  border-color: rgba(2, 132, 199, 0.12);
-}
-.summary-card.blue::before { background: #0284c7; }
-.summary-card.blue .card-title { color: #0284c7; }
-
-.summary-card.green {
-  background: linear-gradient(135deg, #ffffff 0%, rgba(5, 150, 105, 0.02) 100%);
-  border-color: rgba(5, 150, 105, 0.12);
-}
-.summary-card.green::before { background: var(--success); }
-.summary-card.green .card-title { color: var(--success); }
-
-.summary-card.red {
-  background: linear-gradient(135deg, #ffffff 0%, rgba(220, 38, 38, 0.02) 100%);
-  border-color: rgba(220, 38, 38, 0.12);
-}
-.summary-card.red::before { background: var(--danger); }
-.summary-card.red .card-title { color: var(--danger); }
-
-.summary-card.orange {
-  background: linear-gradient(135deg, #ffffff 0%, rgba(217, 119, 6, 0.02) 100%);
-  border-color: rgba(217, 119, 6, 0.12);
-}
-.summary-card.orange::before { background: var(--warning); }
-.summary-card.orange .card-title { color: var(--warning); }
-
-.card-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.card-title { font-size: 11px; color: var(--text-dim); font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; }
-.card-number { font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; margin: 2px 0; line-height: 1; color: var(--text); }
-.card-footer { font-size: 11px; color: var(--text-muted); font-weight: 600; }
-
-.profile-switch,
-.view-switch {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #f8fafc;
-}
-.profile-btn,
-.view-btn {
-  border: 0;
-  border-radius: 8px;
-  padding: 10px 16px;
-  background: transparent;
-  color: var(--text-dim);
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
-  transition: all 0.2s ease;
-}
-.profile-btn:hover,
-.view-btn:hover {
-  background: rgba(0, 0, 0, 0.03);
-  color: var(--text);
-}
-.profile-btn.active,
-.view-btn.active {
-  background: var(--primary);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
-}
-.sidebar-section { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border-light); }
-.sidebar-section.auth-bottom { margin-top: auto; }
-.sidebar-label { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
-.overview-grid {
-  display: grid;
-  grid-template-columns: minmax(420px, 1.35fr) minmax(320px, 0.85fr);
-  gap: 12px;
-  margin-bottom: 0;
-  min-height: 0;
-  flex: 1;
-}
-.overview-panel {
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 18px 20px;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.overview-panel h3 {
-  margin: 0 0 14px;
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: 0.3px;
-}
-.breakdown-list {
-  display: grid;
-  gap: 12px;
-}
-.breakdown-row {
-  display: grid;
-  grid-template-columns: minmax(80px, 1fr) minmax(90px, auto);
-  gap: 8px 12px;
-  align-items: center;
-}
-.breakdown-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.breakdown-value {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--text);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.breakdown-bar {
-  grid-column: 1 / -1;
-  height: 8px;
-  border-radius: 999px;
-  background: #f1f5f9;
-  overflow: hidden;
-}
-.breakdown-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #0284c7, #059669);
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.warehouse-stack { display: grid; gap: 8px; max-height: none; overflow-y: auto; padding-right: 4px; min-height: 0; flex: 1; }
-.warehouse-card {
-  cursor: pointer;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  background: #f8fafc;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.warehouse-card:hover { background: #ffffff; border-color: var(--primary-light); box-shadow: 0 8px 20px rgba(15,23,42,0.06); transform: translateY(-1px); }
-.warehouse-head {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 6px;
-}
-.warehouse-name { font-size: 13px; font-weight: 800; color: var(--text); }
-.warehouse-stat { font-size: 11px; font-weight: 750; color: var(--text-dim); font-variant-numeric: tabular-nums; text-align: right; }
-.warehouse-pending { grid-column: 1 / -1; font-size: 11px; font-weight: 700; color: var(--danger); font-variant-numeric: tabular-nums; margin-top: 2px; }
-.warehouse-energy {
-  height: 6px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: #e2e8f0;
-  margin-bottom: 4px;
-}
-.warehouse-energy-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #0284c7 0%, #059669 100%);
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.warehouse-hint { margin-top: 4px; color: var(--text-muted); font-size: 10px; font-weight: 700; }
-.zone-list { display: grid; gap: 8px; }
-.zone-row {
-  display: grid;
-  grid-template-columns: minmax(110px, 0.9fr) minmax(120px, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid var(--border-light);
-}
-.zone-name { font-size: 12px; font-weight: 700; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.zone-counted { color: var(--text-dim); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
-.zone-pending { color: var(--danger); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.zone-energy {
-  height: 8px;
-  border-radius: 999px;
-  background: #e2e8f0;
-  overflow: hidden;
-}
-.zone-energy-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #38bdf8 0%, #059669 100%);
-  transition: width 0.6s ease;
-}
-.type-progress-list { display: grid; gap: 8px; max-height: none; overflow-y: auto; padding-right: 4px; min-height: 0; flex: 1; }
-.type-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px 12px;
-  align-items: center;
-  padding: 10px 14px;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  background: #f8fafc;
-  transition: all 0.2s ease;
-}
-.type-row:hover {
-  background: #ffffff;
-  border-color: var(--primary-light);
-  box-shadow: 0 4px 12px rgba(15,23,42,0.04);
-}
-.type-meta { min-width: 0; }
-.type-title { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; min-width: 0; }
-.type-code {
-  flex: 0 0 auto;
-  min-width: 54px;
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  text-align: center;
-}
-.type-name { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.type-count {
-  min-width: 100px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  font-size: 13px;
-  font-weight: 800;
-  color: #0f172a;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.type-energy {
-  grid-column: 1 / -1;
-  height: 16px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: #e2e8f0;
-  position: relative;
-}
-.type-energy-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #0284c7 0%, #059669 100%);
-  transition: width 0.8s ease;
-}
-.type-energy-label {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-  font-weight: 800;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(15,23,42,0.45);
-  font-variant-numeric: tabular-nums;
-}
-@media (min-width: 1200px) {
-  .projector-mode .card-number { font-size: 38px; }
-  .projector-mode .summary-card { min-height: 112px; }
-  .projector-mode .overview-panel h3 { font-size: 16px; }
-}
-@media (max-height: 820px) and (min-width: 901px) {
-  .main-content { padding: 12px 16px; }
-  .summary-row { gap: 10px; margin-bottom: 0; }
-  .summary-card { min-height: 84px; padding: 10px 14px; }
-  .projector-mode .summary-card { min-height: 84px; }
-  .card-number,
-  .projector-mode .card-number { font-size: 28px; }
-  .overview-grid { gap: 10px; margin-bottom: 0; }
-  .overview-panel { padding: 12px 14px; }
-  .overview-panel h3 { font-size: 13px; margin-bottom: 6px; }
-  .warehouse-card { padding: 8px 10px; }
-  .warehouse-head { margin-bottom: 2px; }
-  .warehouse-name { font-size: 12px; }
-  .warehouse-pending { font-size: 11px; }
-  .warehouse-hint { display: none; }
-  .type-row { padding: 8px 10px; }
-  .type-count { padding: 4px 8px; font-size: 12px; }
-  .type-name { font-size: 12px; }
-  .type-code { font-size: 10px; padding: 3px 6px; }
-  .progress-duo { gap: 16px; }
-  .progress-duration-pill { margin-top: 4px; }
-}
-@media (max-width: 1320px) {
-  .overview-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 900px) {
-  .top-bar {
-    position: static;
-    width: auto;
-    min-height: 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow);
-  }
-  .main-content { margin-left: 0; padding: 16px; }
-  .type-row { grid-template-columns: 1fr; }
-  .type-count { width: 100%; }
-  .summary-row,
-  .overview-grid { grid-template-columns: 1fr; }
-  .table-tools .search-filter-group { grid-template-columns: 1fr; }
-}
-
-/* Circular Progress Chart inside card */
-.progress-ring-container { width: 62px; height: 62px; display: flex; align-items: center; justify-content: center; }
-.progress-ring { transform: rotate(-90deg); }
-.progress-ring__circle { transition: stroke-dashoffset 0.5s ease-in-out; transform-origin: 50% 50%; }
-.progress-card { align-items: stretch; }
-.progress-duo { display: flex; align-items: flex-start; justify-content: center; gap: 28px; margin-top: 4px; width: 100%; }
-.progress-metric { display: grid; justify-items: center; gap: 6px; min-width: 84px; }
-.progress-metric-label { font-size: 11px; color: var(--text-dim); font-weight: 700; }
-.progress-metric-value { font-family: 'Outfit', sans-serif; font-size: 18px; color: var(--text); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
-.progress-ring-wrap { position: relative; width: 62px; height: 62px; display: grid; place-items: center; }
-.progress-ring-wrap .progress-metric-value { position: absolute; font-size: 13px; }
-.progress-duration-pill { display: inline-flex; align-items: center; justify-content: center; width: fit-content; margin: 8px auto 0; padding: 6px 12px; border-radius: 999px; background: rgba(217,119,6,0.06); color: #b45309; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
-
-/* NAVIGATION PILLARS */
-.pillar-nav { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 0; }
-.pillar-btn { background: #f8fafc; border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 13px; transition: all 0.2s ease; color: var(--text-dim); display: flex; align-items: center; justify-content: flex-start; gap: 8px; text-align: left; }
-.pillar-btn:hover { background: var(--bg-card-hover); border-color: rgba(2, 132, 199, 0.15); color: var(--text); }
-.pillar-btn.active { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important; color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15) !important; }
-
-/* TAB FILTERS */
-.filter-card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  padding: 16px 20px;
-  box-shadow: var(--shadow);
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.filter-row-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-dim);
-  min-width: 120px;
-  white-space: nowrap;
-}
-.tab-bar {
-  display: flex;
-  gap: 6px;
-  background: #f1f5f9;
-  padding: 5px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  flex-grow: 1;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.tab-bar::-webkit-scrollbar { display: none; }
-.tab-btn { padding: 8px 16px; border: none; border-radius: 6px; background: none; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: 0.2s; color: var(--text-dim); }
-.tab-btn.active { background: #ffffff; color: var(--primary); font-weight: 800; box-shadow: 0 2px 6px rgba(15,23,42,0.05); }
-.tab-btn:hover:not(.active) { background: rgba(0,0,0,0.02); color: var(--text); }
-
-/* DATA TABLES */
-.table-container { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); overflow-x: auto; box-shadow: var(--shadow); }
-.table-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); display: block; margin: 0 auto; }
-.table-header, .table-row { display: grid; grid-template-columns: 40px 130px 110px 60px 1fr 100px 90px 130px 90px 150px; gap: 12px; padding: 14px 20px; align-items: center; min-width: 1190px; }
-.table-header.unreg, .table-row.unreg { display: grid; grid-template-columns: 40px 140px 110px 90px 70px 1fr 100px 150px 90px 160px; min-width: 1230px; }
-
-.table-header { background: rgba(0,0,0,0.01); font-weight: 800; color: var(--text-dim); border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; }
-.table-row { border-bottom: 1px solid var(--border-light); font-size: 13px; transition: 0.15s; }
-.table-row:hover { background: var(--bg-card-hover); }
-
-/* Table elements */
-.cat-tag { padding: 4px 8px; border-radius: 6px; background: rgba(0,0,0,0.03); color: var(--text-dim); font-size: 10px; font-weight: 800; border: 1px solid rgba(0,0,0,0.03); display: inline-block; text-align: center; }
-.cat-tag.off { color: #dc2626; background: rgba(220,38,38,0.05); border-color: rgba(220,38,38,0.12); }
-.cat-tag.com { color: #2563eb; background: rgba(37,99,235,0.05); border-color: rgba(37,99,235,0.12); }
-.cat-tag.tol { color: #d97706; background: rgba(217,119,6,0.05); border-color: rgba(217,119,6,0.12); }
-.cat-tag.vpot { color: #7c3aed; background: rgba(124,58,237,0.05); border-color: rgba(124,58,237,0.12); }
-.cat-tag.veh { color: #059669; background: rgba(5,150,105,0.05); border-color: rgba(5,150,105,0.12); }
-
-.row-thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: rgba(0,0,0,0.03); border: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
-.row-thumb:hover { transform: scale(1.15); border-color: var(--primary); }
-.row-thumb-placeholder { width: 44px; height: 44px; border-radius: 6px; background: rgba(0,0,0,0.01); border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-muted); }
-
-.row-btn {
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  cursor: pointer;
-  font-weight: 700;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border: 1px solid transparent;
-}
-.row-btn:active {
-  transform: scale(0.95);
-}
-.row-btn.pdf { /* Print Label */
-  background: rgba(220, 38, 38, 0.05);
-  color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.12);
-}
-.row-btn.pdf:hover {
-  background: #dc2626;
-  color: #ffffff;
-  border-color: #dc2626;
-}
-.row-btn.detail {
-  background: rgba(2, 132, 199, 0.05);
-  color: #0284c7;
-  border-color: rgba(2, 132, 199, 0.12);
-}
-.row-btn.detail:hover {
-  background: var(--primary);
-  color: #ffffff;
-  border-color: var(--primary);
-}
-.row-btn.approve-action {
-  background: rgba(5, 150, 105, 0.05);
-  color: #059669;
-  border-color: rgba(5, 150, 105, 0.12);
-}
-.row-btn.approve-action:hover:not(.locked-action) {
-  background: var(--success);
-  color: #ffffff;
-  border-color: var(--success);
-}
-.locked-action {
-  background: rgba(148, 163, 184, 0.08) !important;
-  color: var(--text-muted) !important;
-  border-color: rgba(148, 163, 184, 0.12) !important;
-  cursor: not-allowed !important;
-}
-
-/* MODALS */
-.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; animation: fadeIn 0.2s ease; }
-.modal-box { background: #ffffff; border-radius: 16px; width: 100%; max-width: 520px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15); border: 1px solid var(--border); animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1); color: var(--text); }
-.modal-header { padding: 18px 24px; background: #ffffff; color: var(--text); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-.modal-body { padding: 24px; max-height: 65vh; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: #f8fafc; }
-.auth-panel { display:flex; flex-direction:column; align-items:stretch; gap:8px; padding:12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:#f8fafc; font-size:12px; }
-.auth-panel strong { color:var(--primary); }
-.auth-input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); margin-top:6px; background:#ffffff; color:var(--text); outline:none; transition: all 0.2s ease; }
-.auth-input:focus { border-color:var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
-
-/* MODAL DETAILS GRID */
-.modal-title-row { display: flex; align-items: center; gap: 10px; }
-.modal-icon { font-size: 24px; }
-.modal-title { font-size: 11px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0px; }
-.modal-subtitle { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: 0.5px; margin-top: 2px; }
-.modal-close { background: rgba(0, 0, 0, 0.04); border: none; color: var(--text-dim); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-.modal-close:hover { background: rgba(0, 0, 0, 0.08); color: var(--text); }
-
-.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.modal-field { background: #f8fafc; border-radius: var(--radius-sm); padding: 10px 12px; border: 1px solid var(--border); text-align: left; }
-.modal-field-full { grid-column: 1 / -1; }
-.modal-label { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-.modal-value { font-size: 13px; font-weight: 700; color: var(--text); word-break: break-word; }
-
-/* MODAL ACTION BUTTONS */
-.btn { padding: 10px 16px; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 90px; text-decoration: none; border: 1px solid transparent; }
-.btn:active { transform: scale(0.97); }
-.btn-primary { background: var(--primary); color: #ffffff; }
-.btn-primary:hover:not(:disabled) { background: var(--primary-light); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15); }
-.btn-secondary { background: #ffffff; color: var(--text-dim); border: 1px solid var(--border); }
-.btn-secondary:hover:not(:disabled) { background: var(--bg-card-hover); color: var(--text); }
-.btn-gold { background: var(--gold); color: white; }
-.btn-danger { background: rgba(220, 38, 38, 0.05); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.12); }
-.btn-danger:hover:not(:disabled) { background: #dc2626; color: #fff; }
-.btn-success { background: var(--primary); color: #ffffff; }
-.btn-success:hover:not(:disabled) { background: var(--primary-light); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15); }
-.btn-full { grid-column: 1 / -1; width: 100%; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Spinner style for button loading */
-.spinner-sm {
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-top-color: currentColor;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-  display: inline-block;
-}
-
-/* FORM FIELDS */
-.form-field { margin-bottom: 14px; text-align: left; }
-.form-field label { display: block; font-size: 11px; font-weight: 700; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-.form-field input[type="text"], .form-field select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; font-size: 13px; background: #ffffff; color: var(--text); transition: 0.2s; }
-.form-field input[type="text"]:focus, .form-field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.req { color: #dc2626; }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-.hidden { display: none !important; }
-.spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
+  <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
 
 <div class="top-bar">
   <div class="top-bar-header">
     <div class="brand-text">
-      <div class="name">VPPW (THAILAND) CO., LTD.</div>
-      <div class="sub">Asset Management Dashboard — สำนักงาน KM.23</div>
+      <div class="brand-company">VPPW<br>(THAILAND)<br>CO., LTD.</div>
+      <div class="brand-country">THAILAND</div>
+      <div class="brand-service">ASSET<br>MANAGEMENT<br>DASHBOARD</div>
+      <div class="brand-location">Head Office KM.23</div>
     </div>
   </div>
-  
   <div class="sidebar-section">
-    <div class="sidebar-label">มุมมอง</div>
-    <div class="view-switch" aria-label="เลือกมุมมอง">
+    <div class="sidebar-label">View</div>
+    <div class="view-switch" aria-label="Choose view">
       <button class="view-btn active" id="view-overview" onclick="setDashboardView('overview')">Overview</button>
       <button class="view-btn" id="view-table" onclick="setDashboardView('table')">Table</button>
     </div>
   </div>
-
   <div class="sidebar-section">
-    <div class="sidebar-label">ข้อมูลที่แสดง</div>
+    <div class="sidebar-label">Data Scope</div>
     <div class="pillar-nav">
-      <button class="pillar-btn active" id="pillar-count" onclick="setPillar('count')"><span class="icon" style="display:inline-flex; align-items:center; justify-content:center; margin-right:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>ทรัพย์สินในระบบ (MASTER)</button>
-      <button class="pillar-btn" id="pillar-unreg" onclick="setPillar('unreg')"><span class="icon" style="display:inline-flex; align-items:center; justify-content:center; margin-right:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>สินค้านอกระบบ (NEW ITEMS)</button>
+      <button class="pillar-btn active" id="pillar-count" onclick="setPillar('count')">Master Assets</button>
+      <button class="pillar-btn" id="pillar-unreg" onclick="setPillar('unreg')">New Items</button>
     </div>
   </div>
-
   <div class="sidebar-section">
-    <div class="sidebar-label">รอบตรวจนับ</div>
-    <div class="profile-switch" aria-label="เลือกโปรไฟล์การนับ">
+    <div class="sidebar-label">Count Profile</div>
+    <div class="profile-switch" aria-label="Choose count profile">
       <button class="profile-btn active" id="count-profile-1" onclick="setCountProfile(1)">Count 1</button>
       <button class="profile-btn" id="count-profile-2" onclick="setCountProfile(2)">Count 2</button>
     </div>
   </div>
-
   <div class="top-bar-controls">
     <div class="action-btn-group">
-      <button class="control-btn control-btn-primary" onclick="loadDashboard()" id="refresh-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-        Auto refresh 2 นาที
-      </button>
-      <button class="control-btn control-btn-success" onclick="exportExcel()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-        ส่งออก Excel
-      </button>
-      <button class="control-btn control-btn-success" onclick="openCountSheetModal()" style="background: rgba(16, 185, 129, 0.08); color: #10b981; border-color: rgba(16, 185, 129, 0.2);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-        ส่งออก Count Sheet (พิมพ์)
-      </button>
-      <button class="control-btn control-btn-primary" onclick="enterPresentation()" id="present-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><rect x="2" y="3" width="20" height="14" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path></svg>
-        นำเสนอเต็มจอ
-      </button>
+      <button class="control-btn control-btn-primary" onclick="loadDashboard()" id="refresh-btn">Auto refresh 2 min</button>
+      <button class="control-btn control-btn-success" onclick="exportExcel()">Export Excel</button>
+      <button class="control-btn control-btn-success" onclick="openCountSheetModal()">Export Count Sheet</button>
+      <button class="control-btn control-btn-primary" onclick="enterPresentation()" id="present-btn">Presentation</button>
     </div>
   </div>
-
   <div class="sidebar-section auth-bottom">
-    <div class="sidebar-label">ระบบล็อกอิน</div>
+    <div class="sidebar-label">Login</div>
     <div class="auth-panel" id="auth-panel">
-      <span id="auth-status" style="color:var(--text-dim); font-weight:600;">ยังไม่ได้เข้าสู่ระบบ</span>
-      <button class="auth-btn login" id="auth-login-btn" onclick="openApproveLogin()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-        เข้าสู่ระบบอนุมัติ
-      </button>
-      <button class="auth-btn logout hidden" id="auth-logout-btn" onclick="logoutApprove()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-        ออกจากระบบ
-      </button>
+      <span id="auth-status" style="color:var(--text-dim); font-weight:600;">Not signed in</span>
+      <button class="auth-btn login" id="auth-login-btn" onclick="openApproveLogin()">Approval login</button>
+      <button class="auth-btn logout hidden" id="auth-logout-btn" onclick="logoutApprove()">Logout</button>
     </div>
   </div>
 </div>
-
 <div class="main-content">
-  <!-- SUMMARY CARDS FOR MASTER -->
+  <header class="dashboard-command-header">
+    <div>
+      <div class="dashboard-command-title">Asset Control Center</div>
+      <div class="dashboard-command-subtitle">VPPW Thailand - KM.23 inventory governance and count operations</div>
+    </div>
+    <div class="dashboard-command-meta">
+      <div class="meta-chip">
+        <span class="meta-dot"></span>
+        <span id="last-sync-text">Waiting for sync</span>
+      </div>
+      <button class="icon-action-btn" type="button" onclick="loadDashboard()" aria-label="Refresh data">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+      </button>
+      <button class="header-action-btn" type="button" onclick="exportExcel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Export
+      </button>
+    </div>
+  </header>
+
+      <!-- SUMMARY CARDS FOR MASTER -->
   <div id="summary-count" class="summary-row projector-mode">
     <div class="summary-card blue">
-      <div class="card-header-row"><div class="card-title">ทรัพย์สินทั้งหมด</div></div>
+      <div class="card-header-row"><div class="card-title">Total Assets</div></div>
       <div class="card-number" id="dash-total">-</div>
-      <div class="card-footer">รายการในฐานข้อมูลหลัก</div>
+      <div class="card-footer">All master records</div>
     </div>
     <div class="summary-card green">
-      <div class="card-header-row"><div class="card-title">ตรวจสอบแล้ว</div></div>
+      <div class="card-header-row"><div class="card-title">Counted</div></div>
       <div class="card-number" id="dash-checked">-</div>
-      <div class="card-footer" id="dash-month-label">รายการที่ตรวจสอบแล้ว</div>
+      <div class="card-footer" id="dash-month-label">Items already counted</div>
     </div>
     <div class="summary-card orange">
-      <div class="card-header-row"><div class="card-title">เหลือ</div></div>
+      <div class="card-header-row"><div class="card-title">Remaining</div></div>
       <div class="card-number" id="dash-pending-complete">-</div>
-      <div class="card-footer">รายการที่ยังไม่ได้ตรวจสอบ</div>
+      <div class="card-footer">Items not counted yet</div>
     </div>
-    
-    <!-- Progress circular ring layout -->
     <div class="summary-card orange progress-card">
-      <div class="card-header-row"><div class="card-title">ความคืบหน้า</div></div>
+      <div class="card-header-row"><div class="card-title">Progress</div></div>
       <div class="progress-duo">
         <div class="progress-metric">
           <div class="progress-ring-wrap">
@@ -939,7 +111,7 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
             </svg>
             <div class="progress-metric-value" id="dash-pct-complete">0%</div>
           </div>
-          <div class="progress-metric-label">ตรวจสอบแล้ว</div>
+          <div class="progress-metric-label">Counted</div>
         </div>
         <div class="progress-metric">
           <div class="progress-ring-wrap">
@@ -949,88 +121,78 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
             </svg>
             <div class="progress-metric-value" id="dash-pct-pending-complete">100%</div>
           </div>
-          <div class="progress-metric-label">เหลือ</div>
+          <div class="progress-metric-label">Remaining</div>
         </div>
       </div>
-      <div class="progress-duration-pill">รวมเวลาบันทึก <span id="dash-total-duration" style="margin-left:6px;">00:00:00</span></div>
+      <div class="progress-duration-pill">Recorded time <span id="dash-total-duration" style="margin-left:6px;">00:00:00</span></div>
     </div>
   </div>
-
   <div id="overview-panels" class="overview-grid projector-mode">
     <div class="overview-panel">
-      <h3>คลังและโซน: ตรวจนับได้ / เหลือ</h3>
+      <h3>Warehouse and Zone: Counted / Remaining</h3>
       <div id="warehouse-zone-overview" class="warehouse-stack"></div>
     </div>
     <div class="overview-panel">
-      <h3>Type: นับได้ / ทั้งหมด</h3>
+      <h3>Type: Counted / Total</h3>
       <div id="type-overview" class="type-progress-list"></div>
     </div>
   </div>
-
-  <!-- SUMMARY CARDS FOR UNREG -->
+    <!-- SUMMARY CARDS FOR UNREG -->
   <div id="summary-unreg" class="summary-row hidden">
     <div class="summary-card red">
-      <div class="card-header-row"><div class="card-title" style="color:var(--danger);">สินค้านอกระบบรออนุมัติ</div></div>
+      <div class="card-header-row"><div class="card-title" style="color:var(--danger);">Unregistered items pending approval</div></div>
       <div class="card-number" id="dash-pillar-unreg">-</div>
-      <div class="card-footer">รายการรอยืนยันเข้าระบบหลัก</div>
+      <div class="card-footer">Items waiting to enter master records</div>
     </div>
     <div class="summary-card orange">
-      <div class="card-header-row"><div class="card-title" style="color:var(--warning);">เวลาบันทึกสินค้านอกระบบ</div></div>
+      <div class="card-header-row"><div class="card-title" style="color:var(--warning);">Unregistered record time</div></div>
       <div class="card-number" id="dash-unreg-duration">00:00:00</div>
-      <div class="card-footer">รวมเวลาบันทึกสินค้านอกระบบ</div>
+      <div class="card-footer">Total unregistered record time</div>
     </div>
   </div>
-
-  <!-- OVERVIEW PANELS FOR UNREG -->
   <div id="overview-panels-unreg" class="overview-grid projector-mode hidden">
     <div class="overview-panel">
-      <h3>คลังและโซนนอกระบบ: รอนุมัติ</h3>
+      <h3>Unregistered Warehouse and Zone: Pending Approval</h3>
       <div id="unreg-warehouse-zone-overview" class="warehouse-stack"></div>
     </div>
     <div class="overview-panel">
-      <h3>Type นอกระบบ: รอนุมัติ</h3>
+      <h3>Unregistered Type: Pending Approval</h3>
       <div id="unreg-type-overview" class="type-progress-list"></div>
     </div>
   </div>
-
   <div id="table-tools-container" class="table-tools hidden">
     <div class="search-filter-group" style="align-items: center; flex-direction: row; flex-wrap: wrap;">
-      <div class="search-box" style="flex: 1; min-width: 250px;">
+      <div class="search-box" style="flex: 1; min-width: 250px; position: relative;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="search-input" placeholder="ค้นหา รหัส / ชื่อทรัพย์สิน / พื้นที่..." oninput="filterTable()">
+        <input type="text" id="search-input" placeholder="Search code / asset name / location..." oninput="onSearchInput(this)" style="padding-right: 36px; width: 100%;">
+        <button id="clear-search-btn" class="hidden" onclick="clearSearch()" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 50%; width: 22px; height: 22px; transition: all 0.2s;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <div class="date-range-group" style="flex-direction: row; align-items: center;">
-        <span class="filter-label">วันที่ตรวจนับ:</span>
+        <span class="filter-label">Check date:</span>
         <input type="date" id="date-from" onchange="filterTable()">
-        <span style="color:var(--text-muted)">→</span>
+        <span style="color:var(--text-muted)">to</span>
         <input type="date" id="date-to" onchange="filterTable()">
       </div>
       <div style="display: flex; align-items: center; gap: 12px; margin-left: auto;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <input type="checkbox" id="filter-damaged" onchange="filterTable()" class="table-checkbox" style="margin:0;">
-          <label for="filter-damaged" style="font-size: 13px; font-weight: 700; color: var(--danger); cursor: pointer; user-select: none;">
-            ⚠️ แสดงเฉพาะบาร์โค้ดเสียหาย / UNKNOWN
-          </label>
+          <label for="filter-damaged" style="font-size:12px; font-weight:700; color:var(--text-dim); cursor:pointer; user-select: none;">Show damaged barcode / UNKNOWN</label>
         </div>
-        <button class="control-btn" style="background: rgba(220, 38, 38, 0.05); color: #dc2626; border-color: rgba(220, 38, 38, 0.12);" onclick="selectAllDamaged()">
-          ☑️ เลือกที่เสียหายทั้งหมด
-        </button>
+        <button class="control-btn" style="background: rgba(220, 38, 38, 0.05); color: #dc2626; border-color: rgba(220, 38, 38, 0.12);" onclick="selectAllDamaged()">Select all damaged</button>
       </div>
     </div>
     
     <!-- BULK ACTIONS BAR -->
     <div id="bulk-actions-bar" class="hidden" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
-      <div style="font-size: 13px; font-weight: 700; color: var(--text-dim);">
-        เลือกอยู่ <span id="selected-count" style="color: var(--primary); font-size: 15px; font-weight: 800;">0</span> รายการ
-      </div>
+      <div style="font-size: 13px; font-weight: 700; color: var(--text-dim);">Selected <span id="selected-count" style="color: var(--primary); font-size: 15px; font-weight: 800;">0</span> items</div>
       <div style="display: flex; gap: 10px;">
         <button class="control-btn control-btn-primary" onclick="bulkPrintLabels()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-          พิมพ์บาร์โค้ดที่เลือก (System Print)
+          Print selected barcodes
         </button>
-        <button class="control-btn" style="background: #e2e8f0; color: var(--text-dim);" onclick="clearAllSelections()">
-          ล้างการเลือก
-        </button>
+        <button class="control-btn" style="background: #e2e8f0; color: var(--text-dim);" onclick="clearAllSelections()">Clear selection</button>
       </div>
     </div>
   </div>
@@ -1038,25 +200,31 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
   <!-- TABS FILTERS -->
   <div id="filter-tab-container" class="filter-card hidden">
     <div class="filter-row">
-      <span class="filter-row-label">หมวดหมู่ทรัพย์สิน:</span>
+      <span class="filter-row-label">Asset category:</span>
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="setTab('all', this)">รายการทั้งหมด</button>
-        <button class="tab-btn" onclick="setTab('off', this)">สำนักงาน (OFF)</button>
-        <button class="tab-btn" onclick="setTab('com', this)">คอมพิวเตอร์ (COM)</button>
-        <button class="tab-btn" onclick="setTab('tol', this)">เครื่องมือ (TOL)</button>
-        <button class="tab-btn" onclick="setTab('vpot', this)">อุปกรณ์ VPOT</button>
-        <button class="tab-btn" onclick="setTab('veh', this)">ยานพาหนะ (VEH)</button>
+        <button class="tab-btn active" id="tab-btn-cat-all" onclick="setTab('all', this)">All items</button>
+        <button class="tab-btn" id="tab-btn-cat-off" onclick="setTab('off', this)">Office (OFF)</button>
+        <button class="tab-btn" id="tab-btn-cat-com" onclick="setTab('com', this)">Computer (COM)</button>
+        <button class="tab-btn" id="tab-btn-cat-tol" onclick="setTab('tol', this)">Tools (TOL)</button>
+        <button class="tab-btn" id="tab-btn-cat-vpot" onclick="setTab('vpot', this)">VPOT</button>
+        <button class="tab-btn" id="tab-btn-cat-veh" onclick="setTab('veh', this)">Vehicle (VEH)</button>
       </div>
     </div>
     <div class="filter-row">
-      <span class="filter-row-label">คลังสินค้า / โซน:</span>
+      <span class="filter-row-label">Warehouse / Zone:</span>
       <div class="tab-bar">
-        <button class="tab-btn wh-btn active" onclick="setWarehouse('all', this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; display:inline-block; vertical-align:middle;"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="16"></line><line x1="15" y1="22" x2="15" y2="16"></line><line x1="9" y1="16" x2="15" y2="16"></line><path d="M9 6h6"></path><path d="M9 10h6"></path></svg> คลังทั้งหมด</button>
-        <button class="tab-btn wh-btn" onclick="setWarehouse('WH-A', this)">WH-A</button>
-        <button class="tab-btn wh-btn" onclick="setWarehouse('WH-B', this)">WH-B</button>
-        <button class="tab-btn wh-btn" onclick="setWarehouse('WHD', this)">WHD</button>
-        <button class="tab-btn wh-btn" onclick="setWarehouse('OFFICE', this)">OFFICE</button>
-        <button class="tab-btn wh-btn" onclick="setWarehouse('HR', this)">HR</button>
+        <button class="tab-btn wh-btn active" id="tab-btn-wh-all" onclick="setWarehouse('all', this)">All warehouses</button>
+        <button class="tab-btn wh-btn" id="tab-btn-wh-wha" onclick="setWarehouse('WH-A', this)">WH-A</button>
+        <button class="tab-btn wh-btn" id="tab-btn-wh-whb" onclick="setWarehouse('WH-B', this)">WH-B</button>
+        <button class="tab-btn wh-btn" id="tab-btn-wh-whd" onclick="setWarehouse('WHD', this)">WHD</button>
+        <button class="tab-btn wh-btn" id="tab-btn-wh-office" onclick="setWarehouse('OFFICE', this)">OFFICE</button>
+        <button class="tab-btn wh-btn" id="tab-btn-wh-hr" onclick="setWarehouse('HR', this)">HR</button>
+      </div>
+    </div>
+    <div class="filter-row hidden" id="sub-filter-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); flex-direction: column; align-items: flex-start; gap: 8px;">
+      <span class="filter-row-label" style="margin-bottom: 4px;">Department / Area:</span>
+      <div class="tab-bar" id="sub-filter-container" style="flex-wrap: wrap; gap: 6px;">
+        <!-- Dynamic sub filters populated via JS -->
       </div>
     </div>
   </div>
@@ -1064,10 +232,10 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
   <!-- DATA TABLE MASTER -->
   <div class="table-container hidden" id="table-master-container">
     <div class="table-header">
-      <div><input type="checkbox" id="select-all-master" class="table-checkbox" onchange="toggleSelectAllMaster(this)"></div><div>วันที่เช็ค</div><div>รหัสทรัพย์สิน</div><div>รูปภาพ</div><div>ชื่อทรัพย์สิน / พื้นที่</div><div>วันที่ได้มา</div><div>สถานะ</div><div>ผลเช็ค</div><div>ใช้เวลา</div><div>ดำเนินการ</div>
+      <div><input type="checkbox" id="select-all-master" class="table-checkbox" onchange="toggleSelectAllMaster(this)"></div><div>Check date</div><div>Asset code</div><div>Image</div><div>Asset / Location</div><div>Acquire date</div><div>Status</div><div>Result</div><div>Duration</div><div>Action</div>
     </div>
     <div id="table-body">
-      <div style="padding:40px; text-align:center;"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:10px;">กำลังโหลดข้อมูล...</p></div>
+      <div style="padding:40px; text-align:center;"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:10px;">Loading data...</p></div>
     </div>
     <div id="master-pagination" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); background: #f8fafc; font-size: 13px; font-weight: 700; color: var(--text-dim);"></div>
   </div>
@@ -1075,14 +243,14 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
   <!-- DATA TABLE UNREG -->
   <div class="table-container hidden" id="table-unreg-container">
     <div style="padding:15px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border-bottom:1px solid var(--border);">
-      <b style="font-size:15px; color:var(--text);">⚠️ รายการสินค้านอกระบบที่รอยืนยัน (Unregistered)</b>
+      <b style="font-size:15px; color:var(--text);">Unregistered items pending approval</b>
       <button class="control-btn control-btn-success approve-action" onclick="confirmAllUnreg(this)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        อนุมัติทั้งหมด (Approve ALL)
+        Approve all
       </button>
     </div>
     <div class="table-header unreg">
-      <div><input type="checkbox" id="select-all-unreg" class="table-checkbox" onchange="toggleSelectAllUnreg(this)"></div><div>วันที่เพิ่ม</div><div>Temp ID</div><div>หมวดหมู่</div><div>รูปภาพ</div><div>ชื่อทรัพย์สิน / พื้นที่</div><div>คลัง</div><div>หมายเหตุ</div><div>ใช้เวลา</div><div>ดำเนินการ</div>
+      <div><input type="checkbox" id="select-all-unreg" class="table-checkbox" onchange="toggleSelectAllUnreg(this)"></div><div>Date added</div><div>Temp ID</div><div>Category</div><div>Image</div><div>Asset / Location</div><div>Warehouse</div><div>Remark</div><div>Duration</div><div>Action</div>
     </div>
     <div id="table-unreg-body"></div>
     <div id="unreg-pagination" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); background: #f8fafc; font-size: 13px; font-weight: 700; color: var(--text-dim);"></div>
@@ -1092,7 +260,7 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
 <!-- APPROVE LOGIN MODAL -->
 <div id="modal-approve-login" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:360px;">
-    <div class="modal-header"><span>เข้าสู่ระบบอนุมัติ</span><button class="modal-close" onclick="closeApproveLogin()">✕</button></div>
+    <div class="modal-header"><span>Approval sign in</span><button class="modal-close" onclick="closeApproveLogin()">✕</button></div>
     <div class="modal-body">
       <label style="font-size:12px;font-weight:700;color:var(--text-dim);">Username</label>
       <input id="approve-user" class="auth-input" autocomplete="username">
@@ -1116,15 +284,15 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
 <!-- LABEL MODAL -->
 <div id="modal-label-preview" class="modal-overlay hidden">
   <div class="modal-box">
-    <div class="modal-header"><span>พิมพ์ Label ทรัพย์สิน</span><button class="modal-close" onclick="closeLabelModal()">✕</button></div>
+    <div class="modal-header"><span>Print asset label</span><button class="modal-close" onclick="closeLabelModal()">✕</button></div>
     <div class="modal-body" style="text-align:center;">
       <canvas id="label-canvas" width="600" height="420" style="width:100%; border:1px solid #ddd; border-radius:8px;"></canvas>
-      <p style="margin-top:10px; font-size:12px; color:var(--text-dim);">* ไฟล์จะถูกบันทึกเป็นรูปภาพ .PNG สำหรับสั่งพิมพ์</p>
+      <p style="margin-top:10px; font-size:12px; color:var(--text-dim);">PNG file is prepared for barcode label printing.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" style="flex:1;" onclick="downloadLabelPng()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        ดาวน์โหลดรูปภาพ PNG
+        Download PNG
       </button>
       <button class="btn btn-secondary" onclick="closeLabelModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1159,7 +327,7 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
       <button class="modal-close" onclick="closeTypeOverviewModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="font-size:13px;font-weight:900;color:var(--text);margin-bottom:10px;">รายการที่ยังขาด แยกตามคลัง / โซน</div>
+      <div style="font-size:13px;font-weight:900;color:var(--text);margin-bottom:10px;">Remaining items by warehouse / zone</div>
       <div id="type-modal-body" class="zone-list"></div>
     </div>
   </div>
@@ -1172,7 +340,7 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
       <div class="modal-title-row">
         <span class="modal-icon">📋</span>
         <div>
-          <div class="modal-title">รายละเอียดทรัพย์สิน</div>
+          <div class="modal-title">Asset details</div>
           <div class="modal-subtitle" id="modal-asset-no">-</div>
         </div>
       </div>
@@ -1181,39 +349,39 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
     <div class="modal-body">
       <div class="modal-grid">
         <div class="modal-field">
-          <div class="modal-label">ชื่อทรัพย์สิน</div>
+          <div class="modal-label">Asset name</div>
           <div class="modal-value" id="modal-name">-</div>
         </div>
         <div class="modal-field">
-          <div class="modal-label">หมวดหมู่</div>
+          <div class="modal-label">Category</div>
           <div class="modal-value" id="modal-category">-</div>
         </div>
         <div class="modal-field">
-          <div class="modal-label">พื้นที่</div>
+          <div class="modal-label">Location</div>
           <div class="modal-value" id="modal-area">-</div>
         </div>
         <div class="modal-field">
-          <div class="modal-label">คลัง</div>
+          <div class="modal-label">Warehouse</div>
           <div class="modal-value" id="modal-warehouse">-</div>
         </div>
         <div class="modal-field">
-          <div class="modal-label">วันที่ได้มา</div>
+          <div class="modal-label">Acquire date</div>
           <div class="modal-value" id="modal-acq-date">-</div>
         </div>
         <div class="modal-field">
-          <div class="modal-label">สถานะ</div>
+          <div class="modal-label">Status</div>
           <div class="modal-value" id="modal-status">-</div>
         </div>
         <div class="modal-field modal-field-full">
-          <div class="modal-label">เช็คล่าสุด</div>
+          <div class="modal-label">Last check</div>
           <div class="modal-value" id="modal-last-scan">-</div>
         </div>
         <div class="modal-field modal-field-full">
-          <div class="modal-label">ผลการเช็ค</div>
+          <div class="modal-label">Check result</div>
           <div class="modal-value" id="modal-last-result">-</div>
         </div>
         <div class="modal-field modal-field-full">
-          <div class="modal-label">ใช้เวลาในการบันทึก</div>
+          <div class="modal-label">Recorded time</div>
           <div class="modal-value" id="modal-save-duration">-</div>
         </div>
         <div class="modal-field modal-field-full" id="modal-remark-container" style="display:none; background:rgba(245, 158, 11, 0.05); border-color:var(--warning-bg);">
@@ -1228,11 +396,11 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="printModalLabel()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-        พิมพ์สติกเกอร์
+        Print label
       </button>
       <button class="btn btn-secondary" onclick="closeAssetDetailModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        ปิดหน้าต่าง
+        Close
       </button>
     </div>
   </div>
@@ -1245,8 +413,8 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
       <div class="modal-title-row">
         <span class="modal-icon" style="font-size:20px;">📄</span>
         <div>
-          <div class="modal-title" style="font-size:16px;">เลือกชุดตรวจนับ (Count Sheet)</div>
-          <div class="modal-subtitle" style="font-size:11px;">โปรดเลือกชุดที่จะพิมพ์ใบตรวจนับ</div>
+          <div class="modal-title" style="font-size:16px;">Select Count Sheet</div>
+          <div class="modal-subtitle" style="font-size:11px;">Choose the count sheet package to export.</div>
         </div>
       </div>
       <button class="modal-close" onclick="closeCountSheetModal()">✕</button>
@@ -1273,2273 +441,15 @@ body.overview-fit .main-content { height: 100vh; overflow: hidden; display: flex
 <!-- TOAST CONTAINER -->
 <div id="toast-container" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
-<script>
-function openCountSheetModal() {
-  document.getElementById("modal-countsheet-select").classList.remove("hidden");
-}
-function closeCountSheetModal() {
-  document.getElementById("modal-countsheet-select").classList.add("hidden");
-}
-function triggerExportCountSheet(roundNum) {
-  closeCountSheetModal();
-  if (roundNum === 'unreg') {
-    exportUnregCountSheet();
-  } else {
-    exportCountSheet(roundNum);
-  }
-}
-const API_URL = "https://script.google.com/macros/s/AKfycbzji7bEWa6sauFw1l21Su6GEDkYw7rAiBaiSzdnMuPHanmmW9atThQ0v9C8PsLvuYkxfw/exec";
-const API_SECRET = "VESPA2025SECRET";
-
-let allAssets = [], allUnregAssets = [], exportHeaders = [], scanDurationByAsset = {}, unregAddedDurationByAsset = {};
-let selectedMasterAssets = [], selectedUnregAssets = [];
-let currentMasterPage = 1, currentUnregPage = 1;
-const PAGE_SIZE = 50;
-let scanDurationTotalMs = 0;
-let currentPillar = 'count', currentTab = 'all', currentWarehouse = 'all', currentCountProfile = 1, currentDashboardView = 'overview', selectedAssetNo = "";
-let approveAuth = JSON.parse(sessionStorage.getItem("approveAuth") || "null");
-let currentModalAssetNo = "";
-let latestWarehouseOverviewRows = [];
-let latestTypeOverviewRows = [];
-
-function apiUrl(params) {
-  const url = new URL(API_URL); url.searchParams.set("key", API_SECRET);
-  for (const [k, v] of Object.entries(params)) { url.searchParams.set(k, v); }
-  return url.toString();
-}
-
-function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { ...options, signal: controller.signal })
-    .then(res => { clearTimeout(timer); return res; })
-    .catch(err => { clearTimeout(timer); throw err; });
-}
-
-function showToast(message, type = "error") {
-  const container = document.getElementById("toast-container");
-  if (!container) return;
-  const toast = document.createElement("div");
-  toast.style.background = type === "success" ? "var(--success)" : "var(--danger)";
-  toast.style.color = "#ffffff";
-  toast.style.padding = "12px 20px";
-  toast.style.borderRadius = "var(--radius-sm)";
-  toast.style.fontSize = "13px";
-  toast.style.fontWeight = "700";
-  toast.style.boxShadow = "var(--shadow)";
-  toast.style.display = "flex";
-  toast.style.alignItems = "center";
-  toast.style.gap = "8px";
-  toast.style.pointerEvents = "auto";
-  toast.style.transition = "all 0.3s ease";
-  toast.style.opacity = "0";
-  toast.style.transform = "translateY(20px)";
-  
-  toast.innerHTML = `<span>${message}</span>`;
-  container.appendChild(toast);
-  
-  // Trigger transition
-  setTimeout(() => {
-    toast.style.opacity = "1";
-    toast.style.transform = "translateY(0)";
-  }, 50);
-  
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = "translateY(-10px)";
-    setTimeout(() => toast.remove(), 300);
-  }, 4000);
-}
-
-function isApproveLoggedIn() {
-  return !!(approveAuth && approveAuth.user && approveAuth.pass);
-}
-
-function updateAuthUi() {
-  const loggedIn = isApproveLoggedIn();
-  document.getElementById("auth-status").innerHTML = loggedIn ? `อนุมัติโดย <strong>${approveAuth.user}</strong>` : "ยังไม่ได้เข้าสู่ระบบ";
-  document.getElementById("auth-login-btn").classList.toggle("hidden", loggedIn);
-  document.getElementById("auth-logout-btn").classList.toggle("hidden", !loggedIn);
-  document.querySelectorAll(".approve-action").forEach(btn => {
-    btn.classList.toggle("locked-action", !loggedIn);
-    btn.title = loggedIn ? "อนุมัติรายการ" : "ต้อง Login ก่อนอนุมัติ";
-  });
-}
-
-function openApproveLogin() {
-  document.getElementById("approve-login-error").style.display = "none";
-  document.getElementById("modal-approve-login").classList.remove("hidden");
-  setTimeout(() => document.getElementById("approve-user").focus(), 50);
-}
-
-function closeApproveLogin() {
-  document.getElementById("modal-approve-login").classList.add("hidden");
-}
-
-function logoutApprove() {
-  approveAuth = null;
-  sessionStorage.removeItem("approveAuth");
-  updateAuthUi();
-  // Force switch back to overview since table requires login
-  setDashboardView('overview');
-}
-
-async function submitApproveLogin() {
-  const user = document.getElementById("approve-user").value.trim();
-  const pass = document.getElementById("approve-pass").value.trim();
-  const err = document.getElementById("approve-login-error");
-  if (!user || !pass) {
-    err.textContent = "❌ กรุณากรอก Username และ Password";
-    err.style.display = "block";
-    return;
-  }
-
-  const btn = document.getElementById("approve-login-submit");
-  btn.disabled = true;
-  btn.innerHTML = `<span class="spinner-sm"></span> กำลังตรวจสอบ...`;
-  try {
-    const res = await fetchWithTimeout(apiUrl({ action: "approveLogin", user, pass }), {}, 15000);
-    const d = await res.json().catch(() => null);
-    if (!d || typeof d !== 'object' || d.status !== "success") {
-      throw new Error(d ? d.message : "❌ เข้าสู่ระบบไม่สำเร็จ");
-    }
-    approveAuth = { user, pass };
-    sessionStorage.setItem("approveAuth", JSON.stringify(approveAuth));
-    closeApproveLogin();
-    updateAuthUi();
-    // Auto-switch to table view upon successful login
-    setDashboardView('table');
-  } catch (e) {
-    err.textContent = (e.message || "เข้าสู่ระบบไม่สำเร็จ").replace("❌ ", "");
-    if (e.name === "AbortError") {
-      err.textContent = "❌ หมดเวลา - ตรวจสอบการเชื่อมต่อ Network";
-    }
-    err.style.display = "block";
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg> เข้าสู่ระบบ`;
-  }
-}
-
-function requireApproveLogin() {
-  if (isApproveLoggedIn()) return true;
-  openApproveLogin();
-  return false;
-}
-
-function setPillar(p) {
-  currentPillar = p;
-  document.getElementById("pillar-count").classList.toggle("active", p === 'count');
-  document.getElementById("pillar-unreg").classList.toggle("active", p === 'unreg');
-  clearAllSelections();
-  syncDashboardView();
-  filterTable();
-}
-
-function setCountProfile(profile) {
-  currentCountProfile = profile === 2 ? 2 : 1;
-  document.getElementById("count-profile-1").classList.toggle("active", currentCountProfile === 1);
-  document.getElementById("count-profile-2").classList.toggle("active", currentCountProfile === 2);
-  renderOverview();
-}
-
-function setDashboardView(view) {
-  if (view === 'table' && !isApproveLoggedIn()) {
-    openApproveLogin();
-    return;
-  }
-  currentDashboardView = view === 'table' ? 'table' : 'overview';
-  document.getElementById("view-overview").classList.toggle("active", currentDashboardView === 'overview');
-  document.getElementById("view-table").classList.toggle("active", currentDashboardView === 'table');
-  syncDashboardView();
-}
-
-function syncDashboardView() {
-  const isCount = currentPillar === 'count';
-  const isTable = currentDashboardView === 'table';
-  const isPresenting = document.body.classList.contains("in-presentation");
-  document.body.classList.toggle("overview-fit", (isCount && !isTable) || isPresenting);
-  
-  // Hide summary cards in Table View to bring search/filters to the top
-  document.getElementById("summary-count").classList.toggle("hidden", !isCount || isTable);
-  document.getElementById("summary-unreg").classList.toggle("hidden", isCount || isTable);
-  
-  document.getElementById("table-tools-container").classList.toggle("hidden", !isTable);
-  document.getElementById("overview-panels").classList.toggle("hidden", !isCount || isTable);
-  document.getElementById("overview-panels-unreg").classList.toggle("hidden", isCount || isTable);
-  document.getElementById("filter-tab-container").classList.toggle("hidden", !isCount || !isTable);
-  document.getElementById("table-master-container").classList.toggle("hidden", !isCount || !isTable);
-  document.getElementById("table-unreg-container").classList.toggle("hidden", currentPillar !== 'unreg' || !isTable);
-}
-
-function enterPresentation() {
-  currentPillar = 'count';
-  currentDashboardView = 'overview';
-  document.body.classList.add("in-presentation");
-  syncDashboardView();
-  const target = document.documentElement;
-  if (target.requestFullscreen) target.requestFullscreen().catch(() => {});
-}
-
-function exitPresentation() {
-  document.body.classList.remove("in-presentation");
-  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
-  syncDashboardView();
-}
-
-document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement && document.body.classList.contains("in-presentation")) {
-    document.body.classList.remove("in-presentation");
-    syncDashboardView();
-  }
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && document.body.classList.contains("in-presentation")) exitPresentation();
-});
-
-function setTab(t, el) {
-  el.parentElement.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  el.classList.add("active"); currentTab = t; filterTable();
-}
-
-function setWarehouse(w, el) {
-  el.parentElement.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  el.classList.add("active"); currentWarehouse = w; filterTable();
-}
-
-function normalizeHeaderText(value) {
-  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-function getProfileCountIndex(profile) {
-  if (!Array.isArray(exportHeaders) || exportHeaders.length === 0) return -1;
-  const now = new Date();
-  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-  const month = months[now.getMonth()];
-  const year = now.getFullYear();
-  const wanted = normalizeHeaderText(`เช็ค ${month} ${year} Count ${profile}`);
-  let idx = exportHeaders.findIndex(h => normalizeHeaderText(h) === wanted);
-  if (idx >= 0) return idx;
-  if (profile === 1) {
-    const legacy = normalizeHeaderText(`เช็ค ${month} ${year}`);
-    idx = exportHeaders.findIndex(h => normalizeHeaderText(h) === legacy);
-  }
-  return idx;
-}
-
-function isCountedValue(value) {
-  const text = String(value == null ? "" : value).trim();
-  if (!text) return false;
-  const lower = text.toLowerCase();
-  return !["0", "false", "no", "n", "-", "pending"].includes(lower);
-}
-
-function normalizeGroupName(value, fallback) {
-  const text = String(value || "").trim();
-  return text || fallback;
-}
-
-function buildBreakdown(rows, groupIndex, countIndex) {
-  const map = new Map();
-  rows.forEach(row => {
-    const name = normalizeGroupName(row[groupIndex], "ไม่ระบุ");
-    const item = map.get(name) || { name, total: 0, checked: 0, pending: 0 };
-    item.total += 1;
-    if (countIndex >= 0 && isCountedValue(row[countIndex])) item.checked += 1;
-    map.set(name, item);
-  });
-  return Array.from(map.values())
-    .map(item => ({ ...item, pending: Math.max(0, item.total - item.checked) }))
-    .sort((a, b) => b.pending - a.pending || a.name.localeCompare(b.name, "th"));
-}
-
-function renderBreakdown(containerId, rows) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  if (!rows.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-weight:700;">ไม่มีข้อมูล</div>';
-    return;
-  }
-  const max = Math.max(...rows.map(item => item.pending), 1);
-  el.innerHTML = rows.slice(0, 12).map(item => {
-    const width = Math.round((item.pending / max) * 100);
-    return `
-      <div class="breakdown-row">
-        <div class="breakdown-name" title="${escHtml(item.name)}">${escHtml(item.name)}</div>
-        <div class="breakdown-value">${item.pending.toLocaleString()}</div>
-        <div class="breakdown-bar"><div class="breakdown-fill" style="width:${width}%"></div></div>
-      </div>`;
-  }).join("");
-}
-
-function buildPriorityBreakdown(warehouseRows, zoneRows) {
-  return [
-    ...warehouseRows.slice(0, 6).map(item => ({ ...item, name: `คลัง: ${item.name}` })),
-    ...zoneRows.slice(0, 6).map(item => ({ ...item, name: `โซน: ${item.name}` }))
-  ].sort((a, b) => b.pending - a.pending || a.name.localeCompare(b.name, "th")).slice(0, 10);
-}
-
-function buildWarehouseZoneOverview(rows, countIndex) {
-  const warehouseOrder = ["Warehouse A", "Warehouse B", "OFFICE", "WHD", "HR", "Diff"];
-  const normalizeWarehouseDisplay = (value) => {
-    const text = String(value || "").trim();
-    const lower = text.toLowerCase();
-    if (["warehouse a", "wh-a", "wha", "wh a"].includes(lower)) return "Warehouse A";
-    if (["warehouse b", "wh-b", "whb", "wh b"].includes(lower)) return "Warehouse B";
-    if (lower === "office") return "OFFICE";
-    if (lower === "whd") return "WHD";
-    if (lower === "hr") return "HR";
-    return "Diff";
-  };
-  const warehouses = new Map();
-  rows.forEach(row => {
-    const warehouseName = normalizeWarehouseDisplay(row[4]);
-    const rawWarehouseName = normalizeGroupName(row[4], "ไม่ระบุคลัง");
-    const zoneName = normalizeGroupName(row[3], "ไม่ระบุโซน");
-    const counted = countIndex >= 0 && isCountedValue(row[countIndex]);
-    const warehouse = warehouses.get(warehouseName) || { name: warehouseName, total: 0, checked: 0, zones: new Map(), sources: new Map() };
-    const zone = warehouse.zones.get(zoneName) || { name: zoneName, total: 0, checked: 0 };
-    const source = warehouse.sources.get(rawWarehouseName) || { name: rawWarehouseName, total: 0, checked: 0 };
-    warehouse.total += 1;
-    zone.total += 1;
-    source.total += 1;
-    if (counted) {
-      warehouse.checked += 1;
-      zone.checked += 1;
-      source.checked += 1;
-    }
-    warehouse.zones.set(zoneName, zone);
-    warehouse.sources.set(rawWarehouseName, source);
-    warehouses.set(warehouseName, warehouse);
-  });
-  return Array.from(warehouses.values())
-    .map(warehouse => ({
-      ...warehouse,
-      pending: Math.max(0, warehouse.total - warehouse.checked),
-      sources: Array.from(warehouse.sources.values())
-        .map(source => ({ ...source, pending: Math.max(0, source.total - source.checked) }))
-        .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "th")),
-      zones: Array.from(warehouse.zones.values())
-        .map(zone => ({ ...zone, pending: Math.max(0, zone.total - zone.checked) }))
-        .sort((a, b) => b.pending - a.pending || a.name.localeCompare(b.name, "th"))
-    }))
-    .sort((a, b) => warehouseOrder.indexOf(a.name) - warehouseOrder.indexOf(b.name));
-}
-
-function renderWarehouseZoneOverview(containerId, rows) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  latestWarehouseOverviewRows = rows;
-  if (!rows.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-weight:700;">ไม่มีข้อมูล</div>';
-    return;
-  }
-  el.innerHTML = rows.map((warehouse, index) => `
-    <div class="warehouse-card" onclick="openWarehouseOverviewModal(${index})">
-      <div class="warehouse-head">
-        <div class="warehouse-name">${escHtml(warehouse.name)}</div>
-        <div class="warehouse-stat">รวม ${warehouse.total.toLocaleString()}</div>
-        <div class="warehouse-pending">${warehouse.name === "Diff" ? `ยอดที่ยังจัดกลุ่มไม่ได้ ${warehouse.total.toLocaleString()} รายการ` : `นับได้ ${warehouse.checked.toLocaleString()} / เหลือ ${warehouse.pending.toLocaleString()}`}</div>
-      </div>
-      <div class="warehouse-energy"><div class="warehouse-energy-fill" style="width:${warehouse.total > 0 ? Math.round((warehouse.checked / warehouse.total) * 100) : 0}%"></div></div>
-      <div class="warehouse-hint">${warehouse.name === "Diff" ? "คลิกเพื่อดูว่ามาจากค่าใด" : "คลิกเพื่อดูโซนย่อย"}</div>
-    </div>`).join("");
-}
-
-function openWarehouseOverviewModal(index) {
-  const warehouse = latestWarehouseOverviewRows[index];
-  if (!warehouse) return;
-  const title = document.getElementById("warehouse-modal-title");
-  const summary = document.getElementById("warehouse-modal-summary");
-  const body = document.getElementById("warehouse-modal-body");
-  if (!title || !summary || !body) return;
-  title.textContent = warehouse.name;
-  summary.textContent = `รวม ${warehouse.total.toLocaleString()} | นับได้ ${warehouse.checked.toLocaleString()} | เหลือ ${warehouse.pending.toLocaleString()}`;
-  const sourceHtml = warehouse.name === "Diff" ? `
-    <div style="font-size:13px;font-weight:900;color:var(--text);margin-bottom:10px;">ที่มาของ Diff</div>
-    ${warehouse.sources.map(source => `
-      <div class="zone-row">
-        <div class="zone-name" title="${escHtml(source.name)}">${escHtml(source.name)}</div>
-        <div class="zone-energy"><div class="zone-energy-fill" style="width:${source.total > 0 ? Math.round((source.checked / source.total) * 100) : 0}%"></div></div>
-        <div class="zone-counted">${source.checked.toLocaleString()} / ${source.total.toLocaleString()}</div>
-        <div class="zone-pending">เหลือ ${source.pending.toLocaleString()}</div>
-      </div>`).join("")}
-    ` : "";
-  body.innerHTML = sourceHtml || warehouse.zones.map(zone => {
-    const zonePct = zone.total > 0 ? Math.round((zone.checked / zone.total) * 100) : 0;
-    return `
-      <div class="zone-row">
-        <div class="zone-name" title="${escHtml(zone.name)}">${escHtml(zone.name)}</div>
-        <div class="zone-energy"><div class="zone-energy-fill" style="width:${zonePct}%"></div></div>
-        <div class="zone-counted">${zone.checked.toLocaleString()} / ${zone.total.toLocaleString()}</div>
-        <div class="zone-pending">เหลือ ${zone.pending.toLocaleString()}</div>
-      </div>`;
-  }).join("");
-  document.getElementById("modal-warehouse-overview").classList.remove("hidden");
-}
-
-function closeWarehouseOverviewModal() {
-  document.getElementById("modal-warehouse-overview").classList.add("hidden");
-}
-
-function renderTypeOverview(containerId, rows) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const typeLabels = {
-    OFF: "สำนักงาน / อุปกรณ์สำนักงาน",
-    COM: "คอมพิวเตอร์ / อุปกรณ์ IT",
-    TOL: "เครื่องมือ / อุปกรณ์ช่าง",
-    VPOT: "อุปกรณ์ VPOT",
-    VEH: "ยานพาหนะ",
-    UNKNOWN: "ไม่ระบุประเภท"
-  };
-  const items = rows.map(item => ({
-    ...item,
-    code: String(item.name || "UNKNOWN").trim().toUpperCase() || "UNKNOWN",
-    pct: item.total > 0 ? Math.round((item.checked / item.total) * 100) : 0
-  })).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "th"));
-  latestTypeOverviewRows = items;
-  if (!items.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-weight:700;">ไม่มีข้อมูล</div>';
-    return;
-  }
-  el.innerHTML = items.map((item, index) => `
-    <div class="type-row" onclick="openTypeOverviewModal(${index})" style="cursor:pointer;">
-      <div class="type-meta">
-        <div class="type-title">
-          <div class="type-code cat-tag ${escHtml(item.code.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}">${escHtml(item.code)}</div>
-          <div class="type-name" title="${escHtml(typeLabels[item.code] || item.name)}">${escHtml(typeLabels[item.code] || item.name)}</div>
-        </div>
-      </div>
-      <div class="type-energy">
-        <div class="type-energy-fill" style="width:${item.pct}%"></div>
-        <div class="type-energy-label">${item.pct}%</div>
-      </div>
-      <div class="type-count">${item.checked.toLocaleString()} / ${item.total.toLocaleString()}</div>
-    </div>`).join("");
-}
-
-function buildTypePendingBreakdown(typeCode) {
-  const countIndex = getProfileCountIndex(currentCountProfile);
-  const map = new Map();
-  allAssets.forEach(row => {
-    const code = String(row[2] || "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
-    if (code !== typeCode) return;
-    if (countIndex >= 0 && isCountedValue(row[countIndex])) return;
-    const warehouse = normalizeGroupName(row[4], "ไม่ระบุคลัง");
-    const zone = normalizeGroupName(row[3], "ไม่ระบุโซน");
-    const key = `${warehouse} | ${zone}`;
-    const item = map.get(key) || { warehouse, zone, pending: 0 };
-    item.pending += 1;
-    map.set(key, item);
-  });
-  return Array.from(map.values()).sort((a, b) => b.pending - a.pending || a.warehouse.localeCompare(b.warehouse, "th") || a.zone.localeCompare(b.zone, "th"));
-}
-
-function openTypeOverviewModal(index) {
-  const item = latestTypeOverviewRows[index];
-  if (!item) return;
-  const title = document.getElementById("type-modal-title");
-  const summary = document.getElementById("type-modal-summary");
-  const body = document.getElementById("type-modal-body");
-  if (!title || !summary || !body) return;
-  title.textContent = `${item.code} - ${item.name || "ไม่ระบุประเภท"}`;
-  summary.textContent = `นับได้ ${item.checked.toLocaleString()} / รวม ${item.total.toLocaleString()} | เหลือ ${(item.total - item.checked).toLocaleString()}`;
-  const rows = buildTypePendingBreakdown(item.code);
-  body.innerHTML = rows.length ? rows.map(row => `
-    <div class="zone-row">
-      <div class="zone-name" title="${escHtml(row.warehouse)}">${escHtml(row.warehouse)}</div>
-      <div class="zone-name" title="${escHtml(row.zone)}">${escHtml(row.zone)}</div>
-      <div class="zone-pending">ขาด ${row.pending.toLocaleString()}</div>
-    </div>`).join("") : '<div style="font-weight:900;color:var(--success);">ไม่พบรายการคงเหลือของ Type นี้</div>';
-  document.getElementById("modal-type-overview").classList.remove("hidden");
-}
-
-function closeTypeOverviewModal() {
-  document.getElementById("modal-type-overview").classList.add("hidden");
-}
-
-function buildUnregWarehouseZoneOverview(unregRows) {
-  const warehouseOrder = ["Warehouse A", "Warehouse B", "OFFICE", "WHD", "HR", "Diff"];
-  const normalizeWarehouseDisplay = (value) => {
-    const text = String(value || "").trim();
-    const lower = text.toLowerCase();
-    if (["warehouse a", "wh-a", "wha", "wh a"].includes(lower)) return "Warehouse A";
-    if (["warehouse b", "wh-b", "whb", "wh b"].includes(lower)) return "Warehouse B";
-    if (lower === "office") return "OFFICE";
-    if (lower === "whd") return "WHD";
-    if (lower === "hr") return "HR";
-    return "Diff";
-  };
-  const warehouses = new Map();
-  unregRows.forEach(row => {
-    const warehouseName = normalizeWarehouseDisplay(row[3]);
-    const zoneName = normalizeGroupName(row[4], "ไม่ระบุโซน");
-    const warehouse = warehouses.get(warehouseName) || { name: warehouseName, total: 0, checked: 0, zones: new Map(), sources: new Map() };
-    const zone = warehouse.zones.get(zoneName) || { name: zoneName, total: 0, checked: 0 };
-    warehouse.total += 1;
-    zone.total += 1;
-    warehouse.zones.set(zoneName, zone);
-    warehouses.set(warehouseName, warehouse);
-  });
-  return Array.from(warehouses.values())
-    .map(warehouse => ({
-      ...warehouse,
-      pending: warehouse.total,
-      zones: Array.from(warehouse.zones.values())
-        .map(zone => ({ ...zone, pending: zone.total }))
-        .sort((a, b) => b.pending - a.pending || a.name.localeCompare(b.name, "th"))
-    }))
-    .sort((a, b) => warehouseOrder.indexOf(a.name) - warehouseOrder.indexOf(b.name));
-}
-
-function renderUnregWarehouseZoneOverview(containerId, rows) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  if (!rows.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-weight:700;">ไม่มีข้อมูลคลังสินค้าของไอเทมนอกระบบ</div>';
-    return;
-  }
-  el.innerHTML = rows.map((warehouse) => `
-    <div class="warehouse-card" style="cursor:default;">
-      <div class="warehouse-head" style="grid-template-columns: 1fr auto;">
-        <div class="warehouse-name">${escHtml(warehouse.name)}</div>
-        <div class="warehouse-pending" style="color:var(--danger);font-weight:800;">รอนุมัติ ${warehouse.total.toLocaleString()} รายการ</div>
-      </div>
-      <div class="zone-list" style="margin-top:8px; display:grid; gap:4px;">
-        ${warehouse.zones.map(zone => `
-          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); background:rgba(0,0,0,0.02); padding:4px 8px; border-radius:6px;">
-            <span>📍 ${escHtml(zone.name)}</span>
-            <span style="font-weight:bold; color:var(--danger);">${zone.total.toLocaleString()} ชิ้น</span>
-          </div>
-        `).join("")}
-      </div>
-    </div>`).join("");
-}
-
-function buildUnregTypeBreakdown(unregRows) {
-  const map = new Map();
-  unregRows.forEach(row => {
-    const name = normalizeGroupName(row[2], "ไม่ระบุ");
-    const item = map.get(name) || { name, total: 0 };
-    item.total += 1;
-    map.set(name, item);
-  });
-  return Array.from(map.values())
-    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "th"));
-}
-
-function renderUnregTypeOverview(containerId, rows) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const typeLabels = {
-    OFF: "สำนักงาน / อุปกรณ์สำนักงาน",
-    COM: "คอมพิวเตอร์ / อุปกรณ์ IT",
-    TOL: "เครื่องมือ / อุปกรณ์ช่าง",
-    VPOT: "อุปกรณ์ VPOT",
-    VEH: "ยานพาหนะ",
-    UNKNOWN: "ไม่ระบุประเภท"
-  };
-  if (!rows.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-weight:700;">ไม่มีข้อมูล</div>';
-    return;
-  }
-  const max = Math.max(...rows.map(r => r.total), 1);
-  el.innerHTML = rows.map((item) => {
-    const code = String(item.name || "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
-    const width = Math.round((item.total / max) * 100);
-    const label = typeLabels[code] || item.name;
-    return `
-      <div class="type-row" style="cursor:default;">
-        <div class="type-meta">
-          <div class="type-title">
-            <div class="type-code cat-tag ${escHtml(code.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}">${escHtml(code)}</div>
-            <div class="type-name" title="${escHtml(label)}">${escHtml(label)}</div>
-          </div>
-        </div>
-        <div class="type-count" style="color:var(--danger); border-color:rgba(220,38,38,0.12); background:rgba(220,38,38,0.02);">${item.total.toLocaleString()} รายการ</div>
-        <div class="breakdown-bar" style="grid-column: 1/-1; height:6px; margin-top:4px;"><div class="breakdown-fill" style="width:${width}%; background:linear-gradient(90deg, var(--danger), var(--warning));"></div></div>
-      </div>`;
-  }).join("");
-}
-
-function renderOverview() {
-  if (!Array.isArray(allAssets)) return;
-  const countIndex = getProfileCountIndex(currentCountProfile);
-  const totalAssets = allAssets.length;
-  const checked = countIndex >= 0 ? allAssets.filter(row => isCountedValue(row[countIndex])).length : 0;
-  const pending = Math.max(0, totalAssets - checked);
-  const pct = totalAssets > 0 ? Math.round((checked / totalAssets) * 100) : 0;
-  document.getElementById("dash-total").textContent = totalAssets.toLocaleString();
-  document.getElementById("dash-checked").textContent = checked.toLocaleString();
-  document.getElementById("dash-pending-complete").textContent = pending.toLocaleString();
-  document.getElementById("dash-month-label").textContent = `รายการที่ตรวจสอบแล้ว (${currentCountProfile === 1 ? "Count 1" : "Count 2"})`;
-  document.getElementById("dash-pct-complete").textContent = pct + "%";
-  document.getElementById("dash-pct-pending-complete").textContent = (100 - pct) + "%";
-  const circumference = 2 * Math.PI * 26;
-  const circle = document.getElementById("progress-circle");
-  if (circle) circle.style.strokeDashoffset = circumference - (pct / 100) * circumference;
-  const pendingCircle = document.getElementById("pending-circle");
-  if (pendingCircle) pendingCircle.style.strokeDashoffset = circumference - ((100 - pct) / 100) * circumference;
-  renderWarehouseZoneOverview("warehouse-zone-overview", buildWarehouseZoneOverview(allAssets, countIndex));
-  renderTypeOverview("type-overview", buildBreakdown(allAssets, 2, countIndex));
-  
-  // Render Unregistered Overview
-  if (Array.isArray(allUnregAssets)) {
-    renderUnregWarehouseZoneOverview("unreg-warehouse-zone-overview", buildUnregWarehouseZoneOverview(allUnregAssets));
-    renderUnregTypeOverview("unreg-type-overview", buildUnregTypeBreakdown(allUnregAssets));
-  }
-}
-
-async function loadDashboard() {
-  const refreshBtn = document.getElementById("refresh-btn");
-  refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px; animation: spin 1s linear infinite; display: inline-block;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> กำลังโหลด...`; refreshBtn.disabled = true;
-
-  try {
-    const [r1, r2] = await Promise.all([
-      fetchWithTimeout(apiUrl({ action: "dashboard", fresh: "1", _: Date.now() }), {}, 15000).then(res => res.json()).catch(() => null),
-      fetchWithTimeout(apiUrl({ action: "export", fresh: "1", _: Date.now() }), {}, 25000).then(res => res.json()).catch(() => null)
-    ]);
-    
-    if(r1 && r1.summary) {
-      const totalAssets = Number(r1.summary.totalAssets || 0);
-      const checked = Number(r1.summary.checked || 0);
-      const pending = Number(r1.summary.pending ?? Math.max(0, totalAssets - checked));
-      document.getElementById("dash-total").textContent = totalAssets.toLocaleString();
-      document.getElementById("dash-checked").textContent = checked.toLocaleString();
-      document.getElementById("dash-pending-complete").textContent = pending.toLocaleString();
-      let pct = Number(r1.summary.pct ?? (totalAssets > 0 ? Math.round((checked / totalAssets) * 100) : 0)) || 0;
-      pct = Math.max(0, Math.min(100, pct));
-      document.getElementById("dash-pct-complete").textContent = pct + "%";
-      document.getElementById("dash-pct-pending-complete").textContent = (100 - pct) + "%";
-      
-      // Update circular progress svg offset
-      const circle = document.getElementById("progress-circle");
-      if (circle) {
-        const circumference = 2 * Math.PI * 26; // 163.36
-        const offset = circumference - (pct / 100) * circumference;
-        circle.style.strokeDashoffset = offset;
-      }
-      const pendingCircle = document.getElementById("pending-circle");
-      if (pendingCircle) {
-        const circumference = 2 * Math.PI * 26;
-        const pendingPct = Math.max(0, 100 - pct);
-        pendingCircle.style.strokeDashoffset = circumference - (pendingPct / 100) * circumference;
-      }
-    }
-    
-    if(r2 && Array.isArray(r2.assets)) {
-      allAssets = r2.assets; 
-      allUnregAssets = Array.isArray(r2.unregAssets) ? r2.unregAssets : [];
-      exportHeaders = Array.isArray(r2.headers) ? r2.headers : [];
-      scanDurationByAsset = r2.scanDurationByAsset || {};
-      unregAddedDurationByAsset = r2.unregAddedDurationByAsset || {};
-      scanDurationTotalMs = Object.values(scanDurationByAsset).reduce((sum, item) => sum + Number((item && item.durationMs) || 0), 0);
-      document.getElementById("dash-pillar-unreg").textContent = allUnregAssets.length.toLocaleString();
-      document.getElementById("dash-total-duration").textContent = formatDurationHms(scanDurationTotalMs);
-      document.getElementById("dash-unreg-duration").textContent = formatDurationHms(r2.unregAddedDurationTotalMs || 0);
-      renderOverview();
-      syncDashboardView();
-      filterTable();
-    } else {
-      throw new Error("ไม่สามารถอ่านข้อมูลจาก Server ได้");
-    }
-  } catch(e) { console.error(e); showToast("❌ " + (e.message || "ไม่สามารถเชื่อมต่อ Server หรือหมดเวลา"), "error"); }
-  finally { refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Auto refresh 2 นาที`; refreshBtn.disabled = false; }
-}
-
-function parseSafeDate(raw) {
-  if (!raw) return null;
-  if (raw instanceof Date) return raw;
-  let d = new Date(raw);
-  if (!isNaN(d.getTime())) return d;
-  const str = String(raw).trim();
-  const match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
-  if (match) {
-    const day = parseInt(match[1], 10);
-    const month = parseInt(match[2], 10) - 1;
-    let year = parseInt(match[3], 10);
-    if (year > 2400) year -= 543;
-    const hour = match[4] ? parseInt(match[4], 10) : 0;
-    const minute = match[5] ? parseInt(match[5], 10) : 0;
-    const second = match[6] ? parseInt(match[6], 10) : 0;
-    d = new Date(year, month, day, hour, minute, second);
-    if (!isNaN(d.getTime())) return d;
-  }
-  return null;
-}
-
-function filterTable(resetPage = true) {
-  if (!allAssets || !Array.isArray(allAssets)) return;
-  if (!allUnregAssets || !Array.isArray(allUnregAssets)) return;
-
-  if (resetPage === true || (resetPage && typeof resetPage === 'object')) {
-    currentMasterPage = 1;
-    currentUnregPage = 1;
-  }
-  
-  const searchTxt = document.getElementById("search-input").value.toUpperCase();
-  const dateFrom = document.getElementById("date-from").value;
-  const dateTo = document.getElementById("date-to").value;
-  
-  const fromTime = dateFrom ? new Date(dateFrom).setHours(0,0,0,0) : null;
-  const toTime = dateTo ? new Date(dateTo).setHours(23,59,59,999) : null;
-
-  const showDamagedOnly = document.getElementById("filter-damaged").checked;
-
-  if (currentPillar === 'count') {
-    let filtered = allAssets.slice();
-    
-    if(currentTab !== 'all') {
-      filtered = filtered.filter(r => r && String(r[2]).toLowerCase().includes(currentTab));
-    }
-    if(currentWarehouse !== 'all') {
-      filtered = filtered.filter(r => {
-        if (!r || !r[4]) return false;
-        const rw = String(r[4]).toLowerCase().trim();
-        const fw = currentWarehouse.toLowerCase().trim();
-        if (fw === 'wh-a') {
-          return rw.includes('wh-a') || rw.includes('warehouse a') || rw.includes('wha') || rw === 'a';
-        }
-        if (fw === 'wh-b') {
-          return rw.includes('wh-b') || rw.includes('warehouse b') || rw.includes('whb') || rw === 'b';
-        }
-        if (fw === 'whd') {
-          return rw.includes('whd') || rw.includes('warehouse d') || rw.includes('wh-d');
-        }
-        return rw.includes(fw);
-      });
-    }
-    if(searchTxt) {
-      filtered = filtered.filter(r => r && (String(r[0]).toUpperCase().includes(searchTxt) || String(r[1]).toUpperCase().includes(searchTxt)));
-    }
-    if(fromTime || toTime) {
-      filtered = filtered.filter(r => {
-        if(!r || !r[7]) return false;
-        const parsed = parseSafeDate(r[7]);
-        if (!parsed) return false;
-        const d = parsed.getTime();
-        if(fromTime && d < fromTime) return false;
-        if(toTime && d > toTime) return false;
-        return true;
-      });
-    }
-    if (showDamagedOnly) {
-      filtered = filtered.filter(r => {
-        let lastResultText = r[8] || "";
-        let remarkText = r[9] || "";
-        return [String(r[1]), String(r[2]), lastResultText, remarkText, String(r[6] || "")].join(" ").includes("บาร์โค้ดเสียหาย") || String(r[2]).toUpperCase() === "UNKNOWN";
-      });
-    }
-
-    renderMasterTable(filtered);
-  } else {
-    let filteredUnreg = allUnregAssets.slice();
-    if(searchTxt) {
-      filteredUnreg = filteredUnreg.filter(r => r && (String(r[0]).toUpperCase().includes(searchTxt) || String(r[1]).toUpperCase().includes(searchTxt) || String(r[5]).toUpperCase().includes(searchTxt)));
-    }
-    if(fromTime || toTime) {
-      filteredUnreg = filteredUnreg.filter(r => {
-        if(!r || !r[6]) return false;
-        const parsed = parseSafeDate(r[6]);
-        if (!parsed) return false;
-        const d = parsed.getTime();
-        if(fromTime && d < fromTime) return false;
-        if(toTime && d > toTime) return false;
-        return true;
-      });
-    }
-    if (showDamagedOnly) {
-      filteredUnreg = filteredUnreg.filter(r => {
-        const assetName = String(r[1] || "").trim();
-        const category = String(r[2] || "").trim();
-        const remarks = String(r[5] || "").trim();
-        const status = String(r[9] || "").trim();
-        return [assetName, category, remarks, status].join(" ").includes("บาร์โค้ดเสียหาย") || category.toUpperCase() === "UNKNOWN";
-      });
-    }
-    renderUnregTable(filteredUnreg);
-  }
-  updateBulkActionsBar();
-}
-
-function getRowImageHtml(imageLink) {
-  if (!imageLink) return `<div class="row-thumb-placeholder">📷</div>`;
-  const safeLink = String(imageLink || "").trim();
-  const match = safeLink.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]+)/);
-  if (match && match[1]) {
-    const fileId = match[1];
-    // เพิ่มพารามิเตอร์ =s150 เพื่อให้เซิร์ฟเวอร์ย่อรูปเหลือขนาดเล็ก (ลดการดาวน์โหลดไฟล์เต็ม ป้องกันเว็บแลค)
-    const thumbUrl = `https://lh3.googleusercontent.com/d/${fileId}=s150`;
-    return `<img class="row-thumb" src="${thumbUrl}" alt="Thumbnail" onclick='event.stopPropagation(); window.open(${JSON.stringify(safeLink)}, "_blank")'>`;
-  }
-  return `<div class="row-thumb-placeholder" style="color:var(--primary); cursor:pointer;" onclick='event.stopPropagation(); window.open(${JSON.stringify(safeLink)}, "_blank")'>🔗</div>`;
-}
-
-function formatDurationHms(ms) {
-  const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return [hours, minutes, seconds].map(n => String(n).padStart(2, "0")).join(":");
-}
-
-function getAssetDurationMs(assetNo) {
-  const key = String(assetNo || "").trim().toUpperCase();
-  return Number((scanDurationByAsset[key] && scanDurationByAsset[key].durationMs) || 0);
-}
-
-function getUnregDurationMs(tempId) {
-  const key = String(tempId || "").trim().toUpperCase();
-  return Number((unregAddedDurationByAsset[key] && unregAddedDurationByAsset[key].durationMs) || 0);
-}
-
-function renderMasterTable(data) {
-  const tbody = document.getElementById("table-body");
-  
-  // 🔥 [Logic] เรียงวันที่เช็คล่าสุดขึ้นก่อนเสมอ
-  const sorted = [...data].sort((a, b) => {
-    const da = a[7] ? new Date(a[7]).getTime() : 0;
-    const db = b[7] ? new Date(b[7]).getTime() : 0;
-    return db - da;
-  });
-
-  const paginationEl = document.getElementById("master-pagination");
-
-  if(sorted.length === 0) { 
-    tbody.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">ไม่พบข้อมูล</div>'; 
-    if (paginationEl) paginationEl.innerHTML = "";
-    return; 
-  }
-
-  // Pagination Slice
-  const totalItems = sorted.length;
-  const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
-  if (currentMasterPage > totalPages) currentMasterPage = totalPages;
-  if (currentMasterPage < 1) currentMasterPage = 1;
-  
-  const startIndex = (currentMasterPage - 1) * PAGE_SIZE;
-  const pageData = sorted.slice(startIndex, startIndex + PAGE_SIZE);
-
-  // Render pagination UI
-  if (paginationEl) {
-    paginationEl.innerHTML = `
-      <div>แสดง ${startIndex + 1} - ${Math.min(startIndex + PAGE_SIZE, totalItems)} จาก ${totalItems} รายการ</div>
-      <div style="display: flex; gap: 8px;">
-        <button class="control-btn" onclick="changeMasterPage(-1)" ${currentMasterPage === 1 ? "disabled" : ""} style="padding: 6px 12px; margin: 0;">◀ ย้อนกลับ</button>
-        <span style="display: flex; align-items: center; padding: 0 10px; font-weight: 700;">หน้า ${currentMasterPage} / ${totalPages}</span>
-        <button class="control-btn" onclick="changeMasterPage(1)" ${currentMasterPage === totalPages ? "disabled" : ""} style="padding: 6px 12px; margin: 0;">ถัดไป ▶</button>
-      </div>
-    `;
-  }
-
-  tbody.innerHTML = pageData.map(r => {
-    // 🔥 [Format] แสดง วัน/เดือน/ปี 00:00
-    const checkDateStr = formatDateTime(r[7]);
-    const acqDate = formatDate(r[5]);
-    
-    // Category tag style
-    const assetNo = String(r[0] || "").trim();
-    const assetNoHtml = escHtml(assetNo || "-");
-    const assetNoJs = JSON.stringify(assetNo);
-    const assetName = escHtml(r[1] || "-");
-    const area = escHtml(r[3] || "-");
-    const warehouse = escHtml(r[4] || "-");
-    const status = escHtml(r[6] || "Active");
-    const lastResult = escHtml(r[8] || "-");
-    const category = String(r[2] || "").trim();
-    const categoryHtml = escHtml(category || "-");
-    const cat = category.toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    const catClass = `cat-tag ${cat}`;
-    
-    // Extract Image Link (Column K / row[10])
-    let imageLink = r[10] || "";
-    let lastResultText = r[8] || "";
-    let remarkText = r[9] || "";
-    
-    // Fallback: extract image from result/remark
-    const urlRegex = /(https?:\/\/(?:drive|docs)\.google\.com\/[^\s\)]+)/;
-    if (!imageLink && lastResultText.match(urlRegex)) {
-      imageLink = lastResultText.match(urlRegex)[1];
-    }
-    if (!imageLink && remarkText.match(urlRegex)) {
-      imageLink = remarkText.match(urlRegex)[1];
-    }
-
-    const imageHtml = getRowImageHtml(imageLink);
-    const durationText = formatDurationHms(getAssetDurationMs(assetNo));
-    
-    const isStickerDamaged = [String(r[1]), String(r[2]), lastResultText, remarkText, String(r[6] || "")].join(" ").includes("บาร์โค้ดเสียหาย") || String(r[2]).toUpperCase() === "UNKNOWN";
-    const stickerBadge = isStickerDamaged
-      ? '<span class="table-blink-badge">⚠️ บาร์โค้ดเสียหาย</span>'
-      : "";
-
-    return `
-      <div class="table-row">
-        <div><input type="checkbox" class="table-checkbox master-checkbox" data-id="${assetNo}" onchange="toggleMasterSelect(this)" ${selectedMasterAssets.includes(assetNo) ? 'checked' : ''}></div>
-        <div style="font-weight:600; color:var(--primary); font-size:12px;">${checkDateStr}</div>
-        <div style="font-weight:bold;">${assetNoHtml}</div>
-        <div>${imageHtml}</div>
-        <div style="line-height:1.3; text-align:left; word-break: break-all; overflow-wrap: break-word;">
-          <div style="font-weight:600; color:var(--text);">${assetName}</div>
-          ${stickerBadge}
-          <div style="font-size:11px; color:var(--text-dim);">${area}</div>
-        </div>
-        <div style="font-size:12px;">${acqDate}</div>
-        <div>${status}</div>
-        <div style="font-size:11px; color:var(--text-dim);">${lastResult}</div>
-        <div style="font-size:11px; font-weight:700; color:var(--primary);">${durationText}</div>
-        <div style="display:flex; gap:6px; justify-content:center;">
-          <button class="row-btn pdf" onclick='openLabelModal(${assetNoJs})'><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg> พิมพ์</button>
-          <button class="row-btn detail" onclick='viewAssetDetail(${assetNoJs})'><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> ข้อมูล</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderUnregTable(data) {
-  const tbody = document.getElementById("table-unreg-body");
-  const paginationEl = document.getElementById("unreg-pagination");
-
-  if (!Array.isArray(data) || data.length === 0) { 
-    tbody.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">ไม่พบข้อมูล</div>'; 
-    if (paginationEl) paginationEl.innerHTML = "";
-    return; 
-  }
-  const sorted = [...data].sort((a,b) => {
-    const da = a && a[6] ? new Date(a[6]).getTime() : 0;
-    const db = b && b[6] ? new Date(b[6]).getTime() : 0;
-    return db - da;
-  });
-
-  // Pagination Slice
-  const totalItems = sorted.length;
-  const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
-  if (currentUnregPage > totalPages) currentUnregPage = totalPages;
-  if (currentUnregPage < 1) currentUnregPage = 1;
-  
-  const startIndex = (currentUnregPage - 1) * PAGE_SIZE;
-  const pageData = sorted.slice(startIndex, startIndex + PAGE_SIZE);
-
-  // Render pagination UI
-  if (paginationEl) {
-    paginationEl.innerHTML = `
-      <div>แสดง ${startIndex + 1} - ${Math.min(startIndex + PAGE_SIZE, totalItems)} จาก ${totalItems} รายการ</div>
-      <div style="display: flex; gap: 8px;">
-        <button class="control-btn" onclick="changeUnregPage(-1)" ${currentUnregPage === 1 ? "disabled" : ""} style="padding: 6px 12px; margin: 0;">◀ ย้อนกลับ</button>
-        <span style="display: flex; align-items: center; padding: 0 10px; font-weight: 700;">หน้า ${currentUnregPage} / ${totalPages}</span>
-        <button class="control-btn" onclick="changeUnregPage(1)" ${currentUnregPage === totalPages ? "disabled" : ""} style="padding: 6px 12px; margin: 0;">ถัดไป ▶</button>
-      </div>
-    `;
-  }
-
-  tbody.innerHTML = pageData.map(r => {
-    const tempId = String(r[0] || "").trim();
-    const tempIdHtml = escHtml(tempId || "-");
-    const tempIdJs = JSON.stringify(tempId);
-    const assetName = String(r[1] || "").trim();
-    const category = String(r[2] || "").trim();
-    const warehouse = String(r[3] || "").trim();
-    const area = String(r[4] || "").trim();
-    const remarks = String(r[5] || "").trim();
-    const status = String(r[9] || "").trim();
-    const isStickerDamaged = [assetName, category, remarks, status].join(" ").includes("บาร์โค้ดเสียหาย") || category.toUpperCase() === "UNKNOWN";
-    const stickerBadge = isStickerDamaged
-      ? '<span class="table-blink-badge">⚠️ บาร์โค้ดเสียหาย</span>'
-      : "";
-    
-    const cat = category.toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    const catClass = `cat-tag ${cat}`;
-    const assetNameHtml = assetName ? escHtml(assetName) : '<span style="color:var(--danger);">ไม่ระบุชื่อ/โมเดล</span>';
-    const categoryHtml = escHtml(category || "-");
-    const areaHtml = escHtml(area || "-");
-    const warehouseHtml = escHtml(warehouse || "-");
-    const remarksHtml = escHtml(remarks || "-");
-    
-    // Unregistered image link is Column H / r[7]
-    const imageLink = r[7] || "";
-    const imageHtml = getRowImageHtml(imageLink);
-    const durationText = formatDurationHms(getUnregDurationMs(tempId));
-
-    return `
-      <div class="table-row unreg">
-        <div><input type="checkbox" class="table-checkbox unreg-checkbox" data-id="${tempId}" onchange="toggleUnregSelect(this)" ${selectedUnregAssets.includes(tempId) ? 'checked' : ''}></div>
-        <div>${r[6] ? new Date(r[6]).toLocaleString('th-TH') : '-'}</div>
-        <div style="font-weight:bold;">${tempIdHtml}</div>
-        <div><span class="${catClass}">${categoryHtml}</span></div>
-        <div>${imageHtml}</div>
-        <div style="line-height:1.3; text-align:left; word-break: break-all; overflow-wrap: break-word;">
-          <div style="font-weight:700; color:var(--text);">${assetNameHtml}</div>
-          ${stickerBadge}
-          <div style="font-size:11px; color:var(--text-dim); margin-top:3px;">${areaHtml}</div>
-        </div>
-        <div>${warehouseHtml}</div>
-        <div style="color:var(--danger); font-size:11px; text-align:left;">${remarksHtml}</div>
-        <div style="font-size:11px; font-weight:700; color:var(--warning);">${durationText}</div>
-        <div style="display:flex; gap:4px; justify-content:center;">
-          <button class="row-btn detail" onclick='viewUnregAssetDetail(${tempIdJs})'><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> ข้อมูล</button>
-          <button class="row-btn approve-action" onclick='confirmUnreg(${tempIdJs}, this)'><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> อนุมัติ</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-async function confirmUnreg(id, btn) {
-  if (!requireApproveLogin()) return;
-  if(!confirm("ยืนยันการนำรหัส " + id + " เข้าสู่ฐานข้อมูลหลัก?")) return;
-  
-  let originalHtml = "";
-  if (btn) {
-    btn.disabled = true;
-    originalHtml = btn.innerHTML;
-    btn.innerHTML = `<span class="spinner-sm" style="border-top-color:#ffffff; margin-right:4px;"></span> อนุมัติ...`;
-  }
-  try {
-    const res = await fetchWithTimeout(apiUrl({ action: "confirmUnregSecure", tempId: id, user: approveAuth.user, pass: approveAuth.pass }), {}, 18000);
-    const d = await res.json().catch(() => null);
-    if(d && d.status === "success") { 
-      alert("✅ อนุมัติเรียบร้อย!"); 
-      loadDashboard(); 
-    } else {
-      alert("❌ เกิดข้อผิดพลาด: " + (d ? d.message : "ไม่สำเร็จ"));
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-      }
-    }
-  } catch(e) { 
-    alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ: " + e.message); 
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = originalHtml;
-    }
-  }
-}
-
-async function confirmAllUnreg(btn) {
-  if (!requireApproveLogin()) return;
-  if(!confirm("ยืนยันการอนุมัติรายการรอยืนยัน 'ทั้งหมด' เข้าสู่ระบบ?")) return;
-  
-  let originalHtml = "";
-  if (btn) {
-    btn.disabled = true;
-    originalHtml = btn.innerHTML;
-    btn.innerHTML = `<span class="spinner-sm" style="border-top-color:#ffffff; margin-right:4px;"></span> กำลังอนุมัติ...`;
-  }
-  try {
-    const res = await fetchWithTimeout(apiUrl({ action: "confirmAllUnreg", user: approveAuth.user, pass: approveAuth.pass }), {}, 25000);
-    const d = await res.json().catch(() => null);
-    if(d && d.status === "success") { 
-      alert("✅ อนุมัติทั้งหมดสำเร็จ! (" + d.addedCount + " รายการ)"); 
-      loadDashboard(); 
-    } else {
-      alert("❌ เกิดข้อผิดพลาด: " + (d ? d.message : "ไม่สำเร็จ"));
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-      }
-    }
-  } catch(e) { 
-    alert("❌ ทำรายการไม่สำเร็จ: " + e.message); 
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = originalHtml;
-    }
-  }
-}
-
-function selectAllDamaged() {
-  if (currentPillar === 'count') {
-    allAssets.forEach(r => {
-      let lastResultText = r[8] || "";
-      let remarkText = r[9] || "";
-      const isDamaged = [String(r[1]), String(r[2]), lastResultText, remarkText, String(r[6] || "")].join(" ").includes("บาร์โค้ดเสียหาย") || String(r[2]).toUpperCase() === "UNKNOWN";
-      if (isDamaged) {
-        const id = String(r[0] || "").trim();
-        if (!selectedMasterAssets.includes(id)) {
-          selectedMasterAssets.push(id);
-        }
-      }
-    });
-  } else {
-    allUnregAssets.forEach(r => {
-      const assetName = String(r[1] || "").trim();
-      const category = String(r[2] || "").trim();
-      const remarks = String(r[5] || "").trim();
-      const status = String(r[9] || "").trim();
-      const isDamaged = [assetName, category, remarks, status].join(" ").includes("บาร์โค้ดเสียหาย") || category.toUpperCase() === "UNKNOWN";
-      if (isDamaged) {
-        const id = String(r[0] || "").trim();
-        if (!selectedUnregAssets.includes(id)) {
-          selectedUnregAssets.push(id);
-        }
-      }
-    });
-  }
-  
-  // Sync view checkboxes
-  document.querySelectorAll('.master-checkbox').forEach(c => {
-    const id = c.getAttribute('data-id');
-    if (selectedMasterAssets.includes(id)) c.checked = true;
-  });
-  document.querySelectorAll('.unreg-checkbox').forEach(c => {
-    const id = c.getAttribute('data-id');
-    if (selectedUnregAssets.includes(id)) c.checked = true;
-  });
-  
-  updateBulkActionsBar();
-}
-
-function toggleMasterSelect(chk) {
-  const id = chk.getAttribute('data-id');
-  if (chk.checked) {
-    if (!selectedMasterAssets.includes(id)) selectedMasterAssets.push(id);
-  } else {
-    selectedMasterAssets = selectedMasterAssets.filter(x => x !== id);
-  }
-  updateBulkActionsBar();
-}
-
-function toggleUnregSelect(chk) {
-  const id = chk.getAttribute('data-id');
-  if (chk.checked) {
-    if (!selectedUnregAssets.includes(id)) selectedUnregAssets.push(id);
-  } else {
-    selectedUnregAssets = selectedUnregAssets.filter(x => x !== id);
-  }
-  updateBulkActionsBar();
-}
-
-function toggleSelectAllMaster(chk) {
-  const checkboxes = document.querySelectorAll('.master-checkbox');
-  checkboxes.forEach(c => {
-    c.checked = chk.checked;
-    const id = c.getAttribute('data-id');
-    if (chk.checked) {
-      if (!selectedMasterAssets.includes(id)) selectedMasterAssets.push(id);
-    } else {
-      selectedMasterAssets = selectedMasterAssets.filter(x => x !== id);
-    }
-  });
-  updateBulkActionsBar();
-}
-
-function toggleSelectAllUnreg(chk) {
-  const checkboxes = document.querySelectorAll('.unreg-checkbox');
-  checkboxes.forEach(c => {
-    c.checked = chk.checked;
-    const id = c.getAttribute('data-id');
-    if (chk.checked) {
-      if (!selectedUnregAssets.includes(id)) selectedUnregAssets.push(id);
-    } else {
-      selectedUnregAssets = selectedUnregAssets.filter(x => x !== id);
-    }
-  });
-  updateBulkActionsBar();
-}
-
-function updateBulkActionsBar() {
-  const bar = document.getElementById("bulk-actions-bar");
-  const countSpan = document.getElementById("selected-count");
-  if (!bar || !countSpan) return;
-  
-  const count = currentPillar === 'count' ? selectedMasterAssets.length : selectedUnregAssets.length;
-  countSpan.textContent = count;
-  
-  if (count > 0) {
-    bar.classList.remove("hidden");
-  } else {
-    bar.classList.add("hidden");
-  }
-  
-  // Sync select-all checkbox header state
-  if (currentPillar === 'count') {
-    const allBox = document.getElementById("select-all-master");
-    if (allBox) {
-      const activeCheckboxes = document.querySelectorAll('.master-checkbox');
-      allBox.checked = activeCheckboxes.length > 0 && Array.from(activeCheckboxes).every(c => c.checked);
-    }
-  } else {
-    const allBox = document.getElementById("select-all-unreg");
-    if (allBox) {
-      const activeCheckboxes = document.querySelectorAll('.unreg-checkbox');
-      allBox.checked = activeCheckboxes.length > 0 && Array.from(activeCheckboxes).every(c => c.checked);
-    }
-  }
-}
-
-function clearAllSelections() {
-  selectedMasterAssets = [];
-  selectedUnregAssets = [];
-  document.querySelectorAll('.master-checkbox, .unreg-checkbox').forEach(c => c.checked = false);
-  const allMaster = document.getElementById("select-all-master");
-  if (allMaster) allMaster.checked = false;
-  const allUnreg = document.getElementById("select-all-unreg");
-  if (allUnreg) allUnreg.checked = false;
-  updateBulkActionsBar();
-}
-
-function drawLabelOnCanvas(canvas, assetNo) {
-  canvas.width = 600;
-  canvas.height = 420;
-  const ctx = canvas.getContext("2d");
-  
-  // Clear and Draw background
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,600,420);
-  
-  // Border
-  ctx.strokeStyle = "#000"; ctx.lineWidth = 4; ctx.strokeRect(10,10,580,400);
-  
-  // Header Title - Centered
-  ctx.fillStyle = "#000"; 
-  ctx.font = "bold 26px Arial"; 
-  ctx.textAlign = "center";
-  ctx.fillText("VESPIARIO (THAILAND) CO., LTD.", 300, 52);
-  
-  // Horizontal divider line
-  ctx.strokeStyle = "#ddd"; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(25, 70); ctx.lineTo(575, 70); ctx.stroke();
-  
-  // Vertical divider line - extended to 355px
-  ctx.beginPath(); ctx.moveTo(390, 85); ctx.lineTo(390, 355); ctx.stroke();
-  
-  // Get asset details
-  let name = "";
-  
-  const master = allAssets.find(r => String(r[0]).trim().toUpperCase() === String(assetNo).trim().toUpperCase());
-  if (master) {
-    name = String(master[1] || "").trim();
-  } else {
-    const unreg = allUnregAssets.find(r => String(r[0]).trim().toUpperCase() === String(assetNo).trim().toUpperCase());
-    if (unreg) {
-      name = String(unreg[1] || "").trim();
-    }
-  }
-  
-  // Draw Metadata (Left Column)
-  ctx.textAlign = "left";
-  ctx.fillStyle = "#000"; 
-  ctx.font = "bold 22px Arial"; 
-  ctx.fillText("Asset No: " + assetNo, 35, 115);
-  
-  ctx.font = "18px Arial";
-  const nameLabel = name || "-";
-  const maxWidth = 340;
-  const linesToDraw = [];
-  let currentLine = "";
-  
-  // Hybrid word wrap: wraps by word (spaces) for English, falls back to characters for long blocks (Thai)
-  const words = nameLabel.split(" ");
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    const wordWidth = ctx.measureText(word).width;
-    if (wordWidth > maxWidth) {
-      if (currentLine) {
-        linesToDraw.push(currentLine);
-        currentLine = "";
-      }
-      let temp = "";
-      for (let c = 0; c < word.length; c++) {
-        const testTemp = temp + word[c];
-        if (ctx.measureText(testTemp).width > maxWidth) {
-          linesToDraw.push(temp);
-          temp = word[c];
-        } else {
-          temp = testTemp;
-        }
-      }
-      currentLine = temp;
-    } else {
-      const testLine = currentLine ? currentLine + " " + word : word;
-      const testWidth = ctx.measureText(testLine).width;
-      if (testWidth > maxWidth) {
-        linesToDraw.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    }
-  }
-  if (currentLine) linesToDraw.push(currentLine);
-  
-  // Draw up to 2 lines of wrapped text, truncating with ... if it exceeds 2 lines
-  let y = 152;
-  const lineHeight = 24;
-  if (linesToDraw.length > 2) {
-    ctx.fillText(linesToDraw[0], 35, y);
-    let secondLine = linesToDraw[1];
-    if (secondLine.length > 3) {
-      secondLine = secondLine.substring(0, secondLine.length - 3) + "...";
-    }
-    ctx.fillText(secondLine, 35, y + lineHeight);
-  } else {
-    linesToDraw.forEach((lineText, index) => {
-      ctx.fillText(lineText, 35, y + (index * lineHeight));
-    });
-  }
-  
-  // Dynamic positioning and height scaling for barcode to minimize empty space and maximize scan ease
-  const isMultiLine = linesToDraw.length > 1;
-  const barcodeY = isMultiLine ? 205 : 175;
-  const barcodeHeight = isMultiLine ? 140 : 170; // Extended heights to fill empty bottom space
-  
-  // Barcode
-  const bcCanvas = document.createElement("canvas");
-  try {
-    JsBarcode(bcCanvas, assetNo, { format: "CODE128", height: 90, displayValue: false, margin: 0 });
-    ctx.drawImage(bcCanvas, 35, barcodeY, 330, barcodeHeight);
-  } catch(e){}
-  
-  // QR Code (Right Column) - Centered in column with larger 190px size to maximize empty space utilization
-  try {
-    const qr = new QRious({ value: assetNo, size: 190, level: 'H' });
-    ctx.drawImage(qr.canvas, 395, 110, 190, 190);
-  } catch(e){}
-  
-  // Footer - Centered
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#555";
-  ctx.font = "italic 15px Arial"; 
-  ctx.fillText("Property of Vespiario Thailand", 300, 385);
-  
-  // Restore default alignment for safety
-  ctx.textAlign = "left";
-}
-
-function generateLabelDataUrl(assetNo) {
-  const canvas = document.createElement("canvas");
-  drawLabelOnCanvas(canvas, assetNo);
-  return canvas.toDataURL();
-}
-
-function bulkPrintLabels() {
-  const ids = currentPillar === 'count' ? selectedMasterAssets : selectedUnregAssets;
-  if (ids.length === 0) {
-    alert("กรุณาเลือกรายการที่ต้องการพิมพ์ก่อน");
-    return;
-  }
-  
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    alert("❌ ไม่สามารถเปิดหน้าต่างพิมพ์ได้ กรุณาปิดการบล็อกป๊อปอัป (Popup Blocker) ของเบราว์เซอร์");
-    return;
-  }
-  
-  let html = `
-    <html>
-    <head>
-      <title>Print Assets Barcode Label</title>
-      <style>
-        @page {
-          size: 50mm 35mm;
-          margin: 0;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: Arial, sans-serif;
-          background: #fff;
-          -webkit-print-color-adjust: exact;
-        }
-        .labels-grid {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 0;
-          margin: 0;
-        }
-        .label-card {
-          width: 50mm;
-          height: 35mm;
-          box-sizing: border-box;
-          text-align: center;
-          page-break-inside: avoid;
-          page-break-after: always;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-        .label-card:last-child {
-          page-break-after: auto;
-        }
-        .label-card img {
-          width: 50mm;
-          height: 35mm;
-          display: block;
-        }
-        @media print {
-          body {
-            padding: 0;
-            margin: 0;
-          }
-          .labels-grid {
-            padding: 0;
-            gap: 0;
-          }
-          .label-card {
-            margin: 0;
-            border: none;
-            width: 50mm;
-            height: 35mm;
-          }
-          .label-card img {
-            border: none;
-            box-shadow: none;
-            width: 50mm;
-            height: 35mm;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="labels-grid">
-  `;
-  
-  ids.forEach(id => {
-    const imgUrl = generateLabelDataUrl(id);
-    html += `
-      <div class="label-card">
-        <img src="${imgUrl}">
-      </div>
-    `;
-  });
-  
-  html += `
-      </div>
-      <${'script'}>
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-            window.close();
-          }, 500);
-        };
-      </${'script'}>
-    </body>
-    </html>
-  `;
-  
-  printWindow.document.write(html);
-  printWindow.document.close();
-}
-
-function changeMasterPage(dir) {
-  currentMasterPage += dir;
-  filterTable(false);
-}
-
-function changeUnregPage(dir) {
-  currentUnregPage += dir;
-  filterTable(false);
-}
-
-function openLabelModal(assetNo) {
-  selectedAssetNo = assetNo;
-  document.getElementById("modal-label-preview").classList.remove("hidden");
-  
-  const canvas = document.getElementById("label-canvas");
-  drawLabelOnCanvas(canvas, assetNo);
-}
-
-function downloadLabelPng() {
-  const c = document.getElementById("label-canvas");
-  const a = document.createElement("a");
-  a.download = `LABEL_${selectedAssetNo}.png`; a.href = c.toDataURL(); a.click();
-}
-
-function closeLabelModal() { document.getElementById("modal-label-preview").classList.add("hidden"); }
-
-// ==================== ASSET DETAILS VIEW ====================
-function getDirectDriveImageHtml(link) {
-  if (!link) return "";
-  const match = link.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]+)/);
-  if (match && match[1]) {
-    const fileId = match[1];
-    const thumbUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=800`;
-    return `
-      <div style="margin-top: 8px; text-align: center;">
-        <a href="${link}" target="_blank" style="display:block;">
-          <img src="${thumbUrl}" alt="Attached Image" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 250px; object-fit: contain; background: #f3f4f6;">
-        </a>
-        <div style="margin-top: 12px;">
-          <a href="${link}" target="_blank" class="btn btn-secondary" style="display:inline-flex;font-size:12px;padding:6px 12px;">🔗 เปิดดูรูปภาพเต็มๆ ใน Google Drive</a>
-        </div>
-      </div>
-    `;
-  }
-  return `<a href="${link}" target="_blank" class="btn btn-primary" style="width:100%;">📸 ดูรูปภาพแนบสติ๊กเกอร์เสียหาย</a>`;
-}
-
-function formatDateTime(raw) {
-  if (!raw) return "-";
-  const d = parseSafeDate(raw);
-  if (!d) return String(raw);
-  return d.toLocaleString('th-TH', { day:'numeric', month:'short', year:'2-digit', hour:'2-digit', minute:'2-digit' });
-}
-
-function formatDate(raw) {
-  if (!raw) return "-";
-  const d = parseSafeDate(raw);
-  if (!d) return "-";
-  return d.toLocaleDateString('th-TH');
-}
-
-function escHtml(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function getStatusBadge(status) {
-  const s = String(status || "").trim();
-  if (s === "ใช้งานอยู่" || s === "Active") return `<span class="status-badge ok" style="background:#dcfce7;color:#15803d;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;">Active</span>`;
-  if (s === "ไม่ได้ใช้งาน" || s === "Inactive") return `<span class="status-badge warn" style="background:#fee2e2;color:#b91c1c;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;">Inactive</span>`;
-  if (s === "ชำรุดเสียหาย" || s === "Damaged") return `<span class="status-badge error" style="background:#fef3c7;color:#b45309;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;">ชำรุด</span>`;
-  return `<span class="status-badge" style="background:#f1f5f9;color:#475569;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;">${s}</span>`;
-}
-
-function viewAssetDetail(assetNo) {
-  const row = allAssets.find(r => String(r[0]).trim().toUpperCase() === String(assetNo).trim().toUpperCase());
-  currentModalAssetNo = assetNo;
-
-  document.getElementById("modal-asset-no").textContent     = assetNo;
-  document.getElementById("modal-name").textContent          = row ? (row[1] || "-") : "-";
-  document.getElementById("modal-category").innerHTML        = row ? `<span class="cat-tag">${escHtml(row[2] || "-")}</span>` : "-";
-  document.getElementById("modal-area").textContent          = row ? (row[3] || "-") : "-";
-  document.getElementById("modal-warehouse").textContent     = row ? (row[4] || "-") : "-";
-  let lastResultText = row ? (row[8] || "-") : "-";
-  let remarkText = row ? (row[9] || "") : "";
-  let imageLink = row ? (row[10] || "") : "";
-
-  const urlRegex = /(https?:\/\/(?:drive|docs)\.google\.com\/[^\s\)]+)/;
-  // Legacy fallback: Extract image from Result
-  if (!imageLink && lastResultText.match(urlRegex)) {
-    imageLink = lastResultText.match(urlRegex)[1];
-    lastResultText = lastResultText.replace(/\(Image:\s*https?:\/\/[^\)]+\)/, "").replace(urlRegex, "").trim();
-  }
-
-  // Legacy fallback: Extract image from Remark
-  if (!imageLink && remarkText.match(urlRegex)) {
-    imageLink = remarkText.match(urlRegex)[1];
-    remarkText = remarkText.replace(/\(Image:\s*https?:\/\/[^\)]+\)/, "").replace(urlRegex, "").trim();
-  }
-  
-  // Legacy fallback: Extract remark from Result
-  if (lastResultText.startsWith("Confirmed from Unregistered: ")) {
-    const extractedRemark = lastResultText.replace("Confirmed from Unregistered:", "").trim();
-    if (extractedRemark && !remarkText) {
-      remarkText = extractedRemark;
-    }
-  }
-
-  lastResultText = String(lastResultText).trim();
-  if (lastResultText.includes("Confirmed from Unregistered") || lastResultText.includes("Unregistered")) {
-    lastResultText = "สินค้านอกระบบ";
-  } else if (lastResultText === "Count" || lastResultText === "Checked") {
-    lastResultText = "ตรวจสอบแล้ว";
-  }
-
-  document.getElementById("modal-acq-date").textContent      = row ? formatDate(row[5])     : "-";
-  document.getElementById("modal-status").innerHTML          = row ? getStatusBadge(row[6] || "Active") : "-";
-  document.getElementById("modal-last-scan").textContent     = row ? formatDateTime(row[7]) : "-";
-  document.getElementById("modal-last-result").textContent   = lastResultText;
-  document.getElementById("modal-save-duration").textContent = formatDurationHms(getAssetDurationMs(assetNo));
-
-  if (remarkText) {
-    document.getElementById("modal-remark-container").style.display = "block";
-    document.getElementById("modal-remark").textContent = remarkText;
-  } else {
-    document.getElementById("modal-remark-container").style.display = "none";
-  }
-
-  if (imageLink) {
-    document.getElementById("modal-image-container").style.display = "block";
-    document.getElementById("modal-image").innerHTML = getDirectDriveImageHtml(imageLink);
-  } else {
-    document.getElementById("modal-image-container").style.display = "none";
-  }
-
-  document.getElementById("modal-asset-detail").classList.remove("hidden");
-}
-
-function viewUnregAssetDetail(tempId) {
-  const row = allUnregAssets.find(r => String(r[0]).trim().toUpperCase() === String(tempId).trim().toUpperCase());
-  if (!row) return;
-
-  currentModalAssetNo = tempId;
-
-  document.getElementById("modal-asset-no").textContent     = tempId;
-  document.getElementById("modal-name").textContent          = row[1] || "-";
-  document.getElementById("modal-category").innerHTML        = `<span class="cat-tag" style="background:#fef3c7;color:#b45309;">${escHtml(row[2] || "-")}</span>`;
-  document.getElementById("modal-area").textContent          = row[4] || "-";
-  document.getElementById("modal-warehouse").textContent     = row[3] || "-";
-  document.getElementById("modal-acq-date").textContent      = formatDateTime(row[6]); 
-  document.getElementById("modal-status").innerHTML          = `<span class="status-badge warn" style="background:#fef3c7;color:#b45309;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;">นอกระบบ</span>`;
-  document.getElementById("modal-last-scan").textContent     = formatDateTime(row[6]);
-  document.getElementById("modal-last-result").textContent   = "Unregistered Asset";
-  document.getElementById("modal-save-duration").textContent = formatDurationHms(getUnregDurationMs(tempId));
-
-  let remarkText = row[5] || "";
-  let imageLink = row[7] || "";
-
-  if (remarkText) {
-    document.getElementById("modal-remark-container").style.display = "block";
-    document.getElementById("modal-remark").textContent = remarkText;
-  } else {
-    document.getElementById("modal-remark-container").style.display = "none";
-  }
-
-  if (imageLink) {
-    document.getElementById("modal-image-container").style.display = "block";
-    document.getElementById("modal-image").innerHTML = getDirectDriveImageHtml(imageLink);
-  } else {
-    document.getElementById("modal-image-container").style.display = "none";
-  }
-
-  document.getElementById("modal-asset-detail").classList.remove("hidden");
-}
-
-function closeAssetDetailModal() {
-  document.getElementById("modal-asset-detail").classList.add("hidden");
-}
-
-function printModalLabel() {
-  closeAssetDetailModal();
-  openLabelModal(currentModalAssetNo);
-}
-
-// ==================== EXPORT EXCEL ====================
-function exportExcel() {
-  if (allAssets.length === 0) {
-    alert("กรุณาโหลดข้อมูลก่อน");
-    return;
-  }
-
-  const exportData = [];
-
-  // Title Row
-  exportData.push(["รายงานทรัพย์สิน (MASTER) - VESPA THAILAND CO., LTD."]);
-  exportData.push(["วันที่ส่งออก:", new Date().toLocaleDateString("th-TH")]);
-  exportData.push([]); // Empty row
-
-  // Headers
-  const hasApiHeaders = exportHeaders && exportHeaders.length > 0;
-  const FIXED_HEADERS = ["รหัสทรัพย์สิน", "ชื่อทรัพย์สิน", "หมวดหมู่", "พื้นที่", "คลัง", "วันที่ได้มา", "สถานะ", "เช็คล่าสุด", "ผลการเช็ค"];
-  const headers = hasApiHeaders ? exportHeaders : FIXED_HEADERS;
-  exportData.push(headers);
-
-  allAssets.forEach(row => {
-    if (hasApiHeaders) {
-      const newRow = row.map((cell, i) => {
-        if (i === 5 || i === 7) return cell ? formatDate(cell) : "";
-        if (i >= 8 && typeof cell === 'string') {
-          if (cell.includes("Confirmed from Unregistered") || cell.includes("Unregistered")) return "สินค้านอกระบบ";
-          if (cell === "Count" || cell === "Checked") return "ตรวจสอบแล้ว";
-        }
-        return cell !== undefined && cell !== null ? cell : "";
-      });
-      exportData.push(newRow);
-    } else {
-      let rawResult = String(row[8] || "").trim();
-      let displayResult = rawResult;
-      if (rawResult.includes("Confirmed from Unregistered") || rawResult.includes("Unregistered")) displayResult = "สินค้านอกระบบ";
-      else if (rawResult === "Count" || rawResult === "Checked") displayResult = "ตรวจสอบแล้ว";
-
-      exportData.push([
-        row[0] || "", row[1] || "", row[2] || "", row[3] || "", row[4] || "",
-        row[5] ? formatDate(row[5]) : "", row[6] || "Active",
-        row[7] ? formatDateTime(row[7]) : "", displayResult
-      ]);
-    }
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(exportData);
-
-  ws["!cols"] = [
-    { wch: 15 }, { wch: 45 }, { wch: 12 }, { wch: 15 }, { wch: 15 },
-    { wch: 15 }, { wch: 15 }, { wch: 22 }, { wch: 15 }
-  ];
-  if (hasApiHeaders && headers.length > 9) {
-    for (let c = 9; c < headers.length; c++) ws["!cols"].push({ wch: 15 });
-  }
-
-  // Apply Styles to Master Sheet
-  if (ws['!ref']) {
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-        if (!ws[cellRef]) ws[cellRef] = { t: "s", v: "" };
-
-        ws[cellRef].s = {
-          font: { name: "Tahoma", sz: 10 },
-          alignment: { vertical: "center", wrapText: true }
-        };
-
-        if (R >= 3) {
-          ws[cellRef].s.border = {
-            top: { style: "thin", color: { auto: 1 } },
-            bottom: { style: "thin", color: { auto: 1 } },
-            left: { style: "thin", color: { auto: 1 } },
-            right: { style: "thin", color: { auto: 1 } }
-          };
-        }
-
-        if (R === 3) { // Header row
-          ws[cellRef].s.fill = { fgColor: { rgb: "E2E8F0" } };
-          ws[cellRef].s.font.bold = true;
-          ws[cellRef].s.alignment.horizontal = "center";
-        } else if (R === 0) { // Title row
-          ws[cellRef].s.font.sz = 14;
-          ws[cellRef].s.font.bold = true;
-          ws[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
-        }
-      }
-    }
-    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: range.e.c } }];
-  }
-
-  XLSX.utils.book_append_sheet(wb, ws, "Assets_Master");
-
-  // --- NEW Unregistered Asset Sheet ---
-  const unregExportData = [];
-  unregExportData.push(["รายงานทรัพย์สินใหม่ (ที่ยังไม่ได้ยืนยัน) - VESPA THAILAND CO., LTD."]);
-  unregExportData.push(["วันที่ส่งออก:", new Date().toLocaleDateString("th-TH")]);
-  unregExportData.push([]); // Empty row
-
-  const FIXED_UNREG_HEADERS = ["Temp ID", "Asset Name", "Category", "Warehouse", "Area", "Remarks", "Date Added", "Image Link", "Status", "Active/Inactive"];
-  unregExportData.push(FIXED_UNREG_HEADERS);
-
-  if (allUnregAssets && allUnregAssets.length > 0) {
-    allUnregAssets.forEach(row => {
-      const newRow = [
-        row[0] || "", // Temp ID
-        row[1] || "", // Name
-        row[2] || "", // Category
-        row[3] || "", // Warehouse
-        row[4] || "", // Area
-        row[5] || "", // Remarks
-        row[6] ? formatDateTime(row[6]) : "", // Date Added
-        row[7] || "", // Image Link
-        row[8] || "", // Status
-        row[9] || ""  // Active/Inactive status
-      ];
-      unregExportData.push(newRow);
-    });
-  }
-
-  const wsUnreg = XLSX.utils.aoa_to_sheet(unregExportData);
-  wsUnreg["!cols"] = [
-    { wch: 15 }, { wch: 40 }, { wch: 12 }, { wch: 15 }, { wch: 15 },
-    { wch: 30 }, { wch: 22 }, { wch: 60 }, { wch: 12 }, { wch: 15 }
-  ];
-
-  // Apply Styles to Unregistered Sheet
-  if (wsUnreg['!ref']) {
-    const rangeUnreg = XLSX.utils.decode_range(wsUnreg['!ref']);
-    for (let R = rangeUnreg.s.r; R <= rangeUnreg.e.r; ++R) {
-      for (let C = rangeUnreg.s.c; C <= rangeUnreg.e.c; ++C) {
-        const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-        if (!wsUnreg[cellRef]) wsUnreg[cellRef] = { t: "s", v: "" };
-
-        wsUnreg[cellRef].s = {
-          font: { name: "Tahoma", sz: 10 },
-          alignment: { vertical: "center", wrapText: true }
-        };
-
-        if (R >= 3) {
-          wsUnreg[cellRef].s.border = {
-            top: { style: "thin", color: { auto: 1 } },
-            bottom: { style: "thin", color: { auto: 1 } },
-            left: { style: "thin", color: { auto: 1 } },
-            right: { style: "thin", color: { auto: 1 } }
-          };
-        }
-
-        if (R === 3) { // Header row
-          wsUnreg[cellRef].s.fill = { fgColor: { rgb: "FEF3C7" } }; // Soft Amber fill
-          wsUnreg[cellRef].s.font.bold = true;
-          wsUnreg[cellRef].s.alignment.horizontal = "center";
-        } else if (R === 0) { // Title row
-          wsUnreg[cellRef].s.font.sz = 14;
-          wsUnreg[cellRef].s.font.bold = true;
-          wsUnreg[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
-        }
-      }
-    }
-    wsUnreg["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: rangeUnreg.e.c } }];
-  }
-
-  XLSX.utils.book_append_sheet(wb, wsUnreg, "Unregistered_Assets");
-
-  XLSX.writeFile(wb, `Vespa_Assets_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-// ==================== EXPORT COUNT SHEET FOR PRINTING ====================
-function exportCountSheet(roundNum = 1) {
-  try {
-    if (allAssets.length === 0) {
-      alert("กรุณาโหลดข้อมูลก่อน");
-      return;
-    }
-
-    // 1. แยกกลุ่มข้อมูลทรัพย์สินตามคลังหลัก
-    const warehouseGroups = {};
-    allAssets.forEach(row => {
-      const rawWh = String(row[4] || "ไม่ระบุคลัง").trim().toUpperCase();
-      const rawArea = String(row[3] || "").trim();
-      const rawAreaUpper = rawArea.toUpperCase();
-      let whGroup = "Diff";
-      if (rawWh.includes("PDI")) {
-        whGroup = "PDIZONE";
-      } else if (rawWh.includes("WHD") || rawWh.includes("HR")) {
-        whGroup = "WHD+HR";
-      } else if (rawWh.includes("WH-A") || rawWh.includes("WAREHOUSE A") || rawWh.includes("WHA") || rawWh.includes("TRS")) {
-        if (rawArea.includes("โซน PDI") || rawAreaUpper.includes("PDI")) {
-          whGroup = "PDIZONE";
-        } else {
-          whGroup = "WAREHOUSE A+TRS";
-        }
-      } else if (rawWh.includes("WH-B") || rawWh.includes("WAREHOUSE B") || rawWh.includes("WHB")) {
-        if (rawArea.includes("ห้องทำงาน WH.B") || rawAreaUpper.includes("OFFICE B") || rawAreaUpper.includes("OFFICE WH.B") || rawAreaUpper.includes("OFFICE WH B")) {
-          whGroup = "OFFICE B";
-        } else {
-          whGroup = "WAREHOUSE B";
-        }
-      } else if (rawWh.includes("OFFICE")) {
-        whGroup = "OFFICE A";
-      }
-      
-      if (!warehouseGroups[whGroup]) warehouseGroups[whGroup] = [];
-      warehouseGroups[whGroup].push(row);
-    });
-
-    const wb = XLSX.utils.book_new();
-
-    // 2. สร้างชีตแยกตามคลัง
-    Object.keys(warehouseGroups).forEach(whName => {
-      const groupRows = warehouseGroups[whName];
-      // เรียงตาม: พื้นที่ย่อย --> หมวดหมู่ --> สถานะระบบ เพื่อความสะดวกในการเดินนับตรวจงาน
-      groupRows.sort((a, b) => {
-        const areaA = String(a[3] || "");
-        const areaB = String(b[3] || "");
-        const areaCompare = areaA.localeCompare(areaB, "th");
-        if (areaCompare !== 0) return areaCompare;
-
-        const catA = String(a[2] || "");
-        const catB = String(b[2] || "");
-        const catCompare = catA.localeCompare(catB, "th");
-        if (catCompare !== 0) return catCompare;
-
-        const statusA = String(a[6] || "");
-        const statusB = String(b[6] || "");
-        const statusCompare = statusA.localeCompare(statusB, "th");
-        if (statusCompare !== 0) return statusCompare;
-
-        return String(a[0]).localeCompare(String(b[0]));
-      });      const sheetData = [];
-
-      // หัวข้อเอกสาร
-      sheetData.push([`ใบตรวจนับทรัพย์สิน (COUNT SHEET ${roundNum}) - คลัง: ${whName.toUpperCase()}`]);
-      sheetData.push([`พิมพ์เมื่อวันที่: ${new Date().toLocaleDateString("th-TH")} | ผู้ตรวจสอบ: คลัง 2 คน, บัญชี 1 คน`]);
-      // ข้อมูลทีมขวาบนของตาราง
-      sheetData.push(["", "", "", "", "", `ทีม___________ : _________ / _________ / _________`]);
-
-      // Headers ตารางการนับ
-      const tableHeaders = [
-        "ลำดับ",
-        "รหัสทรัพย์สิน", 
-        "ชื่อทรัพย์สิน / รายละเอียด", 
-        "พื้นที่ย่อย", 
-        "สถานะระบบ", 
-        "คลังคนที่ 1", 
-        "คลังคนที่ 2", 
-        "บัญชี", 
-        "ผลการตรวจนับ / หมายเหตุ"
-      ];
-      sheetData.push(tableHeaders);
-
-      // เติมข้อมูลลงตาราง
-      groupRows.forEach((row, rIdx) => {
-        sheetData.push([
-          rIdx + 1, // ลำดับ
-          row[0] || "", // รหัสทรัพย์สิน
-          row[1] || "", // ชื่อทรัพย์สิน
-          row[3] || "", // พื้นที่ย่อย
-          row[6] || "Active", // สถานะระบบ
-          "", // คลังคนที่ 1 (ว่างไว้เขียนมือ)
-          "", // คลังคนที่ 2 (ว่างไว้เขียนมือ)
-          "", // บัญชี (ว่างไว้เขียนมือ)
-          row[8] === "Count" || row[8] === "Checked" ? "✓ ตรวจแล้วในระบบ" : "" // หมายเหตุเดิม
-        ]);
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-      // กำหนดความกว้างของคอลัมน์ให้อ่านง่ายเหมาะสำหรับพิมพ์ A4 ขาวดำ
-      ws["!cols"] = [
-        { wch: 6 },  // ลำดับ
-        { wch: 14 }, // รหัสทรัพย์สิน
-        { wch: 38 }, // รายละเอียดสินค้า
-        { wch: 14 }, // พื้นที่ย่อย
-        { wch: 11 }, // สถานะระบบ
-        { wch: 12 }, // คลังคนที่ 1
-        { wch: 12 }, // คลังคนที่ 2
-        { wch: 12 }, // บัญชี
-        { wch: 22 }  // หมายเหตุ
-      ];
-
-      // ตั้งความสูงของแถว (Row Heights) แบบกระชับ
-      const wsRows = [];
-      for (let i = 0; i < sheetData.length; i++) {
-        if (i === 0) {
-          wsRows.push({ hpt: 25 }); // หัวข้อหลัก & ทีม
-        } else if (i === 1) {
-          wsRows.push({ hpt: 18 }); // พิมพ์เมื่อวันที่
-        } else if (i === 2) {
-          wsRows.push({ hpt: 10 }); // แถวว่าง
-        } else if (i === 3) {
-          wsRows.push({ hpt: 24 }); // Header ตาราง
-        } else {
-          wsRows.push({ hpt: 20 }); // แถวข้อมูลตาราง
-        }
-      }
-      ws["!rows"] = wsRows;
-
-      // ตกแต่งสไตล์แบบ Gray-scale คอนทราสต์สูง เหมาะสำหรับการพิมพ์ขาวดำ
-      try {
-        if (ws['!ref']) {
-          const range = XLSX.utils.decode_range(ws['!ref']);
-          const tableHeaderRow = 3;
-          const lastDataRow = range.e.r;
-
-          for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-              const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-              if (!ws[cellRef]) ws[cellRef] = { t: "s", v: "" };
-
-              // สไตล์ตัวอักษรพื้นฐาน
-              ws[cellRef].s = {
-                font: { name: "Tahoma", sz: 9 },
-                alignment: { vertical: "center", wrapText: true }
-              };
-
-              // ตกแต่งเส้นตารางข้อมูล
-              if (R >= tableHeaderRow && R <= lastDataRow) {
-                ws[cellRef].s.border = {
-                  top: { style: "thin", color: { rgb: "000000" } },
-                  bottom: { style: "thin", color: { rgb: "000000" } },
-                  left: { style: "thin", color: { rgb: "000000" } },
-                  right: { style: "thin", color: { rgb: "000000" } }
-                };
-                
-                // จัดช่องข้อมูลทั่วไปให้อยู่กลาง (ลำดับ, สถานะ, ตรวจมือ)
-                if (C === 0 || C === 4 || (C >= 5 && C <= 7)) {
-                  ws[cellRef].s.alignment.horizontal = "center";
-                }
-
-                // สลับสีแถวขาว-เทาเข้มคอนทราสต์สูง สำหรับพิมพ์ขาวดำ
-                if (R > tableHeaderRow) {
-                  if ((R - tableHeaderRow) % 2 === 0) {
-                    ws[cellRef].s.fill = { fgColor: { rgb: "595959" } }; // พื้นเทาเข้มอ่านง่าย
-                    ws[cellRef].s.font = { name: "Tahoma", sz: 9, color: { rgb: "FFFFFF" } }; // ตัวอักษรสีขาว
-                  } else {
-                    ws[cellRef].s.fill = { fgColor: { rgb: "FFFFFF" } }; // พื้นสีขาว
-                    ws[cellRef].s.font = { name: "Tahoma", sz: 9, color: { rgb: "000000" } }; // ตัวอักษรสีดำ
-                  }
-                }
-              }
-
-              // ตกแต่งหัวตาราง (Header Row)
-              if (R === tableHeaderRow) {
-                ws[cellRef].s.fill = { fgColor: { rgb: "CCCCCC" } }; // เทากลางเพื่อตัดสีดำ
-                ws[cellRef].s.font = { name: "Tahoma", sz: 9, bold: true, color: { rgb: "000000" } }; // ตัวอักษรดำเข้มคอนทราสต์สูง
-                ws[cellRef].s.alignment.horizontal = "center";
-              }
-              
-              // ตกแต่งชื่อหัวข้อหลักของชีต (Title Row)
-              if (R === 0) {
-                ws[cellRef].s.font = { name: "Tahoma", sz: 12, bold: true, color: { rgb: "000000" } };
-                ws[cellRef].s.alignment = { horizontal: "left", vertical: "center" };
-              }
-              
-              // ตกแต่งกล่องทีมขวาบนเหนือตาราง (Row index 2)
-              if (R === 2) {
-                if (C >= 5) {
-                  ws[cellRef].s.font = { name: "Tahoma", sz: 10, bold: true, color: { rgb: "000000" } };
-                  ws[cellRef].s.alignment = { horizontal: "right", vertical: "center" };
-                }
-              }
-            }
-          }
-          
-          // ผสานเซลล์สำหรับหัวข้อและข้อมูลทีมขวาบน
-          ws["!merges"] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }, // ชื่อคลัง (คอลัมน์ A-I)
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }, // วันที่พิมพ์ (คอลัมน์ A-I)
-            { s: { r: 2, c: 5 }, e: { r: 2, c: 8 } }  // ข้อมูลทีม (คอลัมน์ F-I)
-          ];
-        }
-      } catch(styleErr) {
-        console.warn("Styling Excel failed, exporting unstyled version:", styleErr);
-      }
-
-      // ป้องกันชื่อชีตมีอักขระพิเศษที่ Excel ห้ามใช้
-      const safeSheetName = whName.replace(/\//g, "-").replace(/[:\\\?\*\[\]]/g, "").substring(0, 30);
-      XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
-    });
-
-    XLSX.writeFile(wb, `Vespa_Print_CountSheet${roundNum}_${new Date().toISOString().split('T')[0]}.xlsx`);
-  } catch (err) {
-    alert("❌ ไม่สามารถดาวน์โหลดได้เนื่องจาก: " + err.message);
-    console.error(err);
-  }
-}
-
-function exportUnregCountSheet() {
-  try {
-    if (!allUnregAssets || allUnregAssets.length === 0) {
-      alert("ไม่มีข้อมูลสินค้านอกระบบ");
-      return;
-    }
-
-    // 1. แยกกลุ่มข้อมูลทรัพย์สินนอกระบบตามคลังหลัก
-    const warehouseGroups = {};
-    allUnregAssets.forEach(row => {
-      const rawWh = String(row[3] || "ไม่ระบุคลัง").trim().toUpperCase(); // คลังสินค้า unreg อยู่คอลัมน์ D (index 3)
-      const rawArea = String(row[4] || "").trim(); // พื้นที่ย่อย unreg อยู่คอลัมน์ E (index 4)
-      const rawAreaUpper = rawArea.toUpperCase();
-      let whGroup = "Diff";
-      if (rawWh.includes("PDI")) {
-        whGroup = "PDIZONE";
-      } else if (rawWh.includes("WHD") || rawWh.includes("HR")) {
-        whGroup = "WHD+HR";
-      } else if (rawWh.includes("WH-A") || rawWh.includes("WAREHOUSE A") || rawWh.includes("WHA") || rawWh.includes("TRS")) {
-        if (rawArea.includes("โซน PDI") || rawAreaUpper.includes("PDI")) {
-          whGroup = "PDIZONE";
-        } else {
-          whGroup = "WAREHOUSE A+TRS";
-        }
-      } else if (rawWh.includes("WH-B") || rawWh.includes("WAREHOUSE B") || rawWh.includes("WHB")) {
-        if (rawArea.includes("ห้องทำงาน WH.B") || rawAreaUpper.includes("OFFICE B") || rawAreaUpper.includes("OFFICE WH.B") || rawAreaUpper.includes("OFFICE WH B")) {
-          whGroup = "OFFICE B";
-        } else {
-          whGroup = "WAREHOUSE B";
-        }
-      } else if (rawWh.includes("OFFICE")) {
-        whGroup = "OFFICE A";
-      }
-      
-      if (!warehouseGroups[whGroup]) warehouseGroups[whGroup] = [];
-      warehouseGroups[whGroup].push(row);
-    });
-
-    const wb = XLSX.utils.book_new();
-
-    // 2. สร้างชีตแยกตามคลัง
-    Object.keys(warehouseGroups).forEach(whName => {
-      const groupRows = warehouseGroups[whName];
-      // เรียงตาม: พื้นที่ย่อย --> ชื่อทรัพย์สิน
-      groupRows.sort((a, b) => {
-        const areaA = String(a[4] || "");
-        const areaB = String(b[4] || "");
-        const areaCompare = areaA.localeCompare(areaB, "th");
-        if (areaCompare !== 0) return areaCompare;
-
-        const nameA = String(a[1] || "");
-        const nameB = String(b[1] || "");
-        return nameA.localeCompare(nameB, "th");
-      });
-
-      const sheetData = [];
-
-      // หัวข้อเอกสาร
-      sheetData.push([`ใบตรวจนับทรัพย์สินใหม่ (นอกระบบ) - คลัง: ${whName.toUpperCase()}`]);
-      sheetData.push([`พิมพ์เมื่อวันที่: ${new Date().toLocaleDateString("th-TH")} | ผู้ตรวจสอบ: คลัง 2 คน, บัญชี 1 คน`]);
-      // ข้อมูลทีมขวาบนของตาราง
-      sheetData.push(["", "", "", "", "", `ทีม___________ : _________ / _________ / _________`]);
-
-      // Headers ตารางการนับ
-      const tableHeaders = [
-        "ลำดับ",
-        "Temp ID", 
-        "ชื่อทรัพย์สิน / รายละเอียด", 
-        "พื้นที่ย่อย", 
-        "สถานะระบบ", 
-        "คลังคนที่ 1", 
-        "คลังคนที่ 2", 
-        "บัญชี", 
-        "ผลการตรวจนับ / หมายเหตุ"
-      ];
-      sheetData.push(tableHeaders);
-
-      // เติมข้อมูลลงตาราง
-      groupRows.forEach((row, rIdx) => {
-        sheetData.push([
-          rIdx + 1, // ลำดับ
-          row[0] || "", // Temp ID
-          row[1] || "", // ชื่อทรัพย์สิน
-          row[4] || "", // พื้นที่ย่อย
-          "นอกระบบ", // สถานะระบบ
-          "", // คลังคนที่ 1 (ว่างไว้เขียนมือ)
-          "", // คลังคนที่ 2 (ว่างไว้เขียนมือ)
-          "", // บัญชี (ว่างไว้เขียนมือ)
-          row[5] || "" // หมายเหตุ
-        ]);
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-      // กำหนดความกว้างของคอลัมน์ให้อ่านง่ายเหมาะสำหรับพิมพ์ A4 ขาวดำ
-      ws["!cols"] = [
-        { wch: 6 },  // ลำดับ
-        { wch: 14 }, // Temp ID
-        { wch: 38 }, // รายละเอียดสินค้า
-        { wch: 14 }, // พื้นที่ย่อย
-        { wch: 11 }, // สถานะระบบ
-        { wch: 12 }, // คลังคนที่ 1
-        { wch: 12 }, // คลังคนที่ 2
-        { wch: 12 }, // บัญชี
-        { wch: 22 }  // หมายเหตุ
-      ];
-
-      // ตั้งความสูงของแถว (Row Heights) แบบกระชับ
-      const wsRows = [];
-      for (let i = 0; i < sheetData.length; i++) {
-        if (i === 0) {
-          wsRows.push({ hpt: 25 }); // หัวข้อหลัก
-        } else if (i === 1) {
-          wsRows.push({ hpt: 18 }); // พิมพ์เมื่อวันที่
-        } else if (i === 2) {
-          wsRows.push({ hpt: 10 }); // แถวว่าง
-        } else if (i === 3) {
-          wsRows.push({ hpt: 24 }); // Header ตาราง
-        } else {
-          wsRows.push({ hpt: 20 }); // แถวข้อมูลตาราง
-        }
-      }
-      ws["!rows"] = wsRows;
-
-      // ตกแต่งสไตล์แบบ Gray-scale คอนทราสต์สูง เหมาะสำหรับการพิมพ์ขาวดำ
-      try {
-        if (ws['!ref']) {
-          const range = XLSX.utils.decode_range(ws['!ref']);
-          const tableHeaderRow = 3;
-          const lastDataRow = range.e.r;
-
-          for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-              const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
-              if (!ws[cellRef]) ws[cellRef] = { t: "s", v: "" };
-
-              // สไตล์ตัวอักษรพื้นฐาน
-              ws[cellRef].s = {
-                font: { name: "Tahoma", sz: 9 },
-                alignment: { vertical: "center", wrapText: true }
-              };
-
-              // ตกแต่งเส้นตารางข้อมูล
-              if (R >= tableHeaderRow && R <= lastDataRow) {
-                ws[cellRef].s.border = {
-                  top: { style: "thin", color: { rgb: "000000" } },
-                  bottom: { style: "thin", color: { rgb: "000000" } },
-                  left: { style: "thin", color: { rgb: "000000" } },
-                  right: { style: "thin", color: { rgb: "000000" } }
-                };
-                
-                // จัดช่องข้อมูลทั่วไปให้อยู่กลาง (ลำดับ, สถานะ, ตรวจมือ)
-                if (C === 0 || C === 4 || (C >= 5 && C <= 7)) {
-                  ws[cellRef].s.alignment.horizontal = "center";
-                }
-
-                // สลับสีแถวขาว-เทาเข้มคอนทราสต์สูง สำหรับพิมพ์ขาวดำ
-                if (R > tableHeaderRow) {
-                  if ((R - tableHeaderRow) % 2 === 0) {
-                    ws[cellRef].s.fill = { fgColor: { rgb: "595959" } }; // พื้นเทาเข้มอ่านง่าย
-                    ws[cellRef].s.font = { name: "Tahoma", sz: 9, color: { rgb: "FFFFFF" } }; // ตัวอักษรสีขาว
-                  } else {
-                    ws[cellRef].s.fill = { fgColor: { rgb: "FFFFFF" } }; // พื้นสีขาว
-                    ws[cellRef].s.font = { name: "Tahoma", sz: 9, color: { rgb: "000000" } }; // ตัวอักษรสีดำ
-                  }
-                }
-              }
-
-              // ตกแต่งหัวตาราง (Header Row)
-              if (R === tableHeaderRow) {
-                ws[cellRef].s.fill = { fgColor: { rgb: "CCCCCC" } }; // เทากลางเพื่อตัดสีดำ
-                ws[cellRef].s.font = { name: "Tahoma", sz: 9, bold: true, color: { rgb: "000000" } }; // ตัวอักษรดำเข้มคอนทราสต์สูง
-                ws[cellRef].s.alignment.horizontal = "center";
-              }
-              
-              // ตกแต่งชื่อหัวข้อหลักของชีต (Title Row)
-              if (R === 0) {
-                ws[cellRef].s.font = { name: "Tahoma", sz: 12, bold: true, color: { rgb: "000000" } };
-                ws[cellRef].s.alignment = { horizontal: "left", vertical: "center" };
-              }
-              
-              // ตกแต่งกล่องทีมขวาบนเหนือตาราง (Row index 2)
-              if (R === 2) {
-                if (C >= 5) {
-                  ws[cellRef].s.font = { name: "Tahoma", sz: 10, bold: true, color: { rgb: "000000" } };
-                  ws[cellRef].s.alignment = { horizontal: "right", vertical: "center" };
-                }
-              }
-            }
-          }
-          
-          // ผสานเซลล์สำหรับหัวข้อและข้อมูลทีมขวาบน
-          ws["!merges"] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }, // ชื่อคลัง
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }, // วันที่พิมพ์
-            { s: { r: 2, c: 5 }, e: { r: 2, c: 8 } }  // ข้อมูลทีม
-          ];
-        }
-      } catch(styleErr) {
-        console.warn("Styling Excel failed, exporting unstyled version:", styleErr);
-      }
-
-      // ป้องกันชื่อชีตมีอักขระพิเศษที่ Excel ห้ามใช้
-      const safeSheetName = whName.replace(/\//g, "-").replace(/[:\\\?\*\[\]]/g, "").substring(0, 30);
-      XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
-    });
-
-    XLSX.writeFile(wb, `Vespa_Print_UnregCountSheet_${new Date().toISOString().split('T')[0]}.xlsx`);
-  } catch (err) {
-    alert("❌ ไม่สามารถดาวน์โหลดได้เนื่องจาก: " + err.message);
-    console.error(err);
-  }
-}
-
-// โหลดข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ
-updateAuthUi();
-loadDashboard();
-setInterval(() => {
-  const refreshBtn = document.getElementById("refresh-btn");
-  if (!refreshBtn || refreshBtn.disabled) return;
-  loadDashboard();
-}, 120000);
-
-// บล็อกการคลิกขวา (Context Menu)
-document.addEventListener('contextmenu', event => event.preventDefault());
-
-// บล็อกปุ่มลัดสำหรับเข้าหน้าผู้พัฒนา (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
-document.addEventListener('keydown', event => {
-  if (
-    event.key === 'F12' ||
-    (event.ctrlKey && event.shiftKey && (event.key.toUpperCase() === 'I' || event.key.toUpperCase() === 'J')) ||
-    (event.ctrlKey && event.key.toLowerCase() === 'u')
-  ) {
-    event.preventDefault();
-    showToast("⚠️ ระบบความปลอดภัย: ไม่อนุญาตให้ใช้เครื่องมือผู้พัฒนาบนหน้านี้", "error");
-  }
-});
-</script>
+  <!-- Custom Modular JS -->
+  <script src="js/ui.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/label.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
+
+
+
+
