@@ -1,7 +1,59 @@
-﻿if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
+}
+
+let deferredPwaInstallPrompt = null;
+
+function isWebAppStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function isIosInstallFallback() {
+  const ua = window.navigator.userAgent || "";
+  const isIos = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return isIos && !isWebAppStandalone();
+}
+
+function updateInstallButtonVisibility() {
+  const btn = document.getElementById("pwa-install-btn");
+  if (!btn) return;
+  const canInstall = !!deferredPwaInstallPrompt || isIosInstallFallback();
+  btn.classList.toggle("hidden", !canInstall || isWebAppStandalone());
+}
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredPwaInstallPrompt = event;
+  updateInstallButtonVisibility();
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredPwaInstallPrompt = null;
+  updateInstallButtonVisibility();
+});
+
+window.addEventListener("load", updateInstallButtonVisibility);
+
+async function installWebApp() {
+  if (isWebAppStandalone()) {
+    alert("แอปถูกติดตั้งไว้แล้ว");
+    updateInstallButtonVisibility();
+    return;
+  }
+  if (!deferredPwaInstallPrompt) {
+    alert("หากใช้ iPhone/iPad ให้กด Share แล้วเลือก Add to Home Screen");
+    return;
+  }
+  const promptEvent = deferredPwaInstallPrompt;
+  deferredPwaInstallPrompt = null;
+  promptEvent.prompt();
+  try {
+    await promptEvent.userChoice;
+  } finally {
+    updateInstallButtonVisibility();
+  }
 }
 
 // ============================================================
