@@ -47,7 +47,7 @@
   </div>
   <div class="top-bar-controls">
     <div class="action-btn-group">
-      <button class="control-btn control-btn-primary" onclick="loadDashboard()" id="refresh-btn">Auto refresh 2 min</button>
+      <button class="control-btn control-btn-primary" onclick="loadDashboard({ forceFresh: true })" id="refresh-btn">Auto refresh 2 min</button>
       <button class="control-btn control-btn-success" onclick="exportExcel()">Export Excel</button>
       <button class="control-btn control-btn-success" onclick="openCountSheetModal()">Export Count Sheet</button>
       <button class="control-btn control-btn-primary" onclick="enterPresentation()" id="present-btn">Presentation</button>
@@ -74,7 +74,7 @@
         <option value="">Latest count month</option>
       </select>
       <button class="header-action-btn count-round-btn login-required-action locked-action" type="button" onclick="startNewCountRound()" title="Sign in before starting a new count round">เริ่มรอบนับใหม่</button>
-      <button class="icon-action-btn" type="button" onclick="loadDashboard()" aria-label="Refresh data">
+      <button class="icon-action-btn" type="button" onclick="loadDashboard({ forceFresh: true })" aria-label="Refresh data">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
       </button>
       <button class="header-action-btn" type="button" onclick="exportExcel()">

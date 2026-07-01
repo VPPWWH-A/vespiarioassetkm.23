@@ -214,29 +214,48 @@ async function confirmAllUnreg(btn) {
   }
 }
 
-async function loadDashboard() {
+async function loadDashboard(options = {}) {
   const refreshBtn = document.getElementById("refresh-btn");
   if (!refreshBtn) return;
   if (dashboardLoadInFlight) return;
+  const forceFresh = !!(options && options.forceFresh);
+  const debugTiming = !!(options && options.debugTiming);
+  const nowMs = () => (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  const loadStart = nowMs();
   dashboardLoadInFlight = true;
   refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px; animation: spin 1s linear infinite; display: inline-block;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Loading...`;
   refreshBtn.disabled = true;
 
   try {
-    const commonParams = { fresh: "1", countPeriod: currentCountPeriod, countRound: currentCountProfile, _: Date.now() };
-    const r1 = await fetchJsonWithTimeout(apiUrl({ action: "dashboard", ...commonParams }), {}, 20000, "Dashboard summary");
+    const commonParams = { countPeriod: currentCountPeriod, countRound: currentCountProfile, _: Date.now() };
+    if (forceFresh) commonParams.fresh = "1";
+    const summaryStart = nowMs();
+    const summaryRequest = fetchJsonWithTimeout(apiUrl({ action: "dashboard", ...commonParams }), {}, 20000, "Dashboard summary");
+    const exportRequest = fetchJsonWithTimeout(apiUrl({ action: "export", ...commonParams, _: Date.now() + 1 }), {}, 60000, "Dashboard table");
+    const [r1, r2] = await Promise.all([summaryRequest, exportRequest]);
+    const networkEnd = nowMs();
     if (!r1 || !r1.summary) {
       throw new Error(r1 && r1.message ? r1.message : "Cannot read dashboard summary from server.");
     }
-
-    refreshBtn.innerHTML = `<span class="spinner-sm" style="margin-right:4px;"></span> Loading table...`;
-    const r2 = await fetchJsonWithTimeout(apiUrl({ action: "export", ...commonParams, _: Date.now() + 1 }), {}, 60000, "Dashboard table");
     if (!r2 || !Array.isArray(r2.assets)) {
       throw new Error(r2 && r2.message ? r2.message : "Cannot read dashboard table data from server.");
     }
 
+    refreshBtn.innerHTML = `<span class="spinner-sm" style="margin-right:4px;"></span> Rendering...`;
+    const renderStart = nowMs();
     applyDashboardData(r1, r2);
     saveLastGoodDashboard(r1, r2);
+    if (debugTiming || window.DASHBOARD_DEBUG_TIMING) {
+      const renderEnd = nowMs();
+      console.debug("[dashboard] load timing", {
+        forceFresh,
+        networkMs: Math.round(networkEnd - summaryStart),
+        renderMs: Math.round(renderEnd - renderStart),
+        totalMs: Math.round(renderEnd - loadStart),
+        assets: Array.isArray(r2.assets) ? r2.assets.length : 0,
+        unregAssets: Array.isArray(r2.unregAssets) ? r2.unregAssets.length : 0
+      });
+    }
   } catch (e) {
     console.error(e);
     const message = e && e.name === "AbortError" ? "Dashboard request timed out. Please try again." : (e.message || "Cannot connect to server.");
@@ -269,7 +288,7 @@ async function startNewCountRound() {
     try { localStorage.removeItem(DASHBOARD_LAST_GOOD_KEY); } catch (e) {}
     if (typeof updateCountPeriodSelect === "function") updateCountPeriodSelect();
     showToast(res.message || "New count round is ready.", "success");
-    await loadDashboard();
+    await loadDashboard({ forceFresh: true });
   } catch (e) {
     const message = e && e.name === "AbortError" ? "Start count round timed out." : (e.message || "Cannot start new count round.");
     showToast("Error: " + message, "error");
