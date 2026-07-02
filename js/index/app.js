@@ -799,6 +799,38 @@ function triggerPhotoScan() {
   if (input) input.click();
 }
 
+// รูปถ่ายจากกล้องมือถือความละเอียดสูงมาก (หลายล้านพิกเซล) มักถอดรหัสบาร์โค้ดไม่ติดตรงๆ
+// เพราะ decoder (ZXing) ทำงานได้ดีกว่ากับภาพที่ย่อขนาดลงมาระดับหนึ่ง ไม่ใช่ภาพดิบความละเอียดเต็ม
+async function resizeImageForScan(file, maxDim) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error("Canvas toBlob failed")); return; }
+          resolve(new File([blob], file.name || "scan.jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", 0.92);
+      };
+      img.onerror = () => reject(new Error("โหลดรูปภาพไม่สำเร็จ"));
+      img.src = event.target.result;
+    };
+    reader.onerror = () => reject(new Error("อ่านไฟล์รูปภาพไม่สำเร็จ"));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function handlePhotoScan(event) {
   const file = event && event.target && event.target.files ? event.target.files[0] : null;
   if (!file) return;
@@ -815,7 +847,22 @@ async function handlePhotoScan(event) {
 
     tempHtml5QrCode = new Html5Qrcode("reader");
     needToClearTemp = true;
-    const decodedText = await tempHtml5QrCode.scanFile(file, true);
+
+    // ไล่ลองหลายขนาดภาพ เพราะรูปดิบความละเอียดเต็มจากกล้องมักถอดรหัสไม่ติด
+    // แต่ภาพที่ย่อขนาดพอเหมาะกลับอ่านได้ง่ายกว่า
+    const sizesToTry = [1600, 900, 2400];
+    let decodedText = null;
+    let lastErr = null;
+    for (const maxDim of sizesToTry) {
+      try {
+        const resized = await resizeImageForScan(file, maxDim);
+        decodedText = await tempHtml5QrCode.scanFile(resized, true);
+        break;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    if (decodedText === null) throw lastErr;
     await onScanSuccess(decodedText);
   } catch (err) {
     // แสดงสาเหตุจริงด้วย ไม่ใช่แค่ข้อความกว้างๆ เพื่อให้วินิจฉัยปัญหาได้ตรงจุดโดยไม่ต้องเดา
