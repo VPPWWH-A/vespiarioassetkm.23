@@ -1,0 +1,3 @@
+name = "assetkm23-proxy"
+main = "proxy.js"
+compatibility_date = "2026-01-01"

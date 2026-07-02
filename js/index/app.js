@@ -404,7 +404,6 @@ async function uploadScanImageInBackground(file, meta) {
   try {
     const base64 = await compressImageToBase64(file);
     addBgUpload({
-      key: API_SECRET,
       user: getCurrentUser(),
       action: "uploadScanImage",
       requestId: meta.requestId,
@@ -451,7 +450,6 @@ async function confirmScanCount() {
 
     // Single POST request for count mark, location update, and deferred image upload marker.
     const payload = {
-      key: API_SECRET,
       user: getCurrentUser(),
       action: "updateAsset",
       requestId: requestId,

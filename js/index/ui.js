@@ -688,7 +688,6 @@ async function submitManualAdd() {
 
   const payload = isDamagedMode
     ? {
-        key: API_SECRET,
         user: getCurrentUser(),
         action: "uploadScanImage",
         assetNo,
@@ -703,7 +702,6 @@ async function submitManualAdd() {
         remarks: "บาร์โค้ดเสียหาย แต่ยังเห็นรหัส"
       }
     : {
-        key: API_SECRET,
         user: getCurrentUser(),
         action: "upload",
         image: manualImageBase64,

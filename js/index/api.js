@@ -1,4 +1,4 @@
-﻿if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
       .then((registration) => {
@@ -16,8 +16,8 @@ function isWebAppStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
-// à¹à¸ªà¸”à¸‡à¸›à¸¸à¹ˆà¸¡à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¹€à¸ªà¸¡à¸­ (à¹€à¸§à¹‰à¸™à¹à¸•à¹ˆà¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¹„à¸›à¹à¸¥à¹‰à¸§) à¹à¸¥à¹‰à¸§à¸„à¹ˆà¸­à¸¢à¹€à¸¥à¸·à¸­à¸à¸§à¸´à¸˜à¸µ "à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¸¢à¸±à¸‡à¹„à¸‡" à¸•à¸­à¸™à¸à¸”à¸›à¸¸à¹ˆà¸¡
-// à¹€à¸žà¸£à¸²à¸°à¸à¸²à¸£à¹€à¸”à¸²à¸§à¹ˆà¸²à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œ/à¹€à¸§à¸­à¸£à¹Œà¸Šà¸±à¸™à¹„à¸«à¸™ "à¸£à¸­à¸‡à¸£à¸±à¸š" à¸¥à¹ˆà¸§à¸‡à¸«à¸™à¹‰à¸²à¸ˆà¸²à¸ UA à¹€à¸›à¸£à¸²à¸°à¸šà¸²à¸‡à¹à¸¥à¸°à¸•à¸à¸£à¸¸à¹ˆà¸™à¸‡à¹ˆà¸²à¸¢
+// แสดงปุ่มติดตั้งเสมอ (เว้นแต่ติดตั้งไปแล้ว) แล้วค่อยเลือกวิธี "ติดตั้งยังไง" ตอนกดปุ่ม
+// เพราะการเดาว่าเบราว์เซอร์/เวอร์ชันไหน "รองรับ" ล่วงหน้าจาก UA เปราะบางและตกรุ่นง่าย
 function updateInstallButtonVisibility() {
   const btn = document.getElementById("pwa-install-btn");
   if (!btn) return;
@@ -37,8 +37,8 @@ window.addEventListener("appinstalled", () => {
 
 window.addEventListener("load", updateInstallButtonVisibility);
 
-// ===== à¸•à¸£à¸§à¸ˆà¸ˆà¸±à¸š In-app Browser (LINE / Facebook / Instagram / TikTok / WeChat) =====
-// à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¹ƒà¸™à¹à¸­à¸›à¹€à¸«à¸¥à¹ˆà¸²à¸™à¸µà¹‰à¸¡à¸±à¸à¸šà¸¥à¹‡à¸­à¸à¸—à¸±à¹‰à¸‡à¸à¸²à¸£à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡ PWA à¹à¸¥à¸°à¸ªà¸´à¸—à¸˜à¸´à¹Œà¸à¸¥à¹‰à¸­à¸‡ à¸•à¹‰à¸­à¸‡à¹à¸™à¸°à¸™à¸³à¹ƒà¸«à¹‰à¹€à¸›à¸´à¸”à¸œà¹ˆà¸²à¸™à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¸«à¸¥à¸±à¸à¸à¹ˆà¸­à¸™
+// ===== ตรวจจับ In-app Browser (LINE / Facebook / Instagram / TikTok / WeChat) =====
+// เบราว์เซอร์ในแอปเหล่านี้มักบล็อกทั้งการติดตั้ง PWA และสิทธิ์กล้อง ต้องแนะนำให้เปิดผ่านเบราว์เซอร์หลักก่อน
 function detectInAppBrowserName() {
   const ua = window.navigator.userAgent || "";
   if (/FBAN|FBAV/i.test(ua)) return "Facebook";
@@ -137,7 +137,7 @@ async function installWebApp() {
     return;
   }
 
-  // à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¸—à¸µà¹ˆà¸£à¸­à¸‡à¸£à¸±à¸š beforeinstallprompt (Chrome/Edge/Samsung Internet à¸—à¸µà¹ˆà¸•à¸£à¸‡à¹€à¸‡à¸·à¹ˆà¸­à¸™à¹„à¸‚) à¹ƒà¸Šà¹‰ native prompt à¹„à¸”à¹‰à¹€à¸¥à¸¢
+  // เบราว์เซอร์ที่รองรับ beforeinstallprompt (Chrome/Edge/Samsung Internet ที่ตรงเงื่อนไข) ใช้ native prompt ได้เลย
   if (deferredPwaInstallPrompt) {
     const promptEvent = deferredPwaInstallPrompt;
     deferredPwaInstallPrompt = null;
@@ -150,21 +150,23 @@ async function installWebApp() {
     return;
   }
 
-  // à¸—à¸¸à¸à¸à¸£à¸“à¸µà¸­à¸·à¹ˆà¸™ (iOS à¸—à¸¸à¸à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œ, Firefox, Desktop Safari, in-app browser, à¸«à¸£à¸·à¸­ native prompt à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¢à¸´à¸‡)
-  // à¹ƒà¸Šà¹‰ modal à¹à¸™à¸°à¸™à¸³à¸‚à¸±à¹‰à¸™à¸•à¸­à¸™à¸•à¸²à¸¡à¸­à¸¸à¸›à¸à¸£à¸“à¹Œ/à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¸—à¸µà¹ˆà¸•à¸£à¸§à¸ˆà¸žà¸šà¹à¸—à¸™ à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¹ƒà¸Šà¹‰à¹„à¸”à¹‰à¸—à¸±à¹‰à¸‡à¸£à¸¸à¹ˆà¸™à¹€à¸à¹ˆà¸²à¹à¸¥à¸°à¹ƒà¸«à¸¡à¹ˆ
+  // ทุกกรณีอื่น (iOS ทุกเบราว์เซอร์, Firefox, Desktop Safari, in-app browser, หรือ native prompt ยังไม่ยิง)
+  // ใช้ modal แนะนำขั้นตอนตามอุปกรณ์/เบราว์เซอร์ที่ตรวจพบแทน เพื่อให้ใช้ได้ทั้งรุ่นเก่าและใหม่
   openInstallGuideModal();
 }
 
 // ============================================================
-// ðŸ”´ à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸² URL à¹à¸¥à¸° Secret Key
 // ============================================================
-const API_URL    = "https://script.google.com/macros/s/AKfycbzji7bEWa6sauFw1l21Su6GEDkYw7rAiBaiSzdnMuPHanmmW9atThQ0v9C8PsLvuYkxfw/exec";
-const API_SECRET = "VESPA2025SECRET"; // à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¸ªà¸³à¸«à¸£à¸±à¸šà¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­ Backend
+// ตั้งค่า URL เรียก Cloudflare Worker (proxy ที่ซ่อน secret key จริงไว้ฝั่ง server)
+// ============================================================
+// เว็บนี้เรียกผ่าน Cloudflare Worker proxy แทนการยิง Apps Script ตรงๆ
+// secret key จริงถูกแปะโดย Worker ฝั่ง server เท่านั้น ไม่ฝังใน frontend อีกต่อไป
+// (ดู cloudflare-worker/proxy.js สำหรับโค้ด proxy และวิธี deploy)
+const API_URL = "https://asset-proxy.YOUR-SUBDOMAIN.workers.dev"; // TODO: แทนด้วย URL ของ Worker หลัง deploy
 
-// ===== à¸Ÿà¸±à¸‡à¸à¹Œà¸Šà¸±à¸™ helper à¸ªà¸£à¹‰à¸²à¸‡ URL à¸žà¸£à¹‰à¸­à¸¡ secret key =====
+// ===== ฟังก์ชัน helper สร้าง URL เรียก Worker =====
 function apiUrl(params) {
   const url = new URL(API_URL);
-  url.searchParams.set("key", API_SECRET);
   const currentUser = getCurrentUser();
   if (currentUser) url.searchParams.set("user", currentUser);
   for (const [k, v] of Object.entries(params)) {
@@ -174,10 +176,10 @@ function apiUrl(params) {
 }
 
 // ============================================================
-// ðŸ” à¸£à¸°à¸šà¸š Login / Session (à¹€à¸à¹‡à¸š session à¹„à¸§à¹‰à¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡ à¸«à¸¡à¸”à¸­à¸²à¸¢à¸¸à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´)
+// ===== ระบบ Login / Session (เก็บ session ไว้ในเครื่อง หมดอายุอัตโนมัติ) =====
 // ============================================================
 const AUTH_SESSION_KEY = "vespaAssetSession";
-const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 à¸Šà¸±à¹ˆà¸§à¹‚à¸¡à¸‡
+const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 ชั่วโมง
 
 function getSession() {
   try {
@@ -208,10 +210,9 @@ function getCurrentUser() {
   return session ? session.user : "";
 }
 
-// à¹€à¸£à¸µà¸¢à¸ backend à¹€à¸žà¸·à¹ˆà¸­à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸š user/pass à¸à¸±à¸šà¸Šà¸µà¸• "Approve all"
+// เรียก backend เพื่อตรวจสอบ user/pass กับชีต "Approve all"
 async function loginUser(username, password) {
   const url = new URL(API_URL);
-  url.searchParams.set("key", API_SECRET);
   url.searchParams.set("action", "login");
   url.searchParams.set("user", username);
   url.searchParams.set("pass", password);
@@ -222,7 +223,7 @@ async function loginUser(username, password) {
     setSession(username);
     return { ok: true };
   }
-  return { ok: false, message: (data && data.message) || "à¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸šà¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ" };
+  return { ok: false, message: (data && data.message) || "เข้าสู่ระบบไม่สำเร็จ" };
 }
 
 function logoutUser() {
@@ -330,12 +331,12 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
       && (message.includes("unknown get action") || message.includes("invalid action"));
     if (!needsExportFallback) {
       dbgLog('index.html:fetchAssetLookup', 'lookup failed', { cleanCode, message: lookupData && lookupData.message }, 'H1');
-      return lookupData || { status: "error", message: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ˆà¸²à¸à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¹„à¸”à¹‰" };
+      return lookupData || { status: "error", message: "ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้" };
     }
   } catch (e) {
     if (lookupTimer) clearTimeout(lookupTimer);
     dbgLog('index.html:fetchAssetLookup', 'lookup timeout', { cleanCode, error: e.message }, 'H1');
-    return { status: "error", message: "à¸«à¸¡à¸”à¹€à¸§à¸¥à¸²à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡à¸„à¹‰à¸™à¸«à¸² - à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹€à¸„à¸£à¸·à¸­à¸‚à¹ˆà¸²à¸¢" };
+    return { status: "error", message: "หมดเวลาระหว่างค้นหา - ตรวจสอบเครือข่าย" };
   }
   
   // Legacy fallback only for old Apps Script deployments that do not have action=lookup yet.
@@ -350,7 +351,7 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
     exportTimer = null;
     
     if (!exp || exp.status !== "ok" || !Array.isArray(exp.assets)) {
-      return { status: "error", message: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ˆà¸²à¸à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¹„à¸”à¹‰" };
+      return { status: "error", message: "ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้" };
     }
     const row = exp.assets.find(r => String(r[0]).trim().toUpperCase() === cleanCode);
     if (!row) {
@@ -383,7 +384,7 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
     };
   } catch (e) {
     if (exportTimer) clearTimeout(exportTimer);
-    return { status: "error", message: "à¸«à¸¡à¸”à¹€à¸§à¸¥à¸²à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡à¸„à¹‰à¸™à¸«à¸² - à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹€à¸„à¸£à¸·à¸­à¸‚à¹ˆà¸²à¸¢" };
+    return { status: "error", message: "หมดเวลาระหว่างค้นหา - ตรวจสอบเครือข่าย" };
   }
 }
 
@@ -397,15 +398,15 @@ async function fetchAssetLookupWithTimeout(cleanCode, timeoutMs = 15000) {
 }
 
 async function refreshCurrentView() {
-  // à¸¥à¹‰à¸²à¸‡à¹à¸„à¸Šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹ƒà¸™à¸«à¸™à¹‰à¸²à¸ªà¹à¸à¸™ à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¸šà¸±à¸‡à¸„à¸±à¸šà¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹ƒà¸«à¸¡à¹ˆ
+  // ล้างแคชข้อมูลในหน้าสแกน เพื่อให้บังคับดึงข้อมูลใหม่
   allAssets = [];
   allUnregAssets = [];
   setResult('');
 
   if (currentPage === "home") {
-    alert("â™»ï¸ à¸¥à¹‰à¸²à¸‡à¹à¸„à¸Šà¹à¸¥à¸°à¸£à¸µà¹€à¸Ÿà¸£à¸Šà¸£à¸°à¸šà¸šà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§");
+    alert("♻️ ล้างแคชและรีเฟรชระบบเรียบร้อยแล้ว");
   } else {
-    showLoading("à¸à¸³à¸¥à¸±à¸‡à¸£à¸µà¹€à¸Ÿà¸£à¸Šà¸£à¸°à¸šà¸š...");
+    showLoading("กำลังรีเฟรชระบบ...");
     setTimeout(() => setResult(''), 800);
   }
 
@@ -443,8 +444,8 @@ function showScanStatusNotice(assetNo, scanStatus) {
   const timeText = scanStatus.createdAt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${escHtml(formatDateTime(scanStatus.createdAt))}</div>` : "";
   const isPending = state === "received" || state === "processing";
   const isFailed = state === "failed";
-  const title = isPending ? "à¸ªà¹ˆà¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹à¸¥à¹‰à¸§ à¸£à¸­à¸«à¸¥à¸±à¸‡à¸šà¹‰à¸²à¸™" : (isFailed ? "à¹€à¸„à¸¢à¸ªà¹ˆà¸‡à¹à¸¥à¹‰à¸§à¹à¸•à¹ˆà¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ" : "à¸£à¸«à¸±à¸ªà¸™à¸µà¹‰à¹€à¸„à¸¢à¸™à¸±à¸šà¹à¸¥à¹‰à¸§");
-  const icon = isPending ? "â³" : (isFailed ? "âš ï¸" : "âœ…");
+  const title = isPending ? "ส่งข้อมูลแล้ว รอหลังบ้าน" : (isFailed ? "เคยส่งแล้วแต่ไม่สำเร็จ" : "รหัสนี้เคยนับแล้ว");
+  const icon = isPending ? "⏳" : (isFailed ? "⚠️" : "✅");
   const cardClass = isFailed ? "warning" : "success";
   setResult(`
     <div class="result-card ${cardClass}">
@@ -460,9 +461,9 @@ function showScanStatusNotice(assetNo, scanStatus) {
 
 
 function getCurrentBaseCountColName() {
-  const months = ["à¸¡.à¸„.", "à¸.à¸ž.", "à¸¡à¸µ.à¸„.", "à¹€à¸¡.à¸¢.", "à¸ž.à¸„.", "à¸¡à¸´.à¸¢.", "à¸.à¸„.", "à¸ª.à¸„.", "à¸.à¸¢.", "à¸•.à¸„.", "à¸ž.à¸¢.", "à¸˜.à¸„."];
+  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
   const d = new Date();
-  return "à¹€à¸Šà¹‡à¸„ " + months[d.getMonth()] + " " + d.getFullYear();
+  return "เช็ค " + months[d.getMonth()] + " " + d.getFullYear();
 }
 
 function getCurrentCountColName(round = "1") {

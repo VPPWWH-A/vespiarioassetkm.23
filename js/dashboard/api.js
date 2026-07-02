@@ -1,10 +1,11 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzji7bEWa6sauFw1l21Su6GEDkYw7rAiBaiSzdnMuPHanmmW9atThQ0v9C8PsLvuYkxfw/exec";
-const API_SECRET = "VESPA2025SECRET";
+// เรียกผ่าน Cloudflare Worker proxy แทนการยิง Apps Script ตรงๆ
+// secret key จริงถูกแปะโดย Worker ฝั่ง server เท่านั้น (ดู cloudflare-worker/proxy.js)
+const API_URL = "https://asset-proxy.YOUR-SUBDOMAIN.workers.dev"; // TODO: แทนด้วย URL ของ Worker หลัง deploy
 const DASHBOARD_LAST_GOOD_KEY = "__assetDashboardLastGood";
 let dashboardLoadInFlight = false;
 
 function apiUrl(params) {
-  const url = new URL(API_URL); url.searchParams.set("key", API_SECRET);
+  const url = new URL(API_URL);
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null || v === "") continue;
     url.searchParams.set(k, v);
