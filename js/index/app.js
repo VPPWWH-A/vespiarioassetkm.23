@@ -874,9 +874,10 @@ function getScannerConfig(withAspectRatio) {
     qrbox: getScannerQrbox,
     // ใช้ native BarcodeDetector ของเบราว์เซอร์แทน decoder JS ล้วนถ้ารองรับ (แม่นยำ/เร็วกว่ามาก
     // โดยเฉพาะมุมเอียง/แสงไม่ดี) เบราว์เซอร์รุ่นเก่าที่ไม่รองรับจะ fallback กลับไปใช้ตัวเดิมอัตโนมัติ
-    // ⚠️ html5-qrcode มี known issue เรื่อง mapping format enum กับ native BarcodeDetector ไม่ตรงกันเป๊ะ
-    // ทุกกันแก้จุดนี้ต้องทดสอบสแกนทั้ง QR และ CODE_128 จริงคู่กันเสมอ (2 รูปแบบที่ label.js ใช้จริง)
-    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    // ⚠️ ปิดไว้ก่อน: html5-qrcode มี known issue เรื่อง mapping format enum กับ native BarcodeDetector
+    // ไม่ตรงกันเป๊ะ ทำให้สแกนไม่ติดเงียบๆ (ไม่ error แค่ไม่เคยอ่านค่าได้) พบจากการใช้งานจริง
+    // ถ้าจะเปิดใหม่อีกครั้งต้องทดสอบสแกนทั้ง QR และ CODE_128 จริงคู่กันก่อนเสมอ
+    experimentalFeatures: { useBarCodeDetectorIfSupported: false }
   };
   const formatsToSupport = getSupportedScannerFormats();
   if (formatsToSupport && formatsToSupport.length) config.formatsToSupport = formatsToSupport;
