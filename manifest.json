@@ -2,12 +2,14 @@
   "name": "KM-23 Asset Management",
   "short_name": "Asset KM-23",
   "description": "Asset management and barcode scanning system",
-  "id": "./index.html",
-  "start_url": "./index.html",
-  "scope": "./",
+  "id": "/",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0f172a",
   "theme_color": "#16a34a",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "./logo-192.png",

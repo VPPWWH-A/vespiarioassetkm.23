@@ -207,28 +207,28 @@ function closeIosFastScanModal(startScan = false) {
   }
 }
 
-async function applyCameraFocus() {
+function getScannerVideoTrack() {
   const videoEl = document.querySelector("#reader video");
-  if (!videoEl || !videoEl.srcObject) return;
+  if (!videoEl || !videoEl.srcObject) return null;
   const tracks = videoEl.srcObject.getVideoTracks();
-  if (!tracks.length) return;
-  const track = tracks[0];
+  return tracks.length ? tracks[0] : null;
+}
+
+async function applyCameraFocus(isManualTap = false) {
+  const track = getScannerVideoTrack();
+  if (!track) return;
   if (typeof track.getCapabilities !== "function" || typeof track.applyConstraints !== "function") return;
 
   const capabilities = track.getCapabilities();
   const advanced = [];
 
   if (capabilities.focusMode && Array.isArray(capabilities.focusMode)) {
-    const preferredFocusMode = ["continuous", "single-shot", "manual"].find(mode => capabilities.focusMode.includes(mode));
+    const preferredFocusMode = isManualTap
+      ? ["single-shot", "continuous"].find(mode => capabilities.focusMode.includes(mode))
+      : ["continuous"].find(mode => capabilities.focusMode.includes(mode));
     if (preferredFocusMode) {
       advanced.push({ focusMode: preferredFocusMode });
     }
-  }
-  if (capabilities.focusDistance && typeof capabilities.focusDistance.min === "number" && typeof capabilities.focusDistance.max === "number") {
-    const min = capabilities.focusDistance.min;
-    const max = capabilities.focusDistance.max;
-    const nearMid = min + ((max - min) * 0.35);
-    advanced.push({ focusDistance: nearMid });
   }
   if (capabilities.exposureMode && Array.isArray(capabilities.exposureMode) && capabilities.exposureMode.includes("continuous")) {
     advanced.push({ exposureMode: "continuous" });
@@ -839,21 +839,40 @@ function getScannerQrbox(viewfinderWidth, viewfinderHeight) {
   const maxWidth = Math.max(180, viewfinderWidth - 24);
   const maxHeight = Math.max(140, viewfinderHeight - 24);
   const width = Math.floor(Math.min(viewfinderWidth * 0.9, 560, maxWidth));
-  const height = Math.floor(Math.min(viewfinderHeight * 0.42, 220, maxHeight));
+  const height = Math.floor(Math.min(viewfinderHeight * 0.58, 320, maxHeight));
   return {
     width: Math.min(maxWidth, Math.max(280, width)),
-    height: Math.min(maxHeight, Math.max(120, height))
+    height: Math.min(maxHeight, Math.max(180, height))
   };
+}
+
+function getSupportedScannerFormats() {
+  if (!window.Html5QrcodeSupportedFormats) return undefined;
+  const F = window.Html5QrcodeSupportedFormats;
+  return [
+    F.QR_CODE,
+    F.CODE_128,
+    F.CODE_39,
+    F.CODE_93,
+    F.EAN_13,
+    F.EAN_8,
+    F.UPC_A,
+    F.UPC_E,
+    F.ITF,
+    F.CODABAR
+  ].filter(format => format !== undefined);
 }
 
 function getScannerConfig(withAspectRatio) {
   const config = {
-    fps: 15,
+    fps: 12,
     qrbox: getScannerQrbox,
     // ใช้ native BarcodeDetector ของเบราว์เซอร์แทน decoder JS ล้วนถ้ารองรับ (แม่นยำ/เร็วกว่ามาก
     // โดยเฉพาะมุมเอียง/แสงไม่ดี) เบราว์เซอร์รุ่นเก่าที่ไม่รองรับจะ fallback กลับไปใช้ตัวเดิมอัตโนมัติ
     experimentalFeatures: { useBarCodeDetectorIfSupported: true }
   };
+  const formatsToSupport = getSupportedScannerFormats();
+  if (formatsToSupport && formatsToSupport.length) config.formatsToSupport = formatsToSupport;
   if (withAspectRatio) config.aspectRatio = 1.7777778;
   return config;
 }
@@ -957,7 +976,7 @@ async function startScanner() {
     const focusHint = document.getElementById("scanner-focus-hint");
     if (focusHint) focusHint.classList.remove("hidden");
 
-    try { await applyCameraFocus(); } catch (focusErr) { console.warn("applyCameraFocus failed", focusErr); }
+    try { await applyCameraFocus(false); } catch (focusErr) { console.warn("applyCameraFocus failed", focusErr); }
     resetAutoFocusCycle();
   } catch (err) {
     showError(extractCameraErrorMessage(err));
@@ -1002,7 +1021,7 @@ async function runAutoFocusCycle() {
   if (autoFocusAttempts >= AUTO_FOCUS_MAX_ATTEMPTS) return; // ครบโควตาแล้ว เหลือให้แตะโฟกัสเองต่อ ไม่รบกวนจอถี่เกินไป
 
   autoFocusAttempts++;
-  try { await applyCameraFocus(); } catch (e) {}
+  try { await applyCameraFocus(false); } catch (e) {}
   autoFocusTimer = setTimeout(runAutoFocusCycle, AUTO_FOCUS_INTERVAL_MS);
 }
 
@@ -1012,7 +1031,7 @@ async function refocusCamera(event, isAuto) {
   if (!isAuto) autoFocusAttempts = 0; // แตะเองถือว่าให้โควตารอบอัตโนมัติใหม่
   showFocusRing(event, isAuto);
   try {
-    await applyCameraFocus();
+    await applyCameraFocus(!isAuto);
   } catch (err) {
     console.warn("refocusCamera failed", err);
   } finally {

@@ -1,7 +1,10 @@
-if ('serviceWorker' in navigator) {
+﻿if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => navigator.serviceWorker.ready)
+      .then((registration) => {
+        registration.update().catch(() => {});
+        return navigator.serviceWorker.ready;
+      })
       .then(updateInstallButtonVisibility)
       .catch(() => {});
   });
@@ -13,8 +16,8 @@ function isWebAppStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
-// แสดงปุ่มติดตั้งเสมอ (เว้นแต่ติดตั้งไปแล้ว) แล้วค่อยเลือกวิธี "ติดตั้งยังไง" ตอนกดปุ่ม
-// เพราะการเดาว่าเบราว์เซอร์/เวอร์ชันไหน "รองรับ" ล่วงหน้าจาก UA เปราะบางและตกรุ่นง่าย
+// à¹à¸ªà¸”à¸‡à¸›à¸¸à¹ˆà¸¡à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¹€à¸ªà¸¡à¸­ (à¹€à¸§à¹‰à¸™à¹à¸•à¹ˆà¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¹„à¸›à¹à¸¥à¹‰à¸§) à¹à¸¥à¹‰à¸§à¸„à¹ˆà¸­à¸¢à¹€à¸¥à¸·à¸­à¸à¸§à¸´à¸˜à¸µ "à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¸¢à¸±à¸‡à¹„à¸‡" à¸•à¸­à¸™à¸à¸”à¸›à¸¸à¹ˆà¸¡
+// à¹€à¸žà¸£à¸²à¸°à¸à¸²à¸£à¹€à¸”à¸²à¸§à¹ˆà¸²à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œ/à¹€à¸§à¸­à¸£à¹Œà¸Šà¸±à¸™à¹„à¸«à¸™ "à¸£à¸­à¸‡à¸£à¸±à¸š" à¸¥à¹ˆà¸§à¸‡à¸«à¸™à¹‰à¸²à¸ˆà¸²à¸ UA à¹€à¸›à¸£à¸²à¸°à¸šà¸²à¸‡à¹à¸¥à¸°à¸•à¸à¸£à¸¸à¹ˆà¸™à¸‡à¹ˆà¸²à¸¢
 function updateInstallButtonVisibility() {
   const btn = document.getElementById("pwa-install-btn");
   if (!btn) return;
@@ -34,8 +37,8 @@ window.addEventListener("appinstalled", () => {
 
 window.addEventListener("load", updateInstallButtonVisibility);
 
-// ===== ตรวจจับ In-app Browser (LINE / Facebook / Instagram / TikTok / WeChat) =====
-// เบราว์เซอร์ในแอปเหล่านี้มักบล็อกทั้งการติดตั้ง PWA และสิทธิ์กล้อง ต้องแนะนำให้เปิดผ่านเบราว์เซอร์หลักก่อน
+// ===== à¸•à¸£à¸§à¸ˆà¸ˆà¸±à¸š In-app Browser (LINE / Facebook / Instagram / TikTok / WeChat) =====
+// à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¹ƒà¸™à¹à¸­à¸›à¹€à¸«à¸¥à¹ˆà¸²à¸™à¸µà¹‰à¸¡à¸±à¸à¸šà¸¥à¹‡à¸­à¸à¸—à¸±à¹‰à¸‡à¸à¸²à¸£à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡ PWA à¹à¸¥à¸°à¸ªà¸´à¸—à¸˜à¸´à¹Œà¸à¸¥à¹‰à¸­à¸‡ à¸•à¹‰à¸­à¸‡à¹à¸™à¸°à¸™à¸³à¹ƒà¸«à¹‰à¹€à¸›à¸´à¸”à¸œà¹ˆà¸²à¸™à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¸«à¸¥à¸±à¸à¸à¹ˆà¸­à¸™
 function detectInAppBrowserName() {
   const ua = window.navigator.userAgent || "";
   if (/FBAN|FBAV/i.test(ua)) return "Facebook";
@@ -56,62 +59,58 @@ function detectPlatformInfo() {
   return { isIOS, isAndroid, isChromeIOS, isFirefoxIOS, isSamsung };
 }
 
-// สร้างขั้นตอนติดตั้งที่เหมาะกับอุปกรณ์/เบราว์เซอร์ที่ตรวจพบ ใช้เป็น fallback สำหรับเบราว์เซอร์/เวอร์ชัน
-// ที่ไม่รองรับ beforeinstallprompt (iOS ทุกเบราว์เซอร์, Firefox, Samsung Internet บางเวอร์ชัน, Desktop Safari ฯลฯ)
 function getInstallGuideContent() {
   const inAppName = detectInAppBrowserName();
   if (inAppName) {
     return {
-      subtitle: `กำลังเปิดผ่านแอป ${inAppName}`,
+      subtitle: `\u0E01\u0E33\u0E25\u0E31\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E1C\u0E48\u0E32\u0E19\u0E41\u0E2D\u0E1B ${inAppName}`,
       steps: [
-        `แตะเมนู "•••" หรือไอคอนมุมขวาบนของหน้าจอ`,
-        `เลือก "เปิดใน Browser" / "เปิดด้วย Chrome หรือ Safari" (Open in external browser)`,
-        `เมื่อเปิดผ่านเบราว์เซอร์หลักแล้ว กลับมากดปุ่ม "ติดตั้งแอป" อีกครั้ง`
+        `\u0E41\u0E15\u0E30\u0E40\u0E21\u0E19\u0E39 "..." \u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E2D\u0E04\u0E2D\u0E19\u0E21\u0E38\u0E21\u0E02\u0E27\u0E32\u0E1A\u0E19\u0E02\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D`,
+        `\u0E40\u0E25\u0E37\u0E2D\u0E01 "\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E19\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C" \u0E2B\u0E23\u0E37\u0E2D "\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E49\u0E27\u0E22 Chrome/Safari"`,
+        `\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E1C\u0E48\u0E32\u0E19\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u0E2B\u0E25\u0E31\u0E01\u0E41\u0E25\u0E49\u0E27 \u0E43\u0E2B\u0E49\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21 "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E2D\u0E1B" \u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07`
       ]
     };
   }
 
   const p = detectPlatformInfo();
-
   if (p.isIOS) {
     if (p.isChromeIOS || p.isFirefoxIOS) {
       return {
-        subtitle: "แนะนำให้เปิดผ่าน Safari เพื่อติดตั้งแอป",
+        subtitle: "\u0E41\u0E19\u0E30\u0E19\u0E33\u0E43\u0E2B\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E1C\u0E48\u0E32\u0E19 Safari \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E2D\u0E1B",
         steps: [
-          `เบราว์เซอร์นี้ติดตั้งแอปโดยตรงไม่ได้ (ข้อจำกัดของ iOS) — กรุณาคัดลอกลิงก์แล้วเปิดด้วย Safari`,
-          `แตะปุ่มแชร์ 🔗 ที่แถบด้านล่างจอ`,
-          `เลือก "เพิ่มไปที่หน้าจอโฮม" (Add to Home Screen) แล้วแตะ "เพิ่ม"`
+          `\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u0E19\u0E35\u0E49\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E2D\u0E1B\u0E42\u0E14\u0E22\u0E15\u0E23\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1A\u0E19 iOS \u0E43\u0E2B\u0E49\u0E04\u0E31\u0E14\u0E25\u0E2D\u0E01\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E25\u0E49\u0E27\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E49\u0E27\u0E22 Safari`,
+          `\u0E41\u0E15\u0E30\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E0A\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E41\u0E16\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E02\u0E2D\u0E07 Safari`,
+          `\u0E40\u0E25\u0E37\u0E2D\u0E01 "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E1B\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D\u0E42\u0E2E\u0E21" \u0E41\u0E25\u0E49\u0E27\u0E41\u0E15\u0E30 "\u0E40\u0E1E\u0E34\u0E48\u0E21"`
         ]
       };
     }
     return {
-      subtitle: "ติดตั้งผ่าน Safari (iOS / iPadOS)",
+      subtitle: "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E1C\u0E48\u0E32\u0E19 Safari (iOS / iPadOS)",
       steps: [
-        `แตะปุ่มแชร์ 🔗 ที่แถบด้านล่างจอ (บน iPad จะอยู่แถบด้านบน)`,
-        `เลื่อนหาและแตะ "เพิ่มไปที่หน้าจอโฮม" (Add to Home Screen)`,
-        `แตะ "เพิ่ม" (Add) มุมขวาบนเพื่อยืนยัน`
+        `\u0E41\u0E15\u0E30\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E0A\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E41\u0E16\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E02\u0E2D\u0E07 Safari \u0E1A\u0E19 iPad \u0E2D\u0E32\u0E08\u0E2D\u0E22\u0E39\u0E48\u0E41\u0E16\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19`,
+        `\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E2B\u0E32\u0E41\u0E25\u0E30\u0E41\u0E15\u0E30 "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E1B\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D\u0E42\u0E2E\u0E21"`,
+        `\u0E41\u0E15\u0E30 "\u0E40\u0E1E\u0E34\u0E48\u0E21" \u0E17\u0E35\u0E48\u0E21\u0E38\u0E21\u0E02\u0E27\u0E32\u0E1A\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19`
       ]
     };
   }
 
   if (p.isAndroid) {
     return {
-      subtitle: p.isSamsung ? "ติดตั้งผ่าน Samsung Internet" : "ติดตั้งผ่าน Chrome หรือเบราว์เซอร์ Android",
+      subtitle: p.isSamsung ? "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E1C\u0E48\u0E32\u0E19 Samsung Internet" : "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E1C\u0E48\u0E32\u0E19 Chrome \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C Android",
       steps: [
-        `แตะเมนู "⋮" มุมขวาบนของเบราว์เซอร์`,
-        `เลือก "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอโฮม" (Install app / Add to Home screen)`,
-        `ยืนยันการติดตั้งอีกครั้งในหน้าต่างที่ขึ้นมา`
+        `\u0E41\u0E15\u0E30\u0E40\u0E21\u0E19\u0E39 "\u22EE" \u0E21\u0E38\u0E21\u0E02\u0E27\u0E32\u0E1A\u0E19\u0E02\u0E2D\u0E07\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C`,
+        `\u0E40\u0E25\u0E37\u0E2D\u0E01 "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E2D\u0E1B" \u0E2B\u0E23\u0E37\u0E2D "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E1B\u0E22\u0E31\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D\u0E42\u0E2E\u0E21"`,
+        `\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E48\u0E32\u0E07\u0E17\u0E35\u0E48\u0E02\u0E36\u0E49\u0E19\u0E21\u0E32`
       ]
     };
   }
 
-  // Desktop (Windows / Mac / Linux)
   return {
-    subtitle: "ติดตั้งผ่านคอมพิวเตอร์",
+    subtitle: "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E1C\u0E48\u0E32\u0E19\u0E04\u0E2D\u0E21\u0E1E\u0E34\u0E27\u0E40\u0E15\u0E2D\u0E23\u0E4C",
     steps: [
-      `มองหาไอคอนติดตั้ง ⊕ ที่แถบที่อยู่ URL (ด้านขวาของช่อง URL) ใน Chrome หรือ Edge`,
-      `หรือเปิดเมนู "⋮" ของเบราว์เซอร์ แล้วเลือก "ติดตั้ง..." (Install...)`,
-      `หากใช้ Safari หรือ Firefox บนคอมพิวเตอร์ เบราว์เซอร์เหล่านี้ยังไม่รองรับการติดตั้งแอป แนะนำให้ใช้งานผ่านหน้าเว็บได้ตามปกติ หรือสลับไปใช้ Chrome/Edge เพื่อติดตั้ง`
+      `\u0E21\u0E2D\u0E07\u0E2B\u0E32\u0E44\u0E2D\u0E04\u0E2D\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E14\u0E49\u0E32\u0E19\u0E02\u0E27\u0E32\u0E02\u0E2D\u0E07\u0E0A\u0E48\u0E2D\u0E07 URL \u0E43\u0E19 Chrome \u0E2B\u0E23\u0E37\u0E2D Edge`,
+      `\u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39 "\u22EE" \u0E02\u0E2D\u0E07\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07..."`,
+      `\u0E16\u0E49\u0E32\u0E43\u0E0A\u0E49 Safari \u0E2B\u0E23\u0E37\u0E2D Firefox \u0E1A\u0E19\u0E04\u0E2D\u0E21\u0E1E\u0E34\u0E27\u0E40\u0E15\u0E2D\u0E23\u0E4C \u0E41\u0E19\u0E30\u0E19\u0E33\u0E43\u0E2B\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19\u0E1C\u0E48\u0E32\u0E19\u0E40\u0E27\u0E47\u0E1A\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34 \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E44\u0E1B\u0E43\u0E0A\u0E49 Chrome/Edge \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07`
     ]
   };
 }
@@ -133,12 +132,12 @@ function closeInstallGuideModal() {
 
 async function installWebApp() {
   if (isWebAppStandalone()) {
-    alert("แอปถูกติดตั้งไว้แล้ว");
+    alert("\u0E41\u0E2D\u0E1B\u0E16\u0E39\u0E01\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27");
     updateInstallButtonVisibility();
     return;
   }
 
-  // เบราว์เซอร์ที่รองรับ beforeinstallprompt (Chrome/Edge/Samsung Internet ที่ตรงเงื่อนไข) ใช้ native prompt ได้เลย
+  // à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¸—à¸µà¹ˆà¸£à¸­à¸‡à¸£à¸±à¸š beforeinstallprompt (Chrome/Edge/Samsung Internet à¸—à¸µà¹ˆà¸•à¸£à¸‡à¹€à¸‡à¸·à¹ˆà¸­à¸™à¹„à¸‚) à¹ƒà¸Šà¹‰ native prompt à¹„à¸”à¹‰à¹€à¸¥à¸¢
   if (deferredPwaInstallPrompt) {
     const promptEvent = deferredPwaInstallPrompt;
     deferredPwaInstallPrompt = null;
@@ -151,18 +150,18 @@ async function installWebApp() {
     return;
   }
 
-  // ทุกกรณีอื่น (iOS ทุกเบราว์เซอร์, Firefox, Desktop Safari, in-app browser, หรือ native prompt ยังไม่ยิง)
-  // ใช้ modal แนะนำขั้นตอนตามอุปกรณ์/เบราว์เซอร์ที่ตรวจพบแทน เพื่อให้ใช้ได้ทั้งรุ่นเก่าและใหม่
+  // à¸—à¸¸à¸à¸à¸£à¸“à¸µà¸­à¸·à¹ˆà¸™ (iOS à¸—à¸¸à¸à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œ, Firefox, Desktop Safari, in-app browser, à¸«à¸£à¸·à¸­ native prompt à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¢à¸´à¸‡)
+  // à¹ƒà¸Šà¹‰ modal à¹à¸™à¸°à¸™à¸³à¸‚à¸±à¹‰à¸™à¸•à¸­à¸™à¸•à¸²à¸¡à¸­à¸¸à¸›à¸à¸£à¸“à¹Œ/à¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¸—à¸µà¹ˆà¸•à¸£à¸§à¸ˆà¸žà¸šà¹à¸—à¸™ à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¹ƒà¸Šà¹‰à¹„à¸”à¹‰à¸—à¸±à¹‰à¸‡à¸£à¸¸à¹ˆà¸™à¹€à¸à¹ˆà¸²à¹à¸¥à¸°à¹ƒà¸«à¸¡à¹ˆ
   openInstallGuideModal();
 }
 
 // ============================================================
-// 🔴 ตั้งค่า URL และ Secret Key
+// ðŸ”´ à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸² URL à¹à¸¥à¸° Secret Key
 // ============================================================
 const API_URL    = "https://script.google.com/macros/s/AKfycbzji7bEWa6sauFw1l21Su6GEDkYw7rAiBaiSzdnMuPHanmmW9atThQ0v9C8PsLvuYkxfw/exec";
-const API_SECRET = "VESPA2025SECRET"; // รหัสผ่านสำหรับเชื่อมต่อ Backend
+const API_SECRET = "VESPA2025SECRET"; // à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¸ªà¸³à¸«à¸£à¸±à¸šà¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­ Backend
 
-// ===== ฟังก์ชัน helper สร้าง URL พร้อม secret key =====
+// ===== à¸Ÿà¸±à¸‡à¸à¹Œà¸Šà¸±à¸™ helper à¸ªà¸£à¹‰à¸²à¸‡ URL à¸žà¸£à¹‰à¸­à¸¡ secret key =====
 function apiUrl(params) {
   const url = new URL(API_URL);
   url.searchParams.set("key", API_SECRET);
@@ -175,10 +174,10 @@ function apiUrl(params) {
 }
 
 // ============================================================
-// 🔐 ระบบ Login / Session (เก็บ session ไว้ในเครื่อง หมดอายุอัตโนมัติ)
+// ðŸ” à¸£à¸°à¸šà¸š Login / Session (à¹€à¸à¹‡à¸š session à¹„à¸§à¹‰à¹ƒà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡ à¸«à¸¡à¸”à¸­à¸²à¸¢à¸¸à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´)
 // ============================================================
 const AUTH_SESSION_KEY = "vespaAssetSession";
-const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 ชั่วโมง
+const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 à¸Šà¸±à¹ˆà¸§à¹‚à¸¡à¸‡
 
 function getSession() {
   try {
@@ -209,7 +208,7 @@ function getCurrentUser() {
   return session ? session.user : "";
 }
 
-// เรียก backend เพื่อตรวจสอบ user/pass กับชีต "Approve all"
+// à¹€à¸£à¸µà¸¢à¸ backend à¹€à¸žà¸·à¹ˆà¸­à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸š user/pass à¸à¸±à¸šà¸Šà¸µà¸• "Approve all"
 async function loginUser(username, password) {
   const url = new URL(API_URL);
   url.searchParams.set("key", API_SECRET);
@@ -223,7 +222,7 @@ async function loginUser(username, password) {
     setSession(username);
     return { ok: true };
   }
-  return { ok: false, message: (data && data.message) || "เข้าสู่ระบบไม่สำเร็จ" };
+  return { ok: false, message: (data && data.message) || "à¹€à¸‚à¹‰à¸²à¸ªà¸¹à¹ˆà¸£à¸°à¸šà¸šà¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ" };
 }
 
 function logoutUser() {
@@ -331,12 +330,12 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
       && (message.includes("unknown get action") || message.includes("invalid action"));
     if (!needsExportFallback) {
       dbgLog('index.html:fetchAssetLookup', 'lookup failed', { cleanCode, message: lookupData && lookupData.message }, 'H1');
-      return lookupData || { status: "error", message: "ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้" };
+      return lookupData || { status: "error", message: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ˆà¸²à¸à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¹„à¸”à¹‰" };
     }
   } catch (e) {
     if (lookupTimer) clearTimeout(lookupTimer);
     dbgLog('index.html:fetchAssetLookup', 'lookup timeout', { cleanCode, error: e.message }, 'H1');
-    return { status: "error", message: "หมดเวลาระหว่างค้นหา - ตรวจสอบเครือข่าย" };
+    return { status: "error", message: "à¸«à¸¡à¸”à¹€à¸§à¸¥à¸²à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡à¸„à¹‰à¸™à¸«à¸² - à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹€à¸„à¸£à¸·à¸­à¸‚à¹ˆà¸²à¸¢" };
   }
   
   // Legacy fallback only for old Apps Script deployments that do not have action=lookup yet.
@@ -351,7 +350,7 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
     exportTimer = null;
     
     if (!exp || exp.status !== "ok" || !Array.isArray(exp.assets)) {
-      return { status: "error", message: "ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้" };
+      return { status: "error", message: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ˆà¸²à¸à¹€à¸‹à¸´à¸£à¹Œà¸Ÿà¹€à¸§à¸­à¸£à¹Œà¹„à¸”à¹‰" };
     }
     const row = exp.assets.find(r => String(r[0]).trim().toUpperCase() === cleanCode);
     if (!row) {
@@ -384,7 +383,7 @@ async function fetchAssetLookup(cleanCode, { forceFresh = false } = {}) {
     };
   } catch (e) {
     if (exportTimer) clearTimeout(exportTimer);
-    return { status: "error", message: "หมดเวลาระหว่างค้นหา - ตรวจสอบเครือข่าย" };
+    return { status: "error", message: "à¸«à¸¡à¸”à¹€à¸§à¸¥à¸²à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡à¸„à¹‰à¸™à¸«à¸² - à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹€à¸„à¸£à¸·à¸­à¸‚à¹ˆà¸²à¸¢" };
   }
 }
 
@@ -398,15 +397,15 @@ async function fetchAssetLookupWithTimeout(cleanCode, timeoutMs = 15000) {
 }
 
 async function refreshCurrentView() {
-  // ล้างแคชข้อมูลในหน้าสแกน เพื่อให้บังคับดึงข้อมูลใหม่
+  // à¸¥à¹‰à¸²à¸‡à¹à¸„à¸Šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹ƒà¸™à¸«à¸™à¹‰à¸²à¸ªà¹à¸à¸™ à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¸šà¸±à¸‡à¸„à¸±à¸šà¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹ƒà¸«à¸¡à¹ˆ
   allAssets = [];
   allUnregAssets = [];
   setResult('');
 
   if (currentPage === "home") {
-    alert("♻️ ล้างแคชและรีเฟรชระบบเรียบร้อยแล้ว");
+    alert("â™»ï¸ à¸¥à¹‰à¸²à¸‡à¹à¸„à¸Šà¹à¸¥à¸°à¸£à¸µà¹€à¸Ÿà¸£à¸Šà¸£à¸°à¸šà¸šà¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§");
   } else {
-    showLoading("กำลังรีเฟรชระบบ...");
+    showLoading("à¸à¸³à¸¥à¸±à¸‡à¸£à¸µà¹€à¸Ÿà¸£à¸Šà¸£à¸°à¸šà¸š...");
     setTimeout(() => setResult(''), 800);
   }
 
@@ -444,8 +443,8 @@ function showScanStatusNotice(assetNo, scanStatus) {
   const timeText = scanStatus.createdAt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${escHtml(formatDateTime(scanStatus.createdAt))}</div>` : "";
   const isPending = state === "received" || state === "processing";
   const isFailed = state === "failed";
-  const title = isPending ? "ส่งข้อมูลแล้ว รอหลังบ้าน" : (isFailed ? "เคยส่งแล้วแต่ไม่สำเร็จ" : "รหัสนี้เคยนับแล้ว");
-  const icon = isPending ? "⏳" : (isFailed ? "⚠️" : "✅");
+  const title = isPending ? "à¸ªà¹ˆà¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹à¸¥à¹‰à¸§ à¸£à¸­à¸«à¸¥à¸±à¸‡à¸šà¹‰à¸²à¸™" : (isFailed ? "à¹€à¸„à¸¢à¸ªà¹ˆà¸‡à¹à¸¥à¹‰à¸§à¹à¸•à¹ˆà¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ" : "à¸£à¸«à¸±à¸ªà¸™à¸µà¹‰à¹€à¸„à¸¢à¸™à¸±à¸šà¹à¸¥à¹‰à¸§");
+  const icon = isPending ? "â³" : (isFailed ? "âš ï¸" : "âœ…");
   const cardClass = isFailed ? "warning" : "success";
   setResult(`
     <div class="result-card ${cardClass}">
@@ -461,9 +460,9 @@ function showScanStatusNotice(assetNo, scanStatus) {
 
 
 function getCurrentBaseCountColName() {
-  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const months = ["à¸¡.à¸„.", "à¸.à¸ž.", "à¸¡à¸µ.à¸„.", "à¹€à¸¡.à¸¢.", "à¸ž.à¸„.", "à¸¡à¸´.à¸¢.", "à¸.à¸„.", "à¸ª.à¸„.", "à¸.à¸¢.", "à¸•.à¸„.", "à¸ž.à¸¢.", "à¸˜.à¸„."];
   const d = new Date();
-  return "เช็ค " + months[d.getMonth()] + " " + d.getFullYear();
+  return "à¹€à¸Šà¹‡à¸„ " + months[d.getMonth()] + " " + d.getFullYear();
 }
 
 function getCurrentCountColName(round = "1") {
@@ -475,4 +474,3 @@ let cachedCameraId = null;
 let currentAssetNo = "", allAssets = [], exportHeaders = [];
 let allUnregAssets = [], exportUnregHeaders = [];
 let currentPage = "home";
-

@@ -398,8 +398,8 @@ body {
 #reader {
   width: 100%;
   aspect-ratio: 16 / 10;
-  min-height: 300px;
-  max-height: 54dvh;
+  min-height: 320px;
+  max-height: 56dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -887,8 +887,8 @@ input[type="file"] { display: none; }
   .form-field input, .form-field select { min-height: 44px; font-size: 16px; }
   #reader {
     aspect-ratio: 16 / 11;
-    min-height: 300px;
-    max-height: 50dvh;
+    min-height: 320px;
+    max-height: 52dvh;
   }
   .modal-overlay {
     align-items: flex-end;
@@ -934,8 +934,8 @@ input[type="file"] { display: none; }
   .table-row > .cell::before { flex: none; margin-right: 0; }
   .cell-name, .cell-sub { text-align: left; }
   #reader {
-    min-height: 270px;
-    max-height: 48dvh;
+    min-height: 292px;
+    max-height: 50dvh;
   }
 }
 
