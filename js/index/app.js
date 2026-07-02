@@ -847,10 +847,25 @@ async function startScanner() {
 
   if (isScanning) return;
   try {
-    html5QrCode = html5QrCode || new Html5Qrcode("reader");
     const onDecoded = decodedText => onScanSuccess(decodedText);
     const onScanError = () => {};
     cachedCameraId = null;
+
+    // html5-qrcode มี internal state machine ที่ถ้าเรียก start() ซ้ำบน instance เดิมเร็วเกินไปหลัง
+    // start() ก่อนหน้า reject จะโยน "Cannot transition to a new state, already under transition"
+    // ต้องสร้าง instance ใหม่ทุกครั้งที่ retry เพื่อเลี่ยงปัญหานี้
+    async function freshHtml5QrCode() {
+      if (html5QrCode) {
+        try { await html5QrCode.clear(); } catch (e) {}
+      }
+      html5QrCode = new Html5Qrcode("reader");
+      return html5QrCode;
+    }
+
+    function isPermissionError(err) {
+      const text = extractCameraErrorMessage(err);
+      return /permission denied|notallowederror|permissiondeniederror/i.test(text);
+    }
 
     // ไล่ลองจาก config ที่ดีที่สุดไปจนถึงแบบหลวมที่สุด เพราะกล้อง/เบราว์เซอร์บางรุ่น (โดยเฉพาะรุ่นเก่า)
     // ปฏิเสธ constraint บางตัว เช่น aspectRatio แบบ hard-fail แม้ permission จะอนุญาตแล้วก็ตาม
@@ -862,28 +877,34 @@ async function startScanner() {
     let lastErr = null;
     for (const attempt of attempts) {
       try {
-        await html5QrCode.start(attempt.target, attempt.config, onDecoded, onScanError);
+        const instance = await freshHtml5QrCode();
+        await instance.start(attempt.target, attempt.config, onDecoded, onScanError);
         lastErr = null;
         break;
       } catch (err) {
         lastErr = err;
         console.warn("Camera start failed (" + attempt.label + ")", err);
+        // ถ้าโดนปฏิเสธ permission ตรงๆ ลอง constraint แบบอื่นซ้ำไปก็ไม่มีประโยชน์ ไม่ต้อง retry ต่อ
+        if (isPermissionError(err)) break;
       }
     }
 
-    if (lastErr) {
+    if (lastErr && !isPermissionError(lastErr)) {
       // สุดท้ายลองระบุกล้องเจาะจงด้วย deviceId แบบไม่มี aspectRatio
       try {
         const cameras = await Html5Qrcode.getCameras();
         if (!cameras || cameras.length === 0) throw new Error("ไม่พบกล้องในอุปกรณ์นี้");
         const preferredCamera = getPreferredBackCamera(cameras);
         cachedCameraId = preferredCamera ? preferredCamera.id : cameras[0].id;
-        await html5QrCode.start(cachedCameraId, getScannerConfig(false), onDecoded, onScanError);
+        const instance = await freshHtml5QrCode();
+        await instance.start(cachedCameraId, getScannerConfig(false), onDecoded, onScanError);
         lastErr = null;
       } catch (err) {
         console.warn("Camera start failed (deviceId fallback)", err);
         throw err;
       }
+    } else if (lastErr) {
+      throw lastErr;
     }
 
     isScanning = true;
