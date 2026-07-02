@@ -422,9 +422,49 @@ body {
 .scanner-placeholder .big-icon { font-size: 48px; opacity: 0.4; margin-bottom: 8px; }
 .scanner-placeholder p { font-size: 13px; font-weight: 500; }
 
+/* วงกลมโฟกัสแบบกล้อง iPhone แสดงตรงจุดที่แตะ (feedback ให้รู้ว่ากำลังโฟกัสใหม่) */
+.focus-ring {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin-left: -32px;
+  margin-top: -32px;
+  border: 2px solid #facc15;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 20;
+  animation: focusRingPulse 0.7s ease-out forwards;
+}
+@keyframes focusRingPulse {
+  0%   { transform: scale(1.3); opacity: 0; }
+  20%  { transform: scale(1);   opacity: 1; }
+  75%  { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(0.92); opacity: 0; }
+}
+
+/* รอบโฟกัสอัตโนมัติ (ไม่ได้เกิดจากการแตะ) ให้จางกว่าเวอร์ชันแตะเอง เพื่อไม่ให้รบกวนสายตาถี่เกินไป */
+.focus-ring-auto {
+  width: 52px;
+  height: 52px;
+  margin-left: -26px;
+  margin-top: -26px;
+  border-color: rgba(250, 204, 21, 0.55);
+  box-shadow: none;
+}
+
+.scanner-focus-hint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
 /* เมื่อกล้องเริ่มทำงาน (มี <video> ถูกแทรกเข้ามาโดย html5-qrcode) ให้ซ่อน placeholder
    ไม่งั้น video จะถูกบีบให้แคบลงเพราะต้องแชร์พื้นที่ flex กับ placeholder ที่ยังค้างอยู่ */
 #reader:has(video) .scanner-placeholder { display: none; }
+#reader:has(video) { cursor: pointer; }
 
 .corner { position: absolute; width: 30px; height: 30px; border: 3px solid var(--primary); }
 .corner.tl { top: 16px; left: 16px;  border-right: none; border-bottom: none; }

@@ -153,6 +153,7 @@ function closeScanConfirmModal() {
   } else if (currentPage === "scan" && html5QrCode && isScanning) {
     setTimeout(() => {
       try { html5QrCode.resume(); } catch(e) {}
+      resetAutoFocusCycle();
     }, 150);
   }
 }
@@ -162,6 +163,7 @@ function resumeScannerAfterAction() {
   if (currentPage === "scan" && html5QrCode && isScanning) {
     setTimeout(() => {
       try { html5QrCode.resume(); } catch(e) {}
+      resetAutoFocusCycle();
     }, 150);
   }
 }
@@ -191,6 +193,7 @@ function closeUnregExistsModal() {
     if (html5QrCode && isScanning) {
       setTimeout(() => {
         try { html5QrCode.resume(); } catch(e){}
+        resetAutoFocusCycle();
       }, 500);
     }
   }
@@ -606,6 +609,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
   let cleanCode = decodeThaiKeyboard(String(decodedText)).trim().toUpperCase();
   
   if (html5QrCode && isScanning) { try { await html5QrCode.pause(true); } catch(e){} }
+  clearAutoFocus();
   
   // Instant local search first for scanner performance.
   const localMatch = allAssets.find(row => String(row[0]).trim().toUpperCase() === cleanCode);
@@ -642,7 +646,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
     // Resume scanner quickly for smooth workflow
     setTimeout(async () => {
       isProcessing = false;
-      if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} }
+      if (html5QrCode && isScanning && !isHandheld) { try { await html5QrCode.resume(); } catch(e){} resetAutoFocusCycle(); }
     }, isHandheld ? 50 : 800);
 
     // Run network check in the background (NON-BLOCKING) to check for updates or scanned status
@@ -743,7 +747,7 @@ async function onScanSuccess(decodedText, isHandheld = false) {
     } finally {
       setTimeout(async () => {
         isProcessing = false;
-        if (html5QrCode && isScanning) { try { await html5QrCode.resume(); } catch(e){} }
+        if (html5QrCode && isScanning) { try { await html5QrCode.resume(); } catch(e){} resetAutoFocusCycle(); }
       }, 800);
     }
   }
@@ -792,6 +796,13 @@ async function handlePhotoScan(event) {
   let needToClearTemp = false;
   try {
     showLoading("กำลังอ่านบาร์โค้ดจากรูปภาพ...");
+
+    // ถ้ากล้องสดกำลังทำงานอยู่ ต้องปิดก่อนเสมอ ไม่งั้น Html5Qrcode สอง instance จะแย่งชิงองค์ประกอบ
+    // ใน div #reader เดียวกัน ทำให้กล้องสดพังเงียบๆ (isScanning ค้าง true แต่ video หายไปจริง)
+    if (isScanning) {
+      await stopScanner();
+    }
+
     tempHtml5QrCode = new Html5Qrcode("reader");
     needToClearTemp = true;
     const decodedText = await tempHtml5QrCode.scanFile(file, true);
@@ -803,6 +814,9 @@ async function handlePhotoScan(event) {
     if (needToClearTemp && tempHtml5QrCode) {
       try { await tempHtml5QrCode.clear(); } catch (e) {}
     }
+    // scanFile()/clear() ล้าง innerHTML ของ #reader ทั้งหมดเหมือนกัน ต้องคืนค่า placeholder กลับมาเสมอ
+    // ไม่งั้นกล่องสแกนจะว่างเปล่าถาวรหลังใช้โหมดถ่ายรูปสแกนไปแล้ว
+    resetReaderPlaceholder();
     if (event && event.target) event.target.value = "";
   }
 }
@@ -817,7 +831,13 @@ function getPreferredBackCamera(cameras) {
 }
 
 function getScannerConfig(withAspectRatio) {
-  const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+  const config = {
+    fps: 10,
+    qrbox: { width: 250, height: 250 },
+    // ใช้ native BarcodeDetector ของเบราว์เซอร์แทน decoder JS ล้วนถ้ารองรับ (แม่นยำ/เร็วกว่ามาก
+    // โดยเฉพาะมุมเอียง/แสงไม่ดี) เบราว์เซอร์รุ่นเก่าที่ไม่รองรับจะ fallback กลับไปใช้ตัวเดิมอัตโนมัติ
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+  };
   if (withAspectRatio) config.aspectRatio = 1.7777778;
   return config;
 }
@@ -917,11 +937,94 @@ async function startScanner() {
     const placeholder = document.querySelector("#reader .scanner-placeholder");
     if (placeholder) placeholder.classList.add("hidden");
 
+    const focusHint = document.getElementById("scanner-focus-hint");
+    if (focusHint) focusHint.classList.remove("hidden");
+
     try { await applyCameraFocus(); } catch (focusErr) { console.warn("applyCameraFocus failed", focusErr); }
+    resetAutoFocusCycle();
   } catch (err) {
     showError(extractCameraErrorMessage(err));
     await stopScanner();
   }
+}
+
+// iOS Safari ไม่มี API ให้สั่งโฟกัสกล้องจากหน้าเว็บได้เลย (ข้อจำกัดของ WebKit เอง ไม่ใช่ browser อื่นทำได้)
+// ทางแก้ที่ใช้ได้จริงคือ "รีสตาร์ทกล้อง" สั้นๆ ซึ่งจะบังคับให้ระบบกล้องรันโฟกัสอัตโนมัติใหม่
+// ทำเองเมื่อแตะจอ (manual) หรือทำอัตโนมัติเป็นระยะระหว่างที่ยังสแกนไม่เจอ (smart auto)
+let isRefocusing = false;
+let autoFocusTimer = null;
+let autoFocusAttempts = 0;
+const AUTO_FOCUS_MAX_ATTEMPTS = 4;
+const AUTO_FOCUS_INTERVAL_MS = 2200;
+const AUTO_FOCUS_WARMUP_MS = 900;
+
+function clearAutoFocus() {
+  if (autoFocusTimer) {
+    clearTimeout(autoFocusTimer);
+    autoFocusTimer = null;
+  }
+}
+
+// เริ่ม/รีเซ็ตรอบโฟกัสอัตโนมัติ เรียกทุกครั้งที่กล้องเริ่มสแกนใหม่ (เปิดกล้องครั้งแรก, สแกนของชิ้นถัดไป, หรือแตะโฟกัสเอง)
+function resetAutoFocusCycle() {
+  autoFocusAttempts = 0;
+  clearAutoFocus();
+  autoFocusTimer = setTimeout(runAutoFocusCycle, AUTO_FOCUS_WARMUP_MS);
+}
+
+async function runAutoFocusCycle() {
+  autoFocusTimer = null;
+  if (!isScanning) return;
+
+  // ถ้ากำลังประมวลผลผลสแกน/โฟกัสด้วยมืออยู่พอดี เลื่อนรอบถัดไปออกไปแทนที่จะข้าม
+  if (isProcessing || isRefocusing) {
+    autoFocusTimer = setTimeout(runAutoFocusCycle, AUTO_FOCUS_INTERVAL_MS);
+    return;
+  }
+
+  if (autoFocusAttempts >= AUTO_FOCUS_MAX_ATTEMPTS) return; // ครบโควตาแล้ว เหลือให้แตะโฟกัสเองต่อ ไม่รบกวนจอถี่เกินไป
+
+  autoFocusAttempts++;
+  await refocusCamera(null, true);
+  autoFocusTimer = setTimeout(runAutoFocusCycle, AUTO_FOCUS_INTERVAL_MS);
+}
+
+async function refocusCamera(event, isAuto) {
+  if (!isScanning || !html5QrCode || isRefocusing) return;
+  isRefocusing = true;
+  if (!isAuto) autoFocusAttempts = 0; // แตะเองถือว่าให้โควตารอบอัตโนมัติใหม่
+  showFocusRing(event, isAuto);
+  try {
+    const target = cachedCameraId || { facingMode: { ideal: "environment" } };
+    const onDecoded = decodedText => onScanSuccess(decodedText);
+    const onScanError = () => {};
+    await html5QrCode.stop();
+    await html5QrCode.start(target, getScannerConfig(false), onDecoded, onScanError);
+    try { await applyCameraFocus(); } catch (e) {}
+  } catch (err) {
+    console.warn("refocusCamera failed", err);
+  } finally {
+    isRefocusing = false;
+  }
+}
+
+function showFocusRing(event, isAuto) {
+  const reader = document.getElementById("reader");
+  if (!reader) return;
+  const rect = reader.getBoundingClientRect();
+  let x = rect.width / 2;
+  let y = rect.height / 2;
+  const point = event && event.touches && event.touches[0] ? event.touches[0] : event;
+  if (point && typeof point.clientX === "number") {
+    x = point.clientX - rect.left;
+    y = point.clientY - rect.top;
+  }
+  const ring = document.createElement("div");
+  ring.className = isAuto ? "focus-ring focus-ring-auto" : "focus-ring";
+  ring.style.left = x + "px";
+  ring.style.top = y + "px";
+  reader.appendChild(ring);
+  setTimeout(() => ring.remove(), 700);
 }
 
 // html5-qrcode's clear() ล้าง innerHTML ของ #reader ทั้งหมด (รวม placeholder/มุมกรอบที่เป็น static HTML เดิม)
@@ -939,6 +1042,10 @@ function resetReaderPlaceholder() {
 }
 
 async function stopScanner() {
+  clearAutoFocus();
+  const focusHint = document.getElementById("scanner-focus-hint");
+  if (focusHint) focusHint.classList.add("hidden");
+
   if (!html5QrCode) {
     isScanning = false;
     resetReaderPlaceholder();
