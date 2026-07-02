@@ -816,8 +816,24 @@ function getPreferredBackCamera(cameras) {
   return cameras[cameras.length - 1];
 }
 
-function getScannerConfig() {
-  return { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.7777778 };
+function getScannerConfig(withAspectRatio) {
+  const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+  if (withAspectRatio) config.aspectRatio = 1.7777778;
+  return config;
+}
+
+// html5-qrcode บางเวอร์ชัน reject ด้วย string ธรรมดา ไม่ใช่ Error object เสมอไป
+// ถ้าไม่ดึงข้อความจริงออกมา ผู้ใช้จะเห็นแต่ข้อความ error กว้างๆ ที่ไม่ช่วยวินิจฉัยปัญหา
+function extractCameraErrorMessage(err) {
+  if (!err) return "ไม่สามารถเปิดกล้องได้";
+  if (typeof err === "string") return err;
+  if (err.message) return err.message;
+  if (err.name) return err.name;
+  try {
+    const text = JSON.stringify(err);
+    if (text && text !== "{}") return text;
+  } catch (e) {}
+  return "ไม่สามารถเปิดกล้องได้";
 }
 
 async function startScanner() {
@@ -832,35 +848,42 @@ async function startScanner() {
   if (isScanning) return;
   try {
     html5QrCode = html5QrCode || new Html5Qrcode("reader");
-    const scannerConfig = getScannerConfig();
     const onDecoded = decodedText => onScanSuccess(decodedText);
     const onScanError = () => {};
+    cachedCameraId = null;
 
-    try {
-      await html5QrCode.start(
-        { facingMode: { ideal: "environment" } },
-        scannerConfig,
-        onDecoded,
-        onScanError
-      );
-      cachedCameraId = null;
-    } catch (facingModeErr) {
-      console.warn("Environment camera constraint failed, trying deviceId fallback", facingModeErr);
-      cachedCameraId = null;
+    // ไล่ลองจาก config ที่ดีที่สุดไปจนถึงแบบหลวมที่สุด เพราะกล้อง/เบราว์เซอร์บางรุ่น (โดยเฉพาะรุ่นเก่า)
+    // ปฏิเสธ constraint บางตัว เช่น aspectRatio แบบ hard-fail แม้ permission จะอนุญาตแล้วก็ตาม
+    const attempts = [
+      { label: "environment + aspectRatio", target: { facingMode: { ideal: "environment" } }, config: getScannerConfig(true) },
+      { label: "environment (no aspectRatio)", target: { facingMode: { ideal: "environment" } }, config: getScannerConfig(false) }
+    ];
 
-      const cameras = await Html5Qrcode.getCameras();
-      if (!cameras || cameras.length === 0) throw new Error("ไม่พบกล้อง");
+    let lastErr = null;
+    for (const attempt of attempts) {
+      try {
+        await html5QrCode.start(attempt.target, attempt.config, onDecoded, onScanError);
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        console.warn("Camera start failed (" + attempt.label + ")", err);
+      }
+    }
 
-      const preferredCamera = getPreferredBackCamera(cameras);
-      cachedCameraId = preferredCamera ? preferredCamera.id : null;
-      if (!cachedCameraId) throw new Error("ไม่พบกล้อง");
-
-      await html5QrCode.start(
-        cachedCameraId,
-        scannerConfig,
-        onDecoded,
-        onScanError
-      );
+    if (lastErr) {
+      // สุดท้ายลองระบุกล้องเจาะจงด้วย deviceId แบบไม่มี aspectRatio
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) throw new Error("ไม่พบกล้องในอุปกรณ์นี้");
+        const preferredCamera = getPreferredBackCamera(cameras);
+        cachedCameraId = preferredCamera ? preferredCamera.id : cameras[0].id;
+        await html5QrCode.start(cachedCameraId, getScannerConfig(false), onDecoded, onScanError);
+        lastErr = null;
+      } catch (err) {
+        console.warn("Camera start failed (deviceId fallback)", err);
+        throw err;
+      }
     }
 
     isScanning = true;
@@ -868,9 +891,14 @@ async function startScanner() {
     const stopBtn = document.getElementById("btn-stop");
     if (startBtn) startBtn.classList.add("hidden");
     if (stopBtn) stopBtn.classList.remove("hidden");
+
+    // สำรองไว้กรณีเบราว์เซอร์เก่าไม่รองรับ CSS :has() (ปกติ #reader:has(video) จะซ่อน placeholder ให้เอง)
+    const placeholder = document.querySelector("#reader .scanner-placeholder");
+    if (placeholder) placeholder.classList.add("hidden");
+
     try { await applyCameraFocus(); } catch (focusErr) { console.warn("applyCameraFocus failed", focusErr); }
   } catch (err) {
-    showError(err && err.message ? err.message : "ไม่สามารถเปิดกล้องได้");
+    showError(extractCameraErrorMessage(err));
     await stopScanner();
   }
 }

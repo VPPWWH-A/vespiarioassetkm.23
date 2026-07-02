@@ -1377,6 +1377,43 @@ body {
   background: var(--primary-light);
 }
 
+/* จอเล็ก/เก่ามาก (เครื่อง handheld scanner ความละเอียดต่ำ) แถบบนล้นจอ ต้องบีบให้พอดี
+   หลีกเลี่ยง flexbox gap เพราะ WebView รุ่นเก่าบางตัวไม่รองรับ ใช้ margin แทน */
+@media (max-width: 400px) {
+  .top-bar {
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+  .brand { gap: 6px; }
+  .brand-icon { width: 26px; height: 26px; font-size: 13px; }
+  .brand-text .name { font-size: 11px; letter-spacing: 0.2px; }
+  .brand-text .sub { display: none; }
+  .status-indicator {
+    padding: 3px 7px;
+    margin-top: 4px;
+  }
+  .status-indicator .status-label { display: none; }
+  .current-user-chip {
+    max-width: 76px;
+    font-size: 9px;
+    padding: 3px 7px;
+    margin-left: 6px;
+    margin-top: 4px;
+  }
+  .pwa-install-btn {
+    font-size: 9px;
+    padding: 0 8px;
+    min-height: 24px;
+    margin-left: 6px;
+    margin-top: 4px;
+  }
+}
+
+@media (max-width: 320px) {
+  .brand-text .name { font-size: 10px; }
+  .current-user-chip { max-width: 60px; }
+}
+
 /* ===== LOGIN GATE ===== */
 .login-overlay {
   position: fixed;
