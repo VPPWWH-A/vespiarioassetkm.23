@@ -218,8 +218,17 @@ async function applyCameraFocus() {
   const capabilities = track.getCapabilities();
   const advanced = [];
 
-  if (capabilities.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("continuous")) {
-    advanced.push({ focusMode: "continuous" });
+  if (capabilities.focusMode && Array.isArray(capabilities.focusMode)) {
+    const preferredFocusMode = ["continuous", "single-shot", "manual"].find(mode => capabilities.focusMode.includes(mode));
+    if (preferredFocusMode) {
+      advanced.push({ focusMode: preferredFocusMode });
+    }
+  }
+  if (capabilities.focusDistance && typeof capabilities.focusDistance.min === "number" && typeof capabilities.focusDistance.max === "number") {
+    const min = capabilities.focusDistance.min;
+    const max = capabilities.focusDistance.max;
+    const nearMid = min + ((max - min) * 0.35);
+    advanced.push({ focusDistance: nearMid });
   }
   if (capabilities.exposureMode && Array.isArray(capabilities.exposureMode) && capabilities.exposureMode.includes("continuous")) {
     advanced.push({ exposureMode: "continuous" });
@@ -241,6 +250,9 @@ async function applyCameraFocus() {
     await track.applyConstraints({ advanced });
   } catch (err) {
     console.warn("Camera focus constraints not applied", err);
+    for (const constraint of advanced) {
+      try { await track.applyConstraints({ advanced: [constraint] }); } catch (e) {}
+    }
   }
 }
 
@@ -826,11 +838,11 @@ function getPreferredBackCamera(cameras) {
 function getScannerQrbox(viewfinderWidth, viewfinderHeight) {
   const maxWidth = Math.max(180, viewfinderWidth - 24);
   const maxHeight = Math.max(140, viewfinderHeight - 24);
-  const width = Math.floor(Math.min(viewfinderWidth * 0.92, 560, maxWidth));
-  const height = Math.floor(Math.min(viewfinderHeight * 0.62, 340, maxHeight));
+  const width = Math.floor(Math.min(viewfinderWidth * 0.9, 560, maxWidth));
+  const height = Math.floor(Math.min(viewfinderHeight * 0.42, 220, maxHeight));
   return {
     width: Math.min(maxWidth, Math.max(280, width)),
-    height: Math.min(maxHeight, Math.max(180, height))
+    height: Math.min(maxHeight, Math.max(120, height))
   };
 }
 
@@ -991,7 +1003,6 @@ async function runAutoFocusCycle() {
 
   autoFocusAttempts++;
   try { await applyCameraFocus(); } catch (e) {}
-  showFocusRing(null, true);
   autoFocusTimer = setTimeout(runAutoFocusCycle, AUTO_FOCUS_INTERVAL_MS);
 }
 
