@@ -316,6 +316,201 @@
     };
   }
 
+  // ===== รูปภาพ: อัปขึ้น Supabase Storage แทน Google Drive =====
+
+  // base64 ที่ compressImageToBase64() ส่งมาถูกตัดส่วน "data:image/jpeg;base64," ออกแล้ว
+  function base64ToBlob(base64, mime) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime || "image/jpeg" });
+  }
+
+  async function uploadImage(base64, assetNo) {
+    if (!base64) return "";
+    const path = String(assetNo || "unknown").replace(/[^A-Za-z0-9_-]/g, "_") +
+                 "/" + Date.now() + ".jpg";
+
+    const { error } = await db.storage
+      .from("asset-images")
+      .upload(path, base64ToBlob(base64), { contentType: "image/jpeg", upsert: false });
+
+    if (error) throw new Error("อัปโหลดรูปไม่สำเร็จ: " + error.message);
+
+    return db.storage.from("asset-images").getPublicUrl(path).data.publicUrl;
+  }
+
+  // ===== action: add (เพิ่มทรัพย์สินเข้าทะเบียนหลัก) =====
+
+  async function handleAdd(params) {
+    const assetNo = String(params.get("assetNo") || "").trim().toUpperCase();
+    const user = window.getCurrentUser();
+
+    if (!user) return { status: "error", message: "กรุณาเข้าสู่ระบบก่อนใช้งาน" };
+    if (!assetNo) return { status: "error", message: "ไม่ได้ระบุรหัสทรัพย์สิน" };
+
+    const { data: existing } = await db
+      .from("assets").select("asset_no").eq("asset_no", assetNo).maybeSingle();
+
+    if (existing) {
+      return {
+        status: "exists",
+        assetNo: assetNo,
+        message: "Asset already exists in master list"
+      };
+    }
+
+    const acquisitionDate = String(params.get("acquisitionDate") || "").trim();
+
+    const { error } = await db.from("assets").insert({
+      asset_no: assetNo,
+      asset_name: String(params.get("assetName") || "").trim(),
+      category: params.get("category") || null,
+      area: params.get("area") || null,
+      warehouse: params.get("warehouse") || null,
+      acquisition_date: acquisitionDate || null,
+      status: params.get("status") || "ใช้งานอยู่"
+    });
+
+    if (error) return { status: "error", message: "บันทึกไม่สำเร็จ: " + error.message };
+
+    await db.from("scan_logs").insert({
+      req_id: "ADD-" + Date.now(),
+      asset_no: assetNo,
+      action: "Added via Mobile",
+      status: "done",
+      device: "Mobile",
+      result: "Added to master"
+    });
+
+    return { status: "success", assetNo: assetNo, message: "Asset added successfully" };
+  }
+
+  // ===== action: upload (ของนอกระบบ รอ approve) =====
+
+  async function handleUpload(payload) {
+    const user = window.getCurrentUser();
+    if (!user) return { status: "error", message: "กรุณาเข้าสู่ระบบก่อนใช้งาน" };
+
+    const reqAssetNo = String(payload.assetNo || "").trim().toUpperCase();
+    const tempId = reqAssetNo || ("TEMP-" + String(Date.now()).slice(-6));
+
+    // ถ้ามีในทะเบียนหลักอยู่แล้ว ต้องบอกให้ผู้ใช้รู้ ไม่ใช่สร้างของนอกระบบซ้ำ
+    const { data: master } = await db
+      .from("assets_with_latest_count").select("*").eq("asset_no", tempId).maybeSingle();
+
+    if (master) {
+      const res = await buildMasterResponse(master);
+      res.status = "exists";
+      res.message = "Asset already exists in master list";
+      return res;
+    }
+
+    const { data: unreg } = await db
+      .from("unregistered_assets").select("*").eq("temp_id", tempId)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+
+    if (unreg) {
+      const res = buildUnregResponse(unreg);
+      res.status = "exists";
+      res.message = "Asset already exists in unregistered list";
+      return res;
+    }
+
+    const imageUrl = await uploadImage(payload.image, tempId);
+
+    const row = {
+      temp_id: tempId,
+      asset_name: String(payload.assetName || "สินค้านอกระบบ").trim(),
+      category: payload.category || null,
+      warehouse: payload.warehouse || null,
+      area: payload.area || null,
+      remark: payload.remarks || null,
+      image_url: imageUrl || null,
+      asset_status: payload.status || "ใช้งานอยู่",
+      review_state: "pending"
+    };
+
+    const { error } = await db.from("unregistered_assets").insert(row);
+    if (error) return { status: "error", message: "บันทึกไม่สำเร็จ: " + error.message };
+
+    await db.from("scan_logs").insert({
+      req_id: "UNREG-" + Date.now(),
+      asset_no: tempId,
+      action: "Added to Unregistered",
+      status: "done",
+      device: "Mobile",
+      result: "Pending approval"
+    });
+
+    return {
+      status: "success",
+      assetNo: tempId,
+      tempId: tempId,
+      assetName: row.asset_name,
+      category: row.category || "",
+      warehouse: row.warehouse || "",
+      area: row.area || "",
+      remark: row.remark || "",
+      imageUrl: imageUrl,
+      isUnregistered: true,
+      message: "Saved successfully"
+    };
+  }
+
+  // ===== action: uploadScanImage =====
+  // ใช้ 2 กรณี: อัปรูปเบื้องหลังหลังนับเสร็จ และโหมด "บาร์โค้ดเสียหาย" ที่นับพร้อมส่งรูปในครั้งเดียว
+
+  async function handleUploadScanImage(payload) {
+    const user = window.getCurrentUser();
+    if (!user) return { status: "error", message: "กรุณาเข้าสู่ระบบก่อนใช้งาน" };
+
+    const assetNo = String(payload.assetNo || "").trim().toUpperCase();
+    if (!assetNo) return { status: "error", message: "ไม่ได้ระบุรหัสทรัพย์สิน" };
+
+    const imageUrl = await uploadImage(payload.image, assetNo);
+
+    if (imageUrl) {
+      await db.from("assets").update({ image_url: imageUrl }).eq("asset_no", assetNo);
+    }
+
+    // โหมดบาร์โค้ดเสียหาย: ต้องบันทึกผลนับด้วย ใช้ตัวเดียวกับ updateAsset เพื่อไม่ให้ logic แยกกัน
+    let countResult = null;
+    if (payload.isScan) {
+      countResult = await handleUpdateAsset({
+        assetNo: assetNo,
+        assetName: payload.assetName,
+        isScan: true,
+        isUnregistered: !!payload.isUnregistered,
+        warehouse: payload.warehouse,
+        area: payload.area,
+        status: payload.status,
+        countRound: payload.countRound,
+        remarks: payload.remarks,
+        requestId: payload.requestId
+      });
+      if (countResult.status === "error") return countResult;
+    }
+
+    await db.from("scan_logs").insert({
+      req_id: payload.requestId || ("IMG-" + Date.now()),
+      asset_no: assetNo,
+      action: "Upload Image",
+      status: "done",
+      device: "Mobile",
+      result: imageUrl ? "Image uploaded" : "No image"
+    });
+
+    return {
+      status: "success",
+      assetNo: assetNo,
+      imageUrl: imageUrl,
+      alreadyCounted: countResult ? countResult.alreadyCounted : false,
+      timestamp: new Date().toISOString(),
+      message: "บันทึกเรียบร้อย"
+    };
+  }
+
   // ===== ตัวส่งต่อ: เขียนทับ timedFetch =====
 
   const originalTimedFetch = window.timedFetch;
@@ -339,12 +534,21 @@
         if (payload.action === "updateAsset") {
           return fakeResponse(await handleUpdateAsset(payload));
         }
+        if (payload.action === "uploadScanImage") {
+          return fakeResponse(await handleUploadScanImage(payload));
+        }
+        if (payload.action === "upload" || !payload.action) {
+          return fakeResponse(await handleUpload(payload));
+        }
       } else {
         const params = new URL(url).searchParams;
         const act = params.get("action");
 
         if (act === "lookup") {
           return fakeResponse(await handleLookup(params.get("assetNo")));
+        }
+        if (act === "add") {
+          return fakeResponse(await handleAdd(params));
         }
         // Supabase เขียนเสร็จตอบทันที ไม่มีคิวหลังบ้านให้ตามสถานะ
         // ตอบ found:false ให้ผู้เรียกข้ามการแจ้งเตือน "รอหลังบ้าน" ไปเลย
@@ -357,9 +561,11 @@
       return fakeResponse({ status: "error", message: err.message || "เกิดข้อผิดพลาด" });
     }
 
-    // action ที่ยังไม่ย้าย (add, upload, uploadScanImage) ปล่อยไป Apps Script ตามเดิม
+    // ไม่มี action ไหนของหน้านี้เหลือให้ Apps Script แล้ว
+    // แต่คงทางออกนี้ไว้เผื่อมีโค้ดเก่าเรียก action ที่ยังไม่ได้ย้าย
+    console.warn("[supabase] action นี้ยังไม่ได้ย้าย ส่งต่อไป Apps Script:", action, url);
     return originalTimedFetch(action, url, options, meta);
   };
 
-  console.log("[supabase] เชื่อมต่อแล้ว — ดัก lookup, scanStatus, updateAsset, login");
+  console.log("[supabase] เชื่อมต่อแล้ว — ดักครบทุก action ของหน้า index");
 })();
