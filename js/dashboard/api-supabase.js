@@ -110,6 +110,11 @@
     const button = document.getElementById("refresh-btn");
     if (button) button.disabled = true;
     try {
+      const sessionResult = await db.auth.getSession();
+      if (!sessionResult.data || !sessionResult.data.session) {
+        setDashboardLoadError("กรุณาเข้าสู่ระบบก่อนดูข้อมูล Dashboard");
+        return;
+      }
       const model = await loadModel();
       applyDashboardData({ status: "ok", summary: model.summary, countMeta: model.countMeta, countPeriods: model.countPeriods }, model);
       saveLastGoodDashboard({ status: "ok", summary: model.summary, countMeta: model.countMeta, countPeriods: model.countPeriods }, model);
@@ -131,6 +136,7 @@
     approveAuth = { user: user, pass: "supabase-session" };
     sessionStorage.setItem("approveAuth", JSON.stringify(approveAuth));
     closeApproveLogin(); updateAuthUi(); setDashboardView("table");
+    await loadDashboard({ forceFresh: true });
   };
 
   window.startNewCountRound = async function () {
