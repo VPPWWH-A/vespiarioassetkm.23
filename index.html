@@ -15,6 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/index/index.css">
 <base target="_blank">
 </head>
@@ -714,6 +715,10 @@
   <!-- Custom Modular JS for Index Scanner -->
   <script src="js/index/ui.js"></script>
   <script src="js/index/api.js"></script>
+  <!-- ชั้นเชื่อมต่อ Supabase: ต้องอยู่หลัง api.js และก่อน app.js -->
+  <!-- ลบสองบรรทัดนี้ = กลับไปใช้ Apps Script เดิมทั้งหมด -->
+  <script src="js/supabase-config.js"></script>
+  <script src="js/index/api-supabase.js"></script>
   <script src="js/index/label.js"></script>
   <script src="js/index/app.js"></script>
 </body>

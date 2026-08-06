@@ -1,0 +1,365 @@
+// ==========================================
+// ชั้นเชื่อมต่อ Supabase — เขียนทับเฉพาะจุดที่ยิงไป Apps Script
+// ==========================================
+//
+// ไฟล์นี้ต้องโหลด "ต่อจาก" js/index/api.js และ "ก่อน" js/index/app.js
+// วิธีทำงาน: เขียนทับ timedFetch() ซึ่งเป็นทางผ่านของทุก request ในหน้านี้
+// แล้วดักเฉพาะ action ที่ย้ายมา Supabase แล้ว ที่เหลือปล่อยให้วิ่งไป Apps Script ตามเดิม
+//
+// ถ้าจะย้อนกลับไปใช้ระบบเก่าทั้งหมด: ลบ <script> ที่โหลดไฟล์นี้ออกจาก index.html บรรทัดเดียว
+//
+// รอบที่ 1 ดักไว้แล้ว: lookup, scanStatus, updateAsset (บันทึกผลนับ), login
+// รอบที่ 2 ยังไม่ดัก: add, upload, uploadScanImage — ยังวิ่งไป Apps Script
+
+(function () {
+  "use strict";
+
+  const EMAIL_DOMAIN = "vespiario.com";
+  const db = window.supabaseClient;
+  if (!db) {
+    console.error("[supabase] ไม่พบ supabaseClient — ตรวจว่าโหลด js/supabase-config.js แล้วหรือยัง");
+    return;
+  }
+
+  // ===== แคชผู้ใช้ปัจจุบันแบบ synchronous =====
+  // โค้ดเดิมเรียก getCurrentUser() แบบไม่ async จึงรอ session จาก Supabase ไม่ได้
+  // ตอนโหลดหน้าเลยอ่าน session ที่ Supabase เก็บไว้ใน localStorage ตรงๆ ก่อนหนึ่งรอบ
+  let currentUserCache = "";
+
+  function usernameFromUser(user) {
+    if (!user) return "";
+    const meta = user.app_metadata || {};
+    if (meta.username) return meta.username;
+    return String(user.email || "").split("@")[0];
+  }
+
+  function primeUserCacheFromStorage() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || key.indexOf("-auth-token") === -1) continue;
+        const raw = JSON.parse(localStorage.getItem(key));
+        const user = raw && (raw.user || (raw.currentSession && raw.currentSession.user));
+        if (user) {
+          currentUserCache = usernameFromUser(user);
+          return;
+        }
+      }
+    } catch (e) {
+      // อ่านไม่ได้ก็ปล่อย เดี๋ยว onAuthStateChange เติมให้เอง
+    }
+  }
+  primeUserCacheFromStorage();
+
+  db.auth.getSession().then(function (res) {
+    const user = res && res.data && res.data.session && res.data.session.user;
+    currentUserCache = usernameFromUser(user);
+  });
+
+  db.auth.onAuthStateChange(function (_event, session) {
+    currentUserCache = usernameFromUser(session && session.user);
+  });
+
+  // ===== ระบบ login =====
+
+  window.getCurrentUser = function () {
+    return currentUserCache;
+  };
+
+  window.getSession = function () {
+    return currentUserCache ? { user: currentUserCache, loginAt: Date.now() } : null;
+  };
+
+  window.setSession = function () {};
+  window.clearSession = function () {};
+
+  window.loginUser = async function (username, password) {
+    const name = String(username || "").trim();
+    const email = (name.includes("@") ? name : name + "@" + EMAIL_DOMAIN).toLowerCase();
+
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error) {
+      return { ok: false, message: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" };
+    }
+    currentUserCache = usernameFromUser(data.user);
+    return { ok: true };
+  };
+
+  window.logoutUser = async function () {
+    await db.auth.signOut();
+    currentUserCache = "";
+    window.location.reload();
+  };
+
+  window.isSupabaseAdmin = function () {
+    try {
+      const raw = localStorage.getItem("sb-user-role");
+      return raw === "admin";
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // ===== ตัวช่วย =====
+
+  function currentPeriod() {
+    const d = new Date();
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
+  }
+
+  function normalizeRound(value) {
+    return String(value || "1").trim() === "2" ? 2 : 1;
+  }
+
+  // แปลงแถวจาก Supabase ให้มีหน้าตาเหมือนที่ Apps Script เคยตอบ
+  // เพื่อให้ app.js / ui.js ใช้งานต่อได้โดยไม่ต้องแก้
+  async function buildMasterResponse(row) {
+    const period = currentPeriod();
+
+    const { data: rounds } = await db
+      .from("count_rounds")
+      .select("id, round")
+      .eq("period", period);
+
+    const roundIds = (rounds || []).map(function (r) { return r.id; });
+    let hasCount1 = false, hasCount2 = false;
+
+    if (roundIds.length) {
+      const { data: counts } = await db
+        .from("counts")
+        .select("round_id")
+        .eq("asset_no", row.asset_no)
+        .in("round_id", roundIds);
+
+      (counts || []).forEach(function (c) {
+        const match = (rounds || []).find(function (r) { return r.id === c.round_id; });
+        if (!match) return;
+        if (match.round === 1) hasCount1 = true;
+        if (match.round === 2) hasCount2 = true;
+      });
+    }
+
+    return {
+      status: "success",
+      found: true,
+      isUnregistered: false,
+      assetNo: row.asset_no,
+      assetName: row.asset_name || "",
+      category: row.category || "",
+      area: row.area || "",
+      warehouse: row.warehouse || "",
+      acquisitionDate: row.acquisition_date || "",
+      assetStatus: row.status || "",
+      lastScan: row.last_scan || "",
+      lastResult: row.last_result || "",
+      remark: row.remark || "",
+      imageUrl: row.image_url || "",
+      hasCount1: hasCount1,
+      hasCount2: hasCount2,
+      currentMonthName: "รอบ " + period + " ครั้งที่ 1",
+      currentMonthName2: "รอบ " + period + " ครั้งที่ 2"
+    };
+  }
+
+  function buildUnregResponse(row) {
+    return {
+      status: "success",
+      found: true,
+      isUnregistered: true,
+      assetNo: row.temp_id,
+      tempId: row.temp_id,
+      assetName: row.asset_name || "",
+      category: row.category || "",
+      warehouse: row.warehouse || "",
+      area: row.area || "",
+      remark: row.remark || "",
+      dateAdded: row.created_at || "",
+      imageUrl: row.image_url || "",
+      unregStatus: row.review_state === "pending" ? "Pending" : row.review_state,
+      assetStatus: row.asset_status || ""
+    };
+  }
+
+  // ===== action: lookup =====
+
+  async function handleLookup(assetNo) {
+    const code = String(assetNo || "").trim().toUpperCase();
+    if (!code) return { status: "error", message: "ไม่ได้ระบุรหัสทรัพย์สิน" };
+
+    const { data: master, error } = await db
+      .from("assets_with_latest_count")
+      .select("*")
+      .eq("asset_no", code)
+      .maybeSingle();
+
+    if (error) return { status: "error", message: error.message };
+    if (master) return await buildMasterResponse(master);
+
+    const { data: unreg } = await db
+      .from("unregistered_assets")
+      .select("*")
+      .eq("temp_id", code)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (unreg) return buildUnregResponse(unreg);
+
+    return { status: "success", found: false, assetNo: code, message: "ไม่พบทรัพย์สินนี้ในระบบ" };
+  }
+
+  // ===== action: updateAsset (บันทึกผลนับ + อัปเดตตำแหน่ง) =====
+
+  async function ensureCountRound(round) {
+    const period = currentPeriod();
+
+    const { data: existing } = await db
+      .from("count_rounds")
+      .select("id")
+      .eq("period", period)
+      .eq("round", round)
+      .maybeSingle();
+
+    if (existing) return existing.id;
+
+    const { data: created, error } = await db
+      .from("count_rounds")
+      .insert({ period: period, round: round })
+      .select("id")
+      .single();
+
+    // ถ้าชนกับอีกเครื่องที่สร้างพร้อมกัน ให้อ่านซ้ำแทนการ error
+    if (error) {
+      const { data: retry } = await db
+        .from("count_rounds")
+        .select("id")
+        .eq("period", period)
+        .eq("round", round)
+        .maybeSingle();
+      if (retry) return retry.id;
+      throw new Error("สร้างรอบนับไม่สำเร็จ: " + error.message);
+    }
+    return created.id;
+  }
+
+  async function handleUpdateAsset(payload) {
+    const startedAt = Date.now();
+    const assetNo = String(payload.assetNo || "").trim().toUpperCase();
+    const user = window.getCurrentUser();
+
+    if (!user) {
+      return { status: "error", message: "กรุณาเข้าสู่ระบบก่อนบันทึก" };
+    }
+    if (!assetNo) {
+      return { status: "error", message: "ไม่ได้ระบุรหัสทรัพย์สิน" };
+    }
+
+    const round = normalizeRound(payload.countRound);
+
+    // 1. อัปเดตตำแหน่ง/สถานะ ถ้ามีการเลือกมา (ค่าว่างหรือ "ไม่เปลี่ยน" = ไม่แตะ)
+    const patch = {};
+    const skip = ["", "ไม่เปลี่ยน", "โปรดเลือกแผนกก่อน"];
+    if (payload.warehouse && !skip.includes(payload.warehouse)) patch.warehouse = payload.warehouse;
+    if (payload.area && !skip.includes(payload.area)) patch.area = payload.area;
+    if (payload.status && !skip.includes(payload.status)) patch.status = payload.status;
+    if (payload.remarks) patch.remark = payload.remarks;
+
+    if (!payload.isUnregistered && Object.keys(patch).length) {
+      const { error } = await db.from("assets").update(patch).eq("asset_no", assetNo);
+      if (error) return { status: "error", message: "อัปเดตข้อมูลไม่สำเร็จ: " + error.message };
+    }
+
+    // 2. บันทึกผลนับ — เฉพาะของที่อยู่ในทะเบียนหลัก
+    //    ของนอกระบบยังไม่มีแถวใน assets จึงอ้างอิงไม่ได้ ต้องรอ approve ก่อน
+    let alreadyCounted = false;
+    if (payload.isScan && !payload.isUnregistered) {
+      const roundId = await ensureCountRound(round);
+
+      const { error } = await db.from("counts").insert({
+        round_id: roundId,
+        asset_no: assetNo,
+        result: "Count",
+        counted_by: user,
+        device: "Mobile"
+      });
+
+      if (error) {
+        // 23505 = ชนกับ unique(round_id, asset_no) แปลว่ารอบนี้นับไปแล้ว ไม่ใช่ความผิดพลาด
+        if (error.code === "23505") {
+          alreadyCounted = true;
+        } else {
+          return { status: "error", message: "บันทึกผลนับไม่สำเร็จ: " + error.message };
+        }
+      }
+    }
+
+    // 3. เขียน log — ล้มเหลวตรงนี้ไม่ควรทำให้การนับเสีย
+    await db.from("scan_logs").insert({
+      req_id: payload.requestId || null,
+      asset_no: assetNo,
+      action: payload.isScan ? "Count (Fast)" : "Update",
+      status: "done",
+      device: "Mobile",
+      result: alreadyCounted ? "นับซ้ำ ข้ามการบันทึก" : "Updated",
+      duration_ms: Date.now() - startedAt
+    });
+
+    return {
+      status: "success",
+      assetNo: assetNo,
+      requestId: payload.requestId || "",
+      alreadyCounted: alreadyCounted,
+      imageUrl: "",
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startedAt,
+      message: alreadyCounted ? "รอบนี้เคยนับไปแล้ว" : "บันทึกเรียบร้อย"
+    };
+  }
+
+  // ===== ตัวส่งต่อ: เขียนทับ timedFetch =====
+
+  const originalTimedFetch = window.timedFetch;
+
+  function fakeResponse(body) {
+    return {
+      ok: true,
+      status: 200,
+      json: async function () { return body; },
+      text: async function () { return JSON.stringify(body); }
+    };
+  }
+
+  window.timedFetch = async function (action, url, options, meta) {
+    options = options || {};
+    const isPost = String(options.method || "GET").toUpperCase() === "POST";
+
+    try {
+      if (isPost) {
+        const payload = JSON.parse(options.body || "{}");
+        if (payload.action === "updateAsset") {
+          return fakeResponse(await handleUpdateAsset(payload));
+        }
+      } else {
+        const params = new URL(url).searchParams;
+        const act = params.get("action");
+
+        if (act === "lookup") {
+          return fakeResponse(await handleLookup(params.get("assetNo")));
+        }
+        // Supabase เขียนเสร็จตอบทันที ไม่มีคิวหลังบ้านให้ตามสถานะ
+        // ตอบ found:false ให้ผู้เรียกข้ามการแจ้งเตือน "รอหลังบ้าน" ไปเลย
+        if (act === "scanStatus") {
+          return fakeResponse({ status: "success", found: false });
+        }
+      }
+    } catch (err) {
+      console.error("[supabase] " + action + " ล้มเหลว", err);
+      return fakeResponse({ status: "error", message: err.message || "เกิดข้อผิดพลาด" });
+    }
+
+    // action ที่ยังไม่ย้าย (add, upload, uploadScanImage) ปล่อยไป Apps Script ตามเดิม
+    return originalTimedFetch(action, url, options, meta);
+  };
+
+  console.log("[supabase] เชื่อมต่อแล้ว — ดัก lookup, scanStatus, updateAsset, login");
+})();
