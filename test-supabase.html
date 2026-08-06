@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ทดสอบการเชื่อมต่อ Supabase</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif;
+    max-width: 560px; margin: 0 auto; padding: 20px 16px 60px;
+    line-height: 1.6;
+  }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: #666; font-size: 13px; margin-bottom: 24px; }
+  label { display: block; font-size: 14px; margin-bottom: 4px; font-weight: 500; }
+  input {
+    width: 100%; padding: 12px; font-size: 16px; margin-bottom: 14px;
+    border: 1px solid #bbb; border-radius: 8px; box-sizing: border-box;
+  }
+  button {
+    width: 100%; padding: 14px; font-size: 16px; font-weight: 500;
+    border: 0; border-radius: 8px; background: #3ecf8e; color: #06281c;
+    cursor: pointer; margin-bottom: 10px;
+  }
+  button.secondary { background: #e6e6e6; color: #222; }
+  button:disabled { opacity: .5; cursor: default; }
+  #out {
+    margin-top: 20px; padding: 14px; border-radius: 8px;
+    background: #f4f4f4; color: #111;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px; white-space: pre-wrap; word-break: break-word;
+    min-height: 80px;
+  }
+  .row { display: flex; gap: 10px; }
+  .row button { flex: 1; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #16161a; color: #eee; }
+    input { background: #222; color: #eee; border-color: #444; }
+    #out { background: #202024; color: #eee; }
+    .sub { color: #999; }
+    button.secondary { background: #333; color: #eee; }
+  }
+</style>
+</head>
+<body>
+
+<h1>ทดสอบการเชื่อมต่อ Supabase</h1>
+<div class="sub">หน้านี้ใช้ทดสอบอย่างเดียว ไม่กระทบระบบจริง</div>
+
+<label for="user">ชื่อผู้ใช้</label>
+<input id="user" type="text" placeholder="เช่น CW001" autocapitalize="off" autocomplete="username">
+
+<label for="pass">รหัสผ่าน</label>
+<input id="pass" type="password" placeholder="รหัสผ่านเดิมที่เคยใช้" autocomplete="current-password">
+
+<button id="btn-login">1. ทดสอบเข้าสู่ระบบ</button>
+<div class="row">
+  <button id="btn-read" class="secondary">2. ทดสอบอ่านข้อมูล</button>
+  <button id="btn-write" class="secondary">3. ทดสอบบันทึก</button>
+</div>
+<button id="btn-logout" class="secondary">ออกจากระบบ</button>
+
+<div id="out">กดปุ่มที่ 1 เพื่อเริ่ม</div>
+
+<script>
+const SUPABASE_URL = "https://dbdgiggbwcjchkhgdxxx.supabase.co";
+const SUPABASE_KEY = "sb_publishable_QjjderhYeuDJrUgYFT3AIg_xv0TXBEw";
+const EMAIL_DOMAIN = "vespiario.com";
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const out = document.getElementById("out");
+
+function log(text) {
+  out.textContent = text;
+}
+function append(text) {
+  out.textContent += "\n" + text;
+}
+
+function toEmail(username) {
+  const name = String(username || "").trim();
+  return (name.includes("@") ? name : name + "@" + EMAIL_DOMAIN).toLowerCase();
+}
+
+document.getElementById("btn-login").onclick = async function () {
+  const username = document.getElementById("user").value;
+  const password = document.getElementById("pass").value;
+  if (!username || !password) { log("กรอกชื่อผู้ใช้และรหัสผ่านก่อน"); return; }
+
+  const email = toEmail(username);
+  log("กำลังเข้าสู่ระบบด้วย " + email + " ...");
+
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    log("❌ เข้าสู่ระบบไม่สำเร็จ\n\n" + error.message +
+        "\n\nอีเมลที่ส่งไป: " + email);
+    return;
+  }
+
+  const role = (data.user.app_metadata && data.user.app_metadata.role) || "-";
+  log("✅ เข้าสู่ระบบสำเร็จ" +
+      "\n\nอีเมล: " + data.user.email +
+      "\nสิทธิ์: " + role +
+      "\nรหัสผู้ใช้: " + data.user.id +
+      "\n\nต่อไปกดปุ่ม 2 และ 3");
+};
+
+document.getElementById("btn-read").onclick = async function () {
+  log("กำลังอ่านข้อมูล ...");
+
+  const { count, error: countError } = await db
+    .from("assets").select("*", { count: "exact", head: true });
+  if (countError) { log("❌ อ่านไม่ได้\n\n" + countError.message); return; }
+
+  const { data, error } = await db
+    .from("assets_with_latest_count")
+    .select("asset_no, asset_name, warehouse, last_scan, last_result")
+    .limit(3);
+  if (error) { log("❌ อ่าน view ไม่ได้\n\n" + error.message); return; }
+
+  log("✅ อ่านข้อมูลได้\n\nทรัพย์สินทั้งหมด " + count + " รายการ\n\n" +
+      data.map(function (r) {
+        return r.asset_no + " | " + r.warehouse + " | " + (r.last_result || "ยังไม่นับ") +
+               "\n  " + r.asset_name;
+      }).join("\n"));
+};
+
+document.getElementById("btn-write").onclick = async function () {
+  log("กำลังทดสอบบันทึก ...");
+
+  const { data: session } = await db.auth.getSession();
+  const isLoggedIn = !!(session && session.session);
+
+  const { data: round, error: roundError } = await db
+    .from("count_rounds").select("id, period, round")
+    .order("id", { ascending: false }).limit(1).single();
+  if (roundError) { log("❌ หารอบนับไม่เจอ\n\n" + roundError.message); return; }
+
+  const { data: asset, error: assetError } = await db
+    .from("assets").select("asset_no").limit(1).single();
+  if (assetError) { log("❌ หาทรัพย์สินไม่เจอ\n\n" + assetError.message); return; }
+
+  const { error } = await db.from("scan_logs").insert({
+    req_id: "TEST-" + Date.now(),
+    asset_no: asset.asset_no,
+    action: "ทดสอบการเชื่อมต่อ",
+    status: "done",
+    device: "Test page",
+    result: "เขียนจากหน้าทดสอบ"
+  });
+
+  if (error) {
+    log((isLoggedIn ? "❌" : "⚠️") + " บันทึกไม่ได้\n\n" + error.message +
+        "\n\nสถานะ: " + (isLoggedIn ? "เข้าสู่ระบบแล้ว — ไม่ควรถูกปฏิเสธ ต้องแก้ policy"
+                                    : "ยังไม่ได้เข้าสู่ระบบ — ถูกปฏิเสธคือถูกต้องแล้ว"));
+    return;
+  }
+
+  log("✅ บันทึกสำเร็จ" +
+      "\n\nเขียน scan_logs 1 แถว อ้างถึง " + asset.asset_no +
+      "\nรอบนับล่าสุดในระบบ: " + round.period + " รอบ " + round.round +
+      "\n\nแปลว่า RLS ปล่อยให้คนที่เข้าสู่ระบบแล้วเขียนได้จริง");
+};
+
+document.getElementById("btn-logout").onclick = async function () {
+  await db.auth.signOut();
+  log("ออกจากระบบแล้ว\n\nลองกดปุ่ม 3 ดู ควรถูกปฏิเสธ = RLS ทำงานถูกต้อง");
+};
+</script>
+
+</body>
+</html>
