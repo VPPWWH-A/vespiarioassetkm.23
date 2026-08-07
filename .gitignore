@@ -1,0 +1,44 @@
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Node and package manager files
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Backup and temp files
+*.tmp
+*.bak
+*.bak_broken
+*_utf8.js
+*~
+*.log
+
+# Local scratch folders
+scratch/
+temp/
+
+# ความลับ — repo นี้เป็น public ห้ามหลุดเด็ดขาด
+Script/
+supabase/Data Password.txt
+*.env
+
+# ข้อมูลดิบขนาดใหญ่ มีข้อมูลทรัพย์สินจริง
+*.xlsx
+*.pptx
+
+# เอกสารภายใน — มีค่าลับใน issues.md/backend.md และ repo นี้เป็น public
+docs/
