@@ -33,7 +33,8 @@ temp/
 
 # ความลับ — repo นี้เป็น public ห้ามหลุดเด็ดขาด
 Script/
-supabase/Data Password.txt
+Web Data/supabase/Data Password.txt
+Data Password.txt
 *.env
 
 # ข้อมูลดิบขนาดใหญ่ มีข้อมูลทรัพย์สินจริง

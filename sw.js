@@ -1,4 +1,4 @@
-const CACHE_NAME = 'asset-km23-v5';
+const CACHE_NAME = 'asset-km23-v6';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -6,11 +6,11 @@ const PRECACHE_URLS = [
   './logo.png',
   './logo-192.png',
   './logo-512.png',
-  './css/index/index.css',
-  './js/index/api.js',
-  './js/index/app.js',
-  './js/index/ui.js',
-  './js/index/label.js'
+  './Web%20Data/css/index/index.css',
+  './Web%20Data/js/index/api.js',
+  './Web%20Data/js/index/app.js',
+  './Web%20Data/js/index/ui.js',
+  './Web%20Data/js/index/label.js'
 ];
 
 self.addEventListener('install', (event) => {
