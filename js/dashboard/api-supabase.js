@@ -4,16 +4,36 @@
   const db = window.supabaseClient;
   if (!db) throw new Error("ไม่พบ Supabase client");
 
+  const PAGE_SIZE = 1000;
+
+  // ยิงหน้าแรกพร้อมขอจำนวนแถวทั้งหมด แล้วดึงหน้าที่เหลือขนานกัน
+  // แบบเดิมวนรอหน้าก่อนจบถึงยิงหน้าถัดไป ตารางใหญ่จึงเสีย round trip เรียงกันเปล่าๆ
   async function allRows(table, select, order) {
-    const rows = [];
-    for (let from = 0; ; from += 1000) {
-      let query = db.from(table).select(select).range(from, from + 999);
+    function page(from, exact) {
+      let query = db
+        .from(table)
+        .select(select, exact ? { count: "exact" } : undefined)
+        .range(from, from + PAGE_SIZE - 1);
       if (order) query = query.order(order, { ascending: true });
-      const result = await query;
+      return query;
+    }
+
+    const first = await page(0, true);
+    if (first.error) throw first.error;
+    const rows = first.data || [];
+
+    const total = Number(first.count);
+    if (!total || total <= rows.length) return rows;
+
+    const requests = [];
+    for (let from = PAGE_SIZE; from < total; from += PAGE_SIZE) requests.push(page(from, false));
+
+    const pages = await Promise.all(requests);
+    pages.forEach(result => {
       if (result.error) throw result.error;
       rows.push.apply(rows, result.data || []);
-      if (!result.data || result.data.length < 1000) return rows;
-    }
+    });
+    return rows;
   }
 
   function periodLabel(period) {
@@ -26,7 +46,7 @@
     return value === "Count" || value === "Checked";
   }
 
-  function makeModel(assets, rounds, counts, logs, unregistered) {
+  function makeModel(assets, rounds, counts, durations, unregistered) {
     rounds.sort((a, b) => String(a.period).localeCompare(String(b.period)) || Number(a.round) - Number(b.round));
     const columns = rounds.map(r => ({ id: String(r.id), period: r.period, round: Number(r.round), name: "เช็ค " + periodLabel(r.period) + " Count " + r.round }));
     const countMap = {};
@@ -74,16 +94,18 @@
 
     const master = {};
     rows.forEach(r => { master[String(r[0]).toUpperCase()] = true; });
+    // durations มาจาก view scan_duration_by_asset ที่ group ใน SQL แล้ว
+    // 1 แถว = asset 1 ตัว ต่อ 1 ประเภทงาน ไม่ใช่ log รายครั้งเหมือนเดิม
     const scanDurationByAsset = {}, unregAddedDurationByAsset = {};
     let scanTotal = 0, unregTotal = 0;
-    logs.forEach(log => {
-      const ms = Number(log.duration_ms || 0), key = String(log.asset_no || "").toUpperCase();
+    durations.forEach(row => {
+      const ms = Number(row.duration_ms || 0), key = String(row.asset_key || "").toUpperCase();
       if (!ms || !key) return;
-      const target = log.action === "Added to Unregistered" ? unregAddedDurationByAsset : scanDurationByAsset;
+      const target = row.is_unreg_added ? unregAddedDurationByAsset : scanDurationByAsset;
       target[key] = target[key] || { durationMs: 0, createdAt: 0 };
       target[key].durationMs += ms;
-      target[key].createdAt = Math.max(target[key].createdAt, log.created_at ? new Date(log.created_at).getTime() : 0);
-      if (log.action === "Added to Unregistered") unregTotal += ms; else if (master[key]) scanTotal += ms;
+      target[key].createdAt = Math.max(target[key].createdAt, row.last_created_at ? new Date(row.last_created_at).getTime() : 0);
+      if (row.is_unreg_added) unregTotal += ms; else if (master[key]) scanTotal += ms;
     });
 
     const unregHeaders = ["Temp ID", "Asset Name", "Category", "Warehouse", "Area", "Remark", "Created At", "Image URL", "Review State", "Asset Status"];
@@ -96,14 +118,14 @@
   }
 
   async function loadModel() {
-    const [assets, rounds, counts, logs, unregistered] = await Promise.all([
+    const [assets, rounds, counts, durations, unregistered] = await Promise.all([
       allRows("assets_with_latest_count", "asset_no,asset_name,category,area,warehouse,acquisition_date,status,last_scan,last_result,remark,image_url", "asset_no"),
       allRows("count_rounds", "id,period,round", "period"),
       allRows("counts", "round_id,asset_no,result", "asset_no"),
-      allRows("scan_logs", "asset_no,action,duration_ms,created_at", "created_at"),
+      allRows("scan_duration_by_asset", "asset_key,is_unreg_added,duration_ms,last_created_at", "asset_key"),
       allRows("unregistered_assets", "temp_id,asset_name,category,warehouse,area,remark,created_at,image_url,review_state,asset_status", "created_at")
     ]);
-    return makeModel(assets, rounds, counts, logs, unregistered);
+    return makeModel(assets, rounds, counts, durations, unregistered);
   }
 
   window.loadDashboard = async function () {
