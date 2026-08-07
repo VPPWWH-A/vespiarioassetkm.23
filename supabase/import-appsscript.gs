@@ -332,3 +332,65 @@ function verifyImport() {
   Logger.log("                          -> counts              %s", supaCount("counts"));
   Logger.log("หมายเหตุ: assets อาจน้อยกว่าชีตได้ถ้ามี Asset No ซ้ำ ดูคำเตือนด้านบน");
 }
+
+// ==========================================
+// เครื่องมือ debug ที่เพิ่มบน Apps Script ตอนย้ายข้อมูล (ดึงกลับมาเก็บ 2026-08-07)
+// ไม่ได้ใช้ในงานประจำ อยู่ในไฟล์นี้เพราะเป็นของชุดเดียวกับการ import
+// ==========================================
+
+function debugProps() {
+  const props = PropertiesService.getScriptProperties().getProperties();
+  const keys = Object.keys(props);
+  Logger.log("จำนวน property: %s", keys.length);
+  keys.forEach(function (k) {
+    Logger.log("[%s] ยาว %s ตัวอักษร ขึ้นต้น '%s'", k, String(props[k]).length, String(props[k]).slice(0, 12));
+  });
+}
+
+// แก้เคสที่เผลอตั้งชื่อ property เป็นตัว URL เอง แล้วเก็บ service key ไว้เป็นค่า
+function fixProps() {
+  const sp = PropertiesService.getScriptProperties();
+  const all = sp.getProperties();
+
+  const wrongName = Object.keys(all).filter(function (k) {
+    return k.indexOf("supabase.co") !== -1;
+  })[0];
+
+  if (!wrongName) {
+    Logger.log("ไม่เจอพร็อพเพอร์ตี้ที่ชื่อเป็น URL — ดูรายชื่อทั้งหมด:");
+    Object.keys(all).forEach(function (k) { Logger.log(" - %s", k); });
+    return;
+  }
+
+  const url = wrongName.trim();
+  const serviceKey = String(all[wrongName]).trim();
+
+  sp.setProperty("SUPABASE_URL", url);
+  sp.setProperty("SUPABASE_SERVICE_KEY", serviceKey);
+
+  const after = sp.getProperties();
+  if (after.SUPABASE_URL === url && after.SUPABASE_SERVICE_KEY === serviceKey) {
+    sp.deleteProperty(wrongName);
+    Logger.log("ย้ายสำเร็จ");
+  } else {
+    Logger.log("ตั้งค่าใหม่ไม่สำเร็จ ยังไม่ลบของเดิม");
+  }
+
+  const final = sp.getProperties();
+  Object.keys(final).forEach(function (k) {
+    Logger.log("[%s] ยาว %s ขึ้นต้น '%s'", k, String(final[k]).length, String(final[k]).slice(0, 12));
+  });
+}
+
+function listApproveUsers() {
+  const sheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID).getSheetByName("Approve all");
+  if (!sheet) { Logger.log("ไม่เจอชีต Approve all"); return; }
+  const data = sheet.getDataRange().getValues();
+  Logger.log("หัวตาราง: %s", JSON.stringify(data[0]));
+  Logger.log("จำนวนผู้ใช้: %s", data.length - 1);
+  for (let i = 1; i < data.length; i++) {
+    const user = String(data[i][0] || "").trim();
+    if (!user) continue;
+    Logger.log("%s. %s (รหัสยาว %s ตัว)", i, user, String(data[i][1] || "").length);
+  }
+}

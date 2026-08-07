@@ -36,20 +36,31 @@ function imageBackupFileName_(assetNo, imageUrl) {
   return String(assetNo || "unknown").replace(/[^A-Za-z0-9_-]/g, "_") + "." + extension;
 }
 
+// อ่านชื่อไฟล์ในโฟลเดอร์รอบเดียวแล้วเก็บเป็น map
+// เดิมเรียก getFilesByName() ทีละรูป ซึ่งพอรันถี่ (ทุก 5 นาที) จะยิง Drive จนชน quota
+function imageBackupExistingNames_(folder) {
+  const names = {};
+  const files = folder.getFiles();
+  while (files.hasNext()) names[files.next().getName()] = true;
+  return names;
+}
+
 function backupSupabaseImagesToDrive() {
   const cfg = imageBackupConfig_();
   const folder = DriveApp.getFolderById(cfg.folderId);
   const assets = imageBackupGetAssets_();
+  const existing = imageBackupExistingNames_(folder);
   let copied = 0, skipped = 0, failed = 0;
   assets.forEach(function (asset) {
     const imageUrl = String(asset.image_url || "").trim();
     if (!imageUrl || imageUrl.indexOf("supabase.co/storage/v1/object/") === -1) return;
     const name = imageBackupFileName_(asset.asset_no, imageUrl);
-    if (folder.getFilesByName(name).hasNext()) { skipped++; return; }
+    if (existing[name]) { skipped++; return; }
     try {
       const response = UrlFetchApp.fetch(imageUrl, { muteHttpExceptions: true });
       if (response.getResponseCode() >= 300) throw new Error("HTTP " + response.getResponseCode());
       folder.createFile(response.getBlob().setName(name));
+      existing[name] = true;
       copied++;
     } catch (error) {
       failed++;

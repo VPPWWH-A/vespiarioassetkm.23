@@ -101,6 +101,15 @@ function syncSupabaseToSheetsIfChanged() {
 
     const result = syncSupabaseToSheets();
 
+    // สำรองรูปต่อท้ายทันที ให้ไฟล์รูปใน Drive ตามข้อมูลในชีตในรอบเดียวกัน
+    // แยก try เพราะรูปพังไม่ควรทำให้ชีตที่ sync สำเร็จแล้วถูกนับว่าล้มเหลว
+    try {
+      result.images = backupSupabaseImagesToDrive();
+    } catch (error) {
+      result.images = "ล้มเหลว: " + error.message;
+      Logger.log("สำรองรูปไม่สำเร็จ (ชีต sync แล้ว): %s", error.message);
+    }
+
     // เก็บลายนิ้วมือหลัง sync สำเร็จเท่านั้น
     // ถ้า sync พังแล้วเก็บไว้ก่อน รอบถัดไปจะนึกว่าไม่มีอะไรเปลี่ยนแล้วข้ามถาวร
     props.setProperty(SYNC_STATE_KEY, current);
