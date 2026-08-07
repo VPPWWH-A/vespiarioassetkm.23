@@ -40,6 +40,9 @@ function yieldToUI() {
 
 let pendingScanData = null;
 
+// เก็บ argument ชุดที่ start() สำเร็จไว้ เพื่อเปิดกล้องซ้ำด้วยค่าเดิมตอนบังคับโฟกัสบน iOS
+let lastCameraStart = null;
+
 function showStockCountModal(data) {
   closeHandheldScanPopup();
   if (data && data.isUnregistered) {
@@ -214,10 +217,35 @@ function getScannerVideoTrack() {
   return tracks.length ? tracks[0] : null;
 }
 
+// iOS Safari ไม่มี getCapabilities/applyConstraints บน MediaStreamTrack
+// เดิมโค้ดตรงนี้ return เฉยๆ รอบโฟกัสอัตโนมัติทั้ง 8 ครั้งจึงไม่ได้ทำอะไรเลยบน iPhone
+// กล้องค้างที่โฟกัสเดิม บาร์โค้ดระยะใกล้เบลอจนถอดรหัสไม่ออก = "กล้องติดแต่สแกนไม่เข้า"
+// ทางเดียวที่บังคับให้ iOS โฟกัสใหม่ได้คือหยุดแล้วเปิดกล้องใหม่ ตามที่คอมเมนต์ด้านล่างตั้งใจไว้แต่แรก
+async function restartCameraForFocus() {
+  if (!html5QrCode || !isScanning || !lastCameraStart) return;
+  try {
+    const instance = html5QrCode;
+    await instance.stop();
+    // ผู้ใช้อาจกดหยุดสแกนระหว่างที่ stop() ยังไม่จบ ถ้าเปิดต่อจะได้กล้องที่ไม่มีใครสั่งเปิด
+    if (!isScanning || html5QrCode !== instance) return;
+    await instance.start(
+      lastCameraStart.target,
+      lastCameraStart.config,
+      lastCameraStart.onDecoded,
+      lastCameraStart.onScanError
+    );
+  } catch (err) {
+    console.warn("restartCameraForFocus failed", err);
+  }
+}
+
 async function applyCameraFocus(isManualTap = false) {
   const track = getScannerVideoTrack();
   if (!track) return;
-  if (typeof track.getCapabilities !== "function" || typeof track.applyConstraints !== "function") return;
+  if (typeof track.getCapabilities !== "function" || typeof track.applyConstraints !== "function") {
+    await restartCameraForFocus();
+    return;
+  }
 
   const capabilities = track.getCapabilities();
   const advanced = [];
@@ -244,7 +272,12 @@ async function applyCameraFocus(isManualTap = false) {
     advanced.push({ pointsOfInterest: [{ x: 0.5, y: 0.5 }] });
   }
 
-  if (!advanced.length) return;
+  // iOS บางรุ่นมี getCapabilities แต่คืน object ที่ไม่มี focusMode มาให้เลย
+  // เคสนี้ก็ปรับอะไรไม่ได้เหมือนกัน ต้องรีสตาร์ทกล้องแทน
+  if (!advanced.length) {
+    await restartCameraForFocus();
+    return;
+  }
 
   try {
     await track.applyConstraints({ advanced });
@@ -996,6 +1029,7 @@ async function startScanner() {
       try {
         const instance = await freshHtml5QrCode();
         await instance.start(attempt.target, attempt.config, onDecoded, onScanError);
+        lastCameraStart = { target: attempt.target, config: attempt.config, onDecoded, onScanError };
         lastErr = null;
         break;
       } catch (err) {
@@ -1014,7 +1048,9 @@ async function startScanner() {
         const preferredCamera = getPreferredBackCamera(cameras);
         cachedCameraId = preferredCamera ? preferredCamera.id : cameras[0].id;
         const instance = await freshHtml5QrCode();
-        await instance.start(cachedCameraId, getScannerConfig(false), onDecoded, onScanError);
+        const fallbackConfig = getScannerConfig(false);
+        await instance.start(cachedCameraId, fallbackConfig, onDecoded, onScanError);
+        lastCameraStart = { target: cachedCameraId, config: fallbackConfig, onDecoded, onScanError };
         lastErr = null;
       } catch (err) {
         console.warn("Camera start failed (deviceId fallback)", err);
@@ -1055,6 +1091,23 @@ const AUTO_FOCUS_MAX_ATTEMPTS = 8;
 const AUTO_FOCUS_INTERVAL_MS = 1400;
 const AUTO_FOCUS_WARMUP_MS = 550;
 
+// เครื่องที่ต้องรีสตาร์ทกล้องเพื่อโฟกัส (iOS) ต้องทิ้งช่วงห่างกว่าและทำน้อยครั้งกว่า
+// เพราะ stop() + start() ใช้เวลาเป็นวินาทีและภาพจะดับชั่วขณะ ถ้าถี่เท่าเดิมจะกลายเป็นกล้องกระพริบตลอดเวลา
+const RESTART_FOCUS_MAX_ATTEMPTS = 4;
+const RESTART_FOCUS_INTERVAL_MS = 3200;
+
+// true เมื่อกล้องปัจจุบันปรับโฟกัสด้วย constraints ไม่ได้ ต้องใช้วิธีรีสตาร์ทแทน
+function cameraNeedsRestartToFocus() {
+  const track = getScannerVideoTrack();
+  if (!track || typeof track.getCapabilities !== "function" || typeof track.applyConstraints !== "function") return true;
+  try {
+    const capabilities = track.getCapabilities() || {};
+    return !Array.isArray(capabilities.focusMode) || capabilities.focusMode.length === 0;
+  } catch (e) {
+    return true;
+  }
+}
+
 function clearAutoFocus() {
   if (autoFocusTimer) {
     clearTimeout(autoFocusTimer);
@@ -1073,17 +1126,22 @@ async function runAutoFocusCycle() {
   autoFocusTimer = null;
   if (!isScanning) return;
 
+  const needsRestart = cameraNeedsRestartToFocus();
+  const interval = needsRestart ? RESTART_FOCUS_INTERVAL_MS : AUTO_FOCUS_INTERVAL_MS;
+  const maxAttempts = needsRestart ? RESTART_FOCUS_MAX_ATTEMPTS : AUTO_FOCUS_MAX_ATTEMPTS;
+
   // ถ้ากำลังประมวลผลผลสแกน/โฟกัสด้วยมืออยู่พอดี เลื่อนรอบถัดไปออกไปแทนที่จะข้าม
   if (isProcessing || isRefocusing) {
-    autoFocusTimer = setTimeout(runAutoFocusCycle, AUTO_FOCUS_INTERVAL_MS);
+    autoFocusTimer = setTimeout(runAutoFocusCycle, interval);
     return;
   }
 
-  if (autoFocusAttempts >= AUTO_FOCUS_MAX_ATTEMPTS) return; // ครบโควตาแล้ว เหลือให้แตะโฟกัสเองต่อ ไม่รบกวนจอถี่เกินไป
+  if (autoFocusAttempts >= maxAttempts) return; // ครบโควตาแล้ว เหลือให้แตะโฟกัสเองต่อ ไม่รบกวนจอถี่เกินไป
 
   autoFocusAttempts++;
-  try { await applyCameraFocus(false); } catch (e) {}
-  autoFocusTimer = setTimeout(runAutoFocusCycle, AUTO_FOCUS_INTERVAL_MS);
+  isRefocusing = true;
+  try { await applyCameraFocus(false); } catch (e) {} finally { isRefocusing = false; }
+  autoFocusTimer = setTimeout(runAutoFocusCycle, interval);
 }
 
 async function refocusCamera(event, isAuto) {
@@ -1152,6 +1210,7 @@ async function stopScanner() {
     html5QrCode = null;
     isScanning = false;
     isProcessing = false;
+    lastCameraStart = null; // กันไม่ให้รอบโฟกัสที่ค้างอยู่เปิดกล้องขึ้นมาใหม่หลังผู้ใช้สั่งหยุดแล้ว
     resetReaderPlaceholder();
     const startBtn = document.getElementById("btn-start");
     const stopBtn = document.getElementById("btn-stop");
