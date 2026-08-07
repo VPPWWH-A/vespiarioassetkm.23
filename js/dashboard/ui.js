@@ -990,9 +990,18 @@ function filterTable(resetPage = true) {
   updateBulkActionsBar();
 }
 
+// รูปมาได้ 2 ที่: ลิงก์ Google Drive ของเดิม และ public URL ของ Supabase Storage ที่ใช้ตอนนี้
+// Drive ต้องแปลงเป็น URL รูปก่อน ส่วน Supabase ใช้ src ตรงได้เลย
+function isDirectImageUrl(link) {
+  return /^https?:\/\//i.test(link) && (/\/storage\/v1\/object\/public\//.test(link) || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(link));
+}
+
 function getRowImageHtml(imageLink) {
   if (!imageLink) return `<div class="row-thumb-placeholder">📷</div>`;
   const safeLink = String(imageLink || "").trim();
+  if (isDirectImageUrl(safeLink)) {
+    return `<img class="row-thumb" src="${escHtml(safeLink)}" alt="Thumbnail" loading="lazy" onclick='event.stopPropagation(); window.open(${JSON.stringify(safeLink)}, "_blank")'>`;
+  }
   const match = safeLink.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]+)/);
   if (match && match[1]) {
     const fileId = match[1];
@@ -1358,6 +1367,18 @@ function changeUnregPage(dir) {
 function getDirectDriveImageHtml(link) {
   if (!link) return "";
   const safeLink = escHtml(link);
+  if (isDirectImageUrl(link)) {
+    return `
+      <div style="margin-top: 8px; text-align: center;">
+        <a href="${safeLink}" target="_blank" style="display:block;">
+          <img src="${safeLink}" alt="Attached Image" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 250px; object-fit: contain; background: #f3f4f6;">
+        </a>
+        <div style="margin-top: 12px;">
+          <a href="${safeLink}" target="_blank" class="btn btn-secondary" style="display:inline-flex;font-size:12px;padding:6px 12px;">Open full image</a>
+        </div>
+      </div>
+    `;
+  }
   const match = link.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]+)/);
   if (match && match[1]) {
     const fileId = match[1];
