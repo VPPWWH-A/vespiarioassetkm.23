@@ -1,4 +1,4 @@
-const CACHE_NAME = 'asset-km23-v10';
+const CACHE_NAME = 'asset-km23-v11';
 const PRECACHE_URLS = [
   './',
   './index.html',

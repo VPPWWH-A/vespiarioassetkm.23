@@ -838,7 +838,7 @@ function triggerPhotoScan() {
 
 // รูปถ่ายจากกล้องมือถือความละเอียดสูงมาก (หลายล้านพิกเซล) มักถอดรหัสบาร์โค้ดไม่ติดตรงๆ
 // เพราะ decoder (ZXing) ทำงานได้ดีกว่ากับภาพที่ย่อขนาดลงมาระดับหนึ่ง ไม่ใช่ภาพดิบความละเอียดเต็ม
-async function resizeImageForScan(file, maxDim) {
+async function resizeImageForScan(file, maxDim, boostContrast = false) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -854,7 +854,24 @@ async function resizeImageForScan(file, maxDim) {
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        // ป้ายจริงมักซีด สะท้อนแสง หรือเปื้อน ทำให้เส้นบาร์โค้ดกลืนกับพื้น
+        // ดึงเป็นขาวดำแล้วเร่งคอนทราสต์รอบจุดกึ่งกลาง ช่วยให้ขอบเส้นชัดขึ้นก่อนส่งให้ตัวถอดรหัส
+        if (boostContrast) {
+          try {
+            const image = ctx.getImageData(0, 0, width, height);
+            const data = image.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+              const boosted = Math.max(0, Math.min(255, (gray - 128) * 1.8 + 128));
+              data[i] = data[i + 1] = data[i + 2] = boosted;
+            }
+            ctx.putImageData(image, 0, 0);
+          } catch (e) {
+            // getImageData ล้มได้ถ้า canvas ปนเปื้อน cross-origin ปล่อยใช้ภาพเดิมต่อ
+          }
+        }
         canvas.toBlob((blob) => {
           if (!blob) { reject(new Error("Canvas toBlob failed")); return; }
           resolve(new File([blob], file.name || "scan.jpg", { type: "image/jpeg" }));
@@ -887,12 +904,20 @@ async function handlePhotoScan(event) {
 
     // ไล่ลองหลายขนาดภาพ เพราะรูปดิบความละเอียดเต็มจากกล้องมักถอดรหัสไม่ติด
     // แต่ภาพที่ย่อขนาดพอเหมาะกลับอ่านได้ง่ายกว่า
-    const sizesToTry = [1600, 900, 2400];
+    // ไล่ขนาดปกติก่อน ถ้ายังไม่ติดค่อยลองแบบเร่งคอนทราสต์
+    // ป้ายยับ ซีด หรือสะท้อนแสงมักอ่านไม่ออกที่ภาพดิบ แต่ผ่านเมื่อขอบเส้นถูกดึงให้ชัด
+    const attemptsToTry = [
+      { maxDim: 1600, boost: false },
+      { maxDim: 900, boost: false },
+      { maxDim: 2400, boost: false },
+      { maxDim: 1600, boost: true },
+      { maxDim: 2400, boost: true }
+    ];
     let decodedText = null;
     let lastErr = null;
-    for (const maxDim of sizesToTry) {
+    for (const attempt of attemptsToTry) {
       try {
-        const resized = await resizeImageForScan(file, maxDim);
+        const resized = await resizeImageForScan(file, attempt.maxDim, attempt.boost);
         decodedText = await tempHtml5QrCode.scanFile(resized, true);
         break;
       } catch (err) {
@@ -926,14 +951,16 @@ function getPreferredBackCamera(cameras) {
   return cameras[cameras.length - 1];
 }
 
+// กรอบเกือบจัตุรัส ครอบทั้งป้ายไม่ใช่เฉพาะแถบบาร์โค้ด
+// html5-qrcode ถอดรหัสเฉพาะภาพในกรอบ กรอบแบนเดิม (1.75:1) จึงตัด QR ที่อยู่ข้างบาร์โค้ดออก
+// ทั้งที่ QR บนป้ายใช้ error correction level H เก็บ assetNo ตัวเดียวกัน และทนป้ายยับ/ถ่ายเฉียงได้ดีกว่ามาก
 function getScannerQrbox(viewfinderWidth, viewfinderHeight) {
   const maxWidth = Math.max(180, viewfinderWidth - 24);
   const maxHeight = Math.max(140, viewfinderHeight - 24);
-  const width = Math.floor(Math.min(viewfinderWidth * 0.9, 560, maxWidth));
-  const height = Math.floor(Math.min(viewfinderHeight * 0.58, 320, maxHeight));
+  const side = Math.floor(Math.min(viewfinderWidth * 0.82, viewfinderHeight * 0.82, 460));
   return {
-    width: Math.min(maxWidth, Math.max(280, width)),
-    height: Math.min(maxHeight, Math.max(180, height))
+    width: Math.min(maxWidth, Math.max(240, side)),
+    height: Math.min(maxHeight, Math.max(200, side))
   };
 }
 
