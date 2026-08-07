@@ -1,11 +1,11 @@
-const CACHE_NAME = 'asset-km23-v6';
+const CACHE_NAME = 'asset-km23-v7';
 const PRECACHE_URLS = [
   './',
   './index.html',
   './manifest.json',
-  './logo.png',
-  './logo-192.png',
-  './logo-512.png',
+  './Web%20Data/assets/logo.png',
+  './Web%20Data/assets/logo-192.png',
+  './Web%20Data/assets/logo-512.png',
   './Web%20Data/css/index/index.css',
   './Web%20Data/js/index/api.js',
   './Web%20Data/js/index/app.js',
