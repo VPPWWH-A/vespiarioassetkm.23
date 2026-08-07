@@ -326,10 +326,39 @@
     return new Blob([bytes], { type: mime || "image/jpeg" });
   }
 
+  // ตารางใน dashboard แสดงรูปแค่ 44px แต่เดิมโหลดไฟล์เต็ม ~85KB ทุกแถว
+  // จึงอัปตัวย่อไว้อีกไฟล์ ชื่อเดียวกันต่อท้ายด้วย THUMB_SUFFIX
+  // ฝั่ง dashboard เดาชื่อนี้เอาเอง ไม่ต้องเพิ่มคอลัมน์ใน assets
+  const THUMB_SUFFIX = "_thumb";
+  const THUMB_MAX_DIM = 160;
+  const THUMB_QUALITY = 0.5;
+
+  function makeThumbBase64(base64) {
+    return new Promise(resolve => {
+      const img = new Image();
+      // ตัวย่อพังไม่ควรทำให้การอัปรูปทั้งใบล้มเหลว คืน "" แล้วปล่อยผ่าน
+      img.onerror = () => resolve("");
+      img.onload = () => {
+        try {
+          const ratio = Math.min(1, THUMB_MAX_DIM / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * ratio));
+          canvas.height = Math.max(1, Math.round(img.height * ratio));
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", THUMB_QUALITY).split(",")[1] || "");
+        } catch (error) {
+          resolve("");
+        }
+      };
+      img.src = "data:image/jpeg;base64," + base64;
+    });
+  }
+
   async function uploadImage(base64, assetNo) {
     if (!base64) return "";
-    const path = String(assetNo || "unknown").replace(/[^A-Za-z0-9_-]/g, "_") +
-                 "/" + Date.now() + ".jpg";
+    const basePath = String(assetNo || "unknown").replace(/[^A-Za-z0-9_-]/g, "_") +
+                     "/" + Date.now();
+    const path = basePath + ".jpg";
 
     const { error } = await db.storage
       .from("asset-images")
@@ -337,7 +366,44 @@
 
     if (error) throw new Error("อัปโหลดรูปไม่สำเร็จ: " + error.message);
 
+    // ตัวย่ออัปหลังตัวเต็มสำเร็จแล้ว และไม่ throw
+    // ถ้าไม่มีไฟล์นี้ dashboard จะ fallback ไปใช้ตัวเต็มเองอยู่แล้ว
+    try {
+      const thumb = await makeThumbBase64(base64);
+      if (thumb) {
+        await db.storage
+          .from("asset-images")
+          .upload(basePath + THUMB_SUFFIX + ".jpg", base64ToBlob(thumb),
+                  { contentType: "image/jpeg", upsert: false });
+      }
+    } catch (error) {
+      console.warn("[supabase] อัปรูปย่อไม่สำเร็จ ใช้รูปเต็มแทน:", error.message);
+    }
+
     return db.storage.from("asset-images").getPublicUrl(path).data.publicUrl;
+  }
+
+  // แปลง public URL กลับเป็น path ในถัง เพื่อสั่งลบได้
+  // รูปเก่าที่เป็นลิงก์ Google Drive จะได้ "" และถูกข้ามไป ไม่ไปยุ่งกับของเดิม
+  function storagePathFromUrl(url) {
+    const match = String(url || "").match(/\/storage\/v1\/object\/public\/asset-images\/(.+)$/);
+    return match ? decodeURIComponent(match[1].split("?")[0]) : "";
+  }
+
+  // ลบรูปชุดเก่าทิ้งหลังอัปตัวใหม่สำเร็จ ไม่ให้ไฟล์กำพร้าสะสมในถัง
+  // สำเนายังอยู่ใน Google Drive เพราะ backupSupabaseImagesToDrive() เก็บทุกเวอร์ชัน
+  // ลบไม่สำเร็จก็แค่เหลือขยะ ไม่ควรทำให้การสแกนพัง จึงไม่ throw
+  async function removeStoredImage(oldUrl) {
+    const path = storagePathFromUrl(oldUrl);
+    if (!path) return;
+    try {
+      const { error } = await db.storage
+        .from("asset-images")
+        .remove([path, path.replace(/\.(jpe?g)$/i, THUMB_SUFFIX + ".$1")]);
+      if (error) console.warn("[supabase] ลบรูปเก่าไม่สำเร็จ:", error.message);
+    } catch (error) {
+      console.warn("[supabase] ลบรูปเก่าไม่สำเร็จ:", error.message);
+    }
   }
 
   // ===== action: add (เพิ่มทรัพย์สินเข้าทะเบียนหลัก) =====
@@ -468,10 +534,18 @@
     const assetNo = String(payload.assetNo || "").trim().toUpperCase();
     if (!assetNo) return { status: "error", message: "ไม่ได้ระบุรหัสทรัพย์สิน" };
 
+    // อ่านรูปเดิมไว้ก่อน เพื่อลบทิ้งหลังตัวใหม่ขึ้นเรียบร้อยแล้ว
+    const { data: current } = await db
+      .from("assets").select("image_url").eq("asset_no", assetNo).maybeSingle();
+
     const imageUrl = await uploadImage(payload.image, assetNo);
 
     if (imageUrl) {
       await db.from("assets").update({ image_url: imageUrl }).eq("asset_no", assetNo);
+      // ลบหลัง update สำเร็จเท่านั้น ถ้าลบก่อนแล้ว update พังจะเหลือแถวชี้ไปไฟล์ที่ไม่มีอยู่
+      if (current && current.image_url && current.image_url !== imageUrl) {
+        await removeStoredImage(current.image_url);
+      }
     }
 
     // โหมดบาร์โค้ดเสียหาย: ต้องบันทึกผลนับด้วย ใช้ตัวเดียวกับ updateAsset เพื่อไม่ให้ logic แยกกัน

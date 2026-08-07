@@ -996,11 +996,25 @@ function isDirectImageUrl(link) {
   return /^https?:\/\//i.test(link) && (/\/storage\/v1\/object\/public\//.test(link) || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(link));
 }
 
+// รูปที่อัปหลัง 2026-08-07 มีตัวย่อคู่กัน ชื่อเดียวกันแต่ลงท้าย _thumb.jpg
+// ตารางแสดงแค่ 44px จึงโหลดตัวย่อ (~7KB) แทนตัวเต็ม (~85KB)
+// รูปเก่ายังไม่มีไฟล์นี้ ต้องมี onerror สลับกลับไปตัวเต็มเสมอ
+function supabaseThumbUrl(link) {
+  return /\/storage\/v1\/object\/public\/.+\.jpe?g(\?|$)/i.test(link)
+    ? link.replace(/\.(jpe?g)(\?|$)/i, "_thumb.$1$2")
+    : "";
+}
+
 function getRowImageHtml(imageLink) {
   if (!imageLink) return `<div class="row-thumb-placeholder">📷</div>`;
   const safeLink = String(imageLink || "").trim();
   if (isDirectImageUrl(safeLink)) {
-    return `<img class="row-thumb" src="${escHtml(safeLink)}" alt="Thumbnail" loading="lazy" onclick='event.stopPropagation(); window.open(${JSON.stringify(safeLink)}, "_blank")'>`;
+    const thumb = supabaseThumbUrl(safeLink);
+    // onerror ต้องล้างตัวเองก่อน ไม่งั้นถ้าตัวเต็มพังด้วยจะวนไม่จบ
+    const fallback = thumb
+      ? ` onerror='this.onerror=null; this.src=${JSON.stringify(safeLink)}'`
+      : "";
+    return `<img class="row-thumb" src="${escHtml(thumb || safeLink)}" alt="Thumbnail" loading="lazy"${fallback} onclick='event.stopPropagation(); window.open(${JSON.stringify(safeLink)}, "_blank")'>`;
   }
   const match = safeLink.match(/(?:id=|\/d\/)([a-zA-Z0-9_-]+)/);
   if (match && match[1]) {

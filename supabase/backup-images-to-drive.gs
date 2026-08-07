@@ -30,10 +30,24 @@ function imageBackupGetAssets_() {
   }
 }
 
+// ชื่อไฟล์ต้องผูกกับ URL ไม่ใช่ asset อย่างเดียว
+// เดิมใช้แค่ "COM002059.jpg" พอถ่ายรูปใหม่ทับ ชื่อซ้ำเดิม จึงถูกข้ามตลอด
+// สำเนาใน Drive เลยค้างเป็นรูปแรกไม่มีวันอัปเดต
+// ตอนนี้ index ลบรูปเก่าใน Supabase หลังถ่ายทับแล้ว Drive จึงเป็นที่เดียวที่เก็บประวัติ
 function imageBackupFileName_(assetNo, imageUrl) {
-  const match = String(imageUrl || "").match(/\.(jpg|jpeg|png|webp)(?:\?|$)/i);
+  const url = String(imageUrl || "");
+  const match = url.match(/\.(jpg|jpeg|png|webp)(?:\?|$)/i);
   const extension = match ? match[1].toLowerCase().replace("jpeg", "jpg") : "jpg";
-  return String(assetNo || "unknown").replace(/[^A-Za-z0-9_-]/g, "_") + "." + extension;
+  const base = String(assetNo || "unknown").replace(/[^A-Za-z0-9_-]/g, "_");
+
+  // ส่วนสุดท้ายของ path คือ timestamp ที่ index ตั้งตอนอัป ใช้แยกเวอร์ชันได้
+  const stamp = (url.split("?")[0].split("/").pop() || "").replace(/\.[a-z]+$/i, "");
+  return stamp ? base + "_" + stamp + "." + extension : base + "." + extension;
+}
+
+// ตัวย่อไม่ต้องสำรอง สร้างใหม่จากรูปเต็มได้เสมอ
+function imageBackupIsThumb_(imageUrl) {
+  return /_thumb\.(jpe?g|png|webp)(\?|$)/i.test(String(imageUrl || ""));
 }
 
 // อ่านชื่อไฟล์ในโฟลเดอร์รอบเดียวแล้วเก็บเป็น map
@@ -54,6 +68,7 @@ function backupSupabaseImagesToDrive() {
   assets.forEach(function (asset) {
     const imageUrl = String(asset.image_url || "").trim();
     if (!imageUrl || imageUrl.indexOf("supabase.co/storage/v1/object/") === -1) return;
+    if (imageBackupIsThumb_(imageUrl)) return;
     const name = imageBackupFileName_(asset.asset_no, imageUrl);
     if (existing[name]) { skipped++; return; }
     try {

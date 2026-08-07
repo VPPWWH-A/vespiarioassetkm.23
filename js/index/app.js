@@ -300,16 +300,20 @@ async function compressImageToBase64(file, maxSizeMB = 0.18) {
           sizeMB = (base64String.length * 0.75) / (1024 * 1024);
         }
         
-        // If it is still too large, reduce dimensions once.
-        if (sizeMB > maxSizeMB) {
-          const newWidth = Math.round(width * 0.75);
-          const newHeight = Math.round(height * 0.75);
-          canvas.width = newWidth;
-          canvas.height = newHeight;
-          ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        // ย่อขนาดซ้ำจนกว่าจะเข้าเพดานจริง
+        // เดิมย่อครั้งเดียวแล้วส่งออกโดยไม่วัดผล รูปที่บีบยากจึงหลุดเกิน maxSizeMB ได้
+        let shrinks = 0;
+        while (sizeMB > maxSizeMB && shrinks < 4 && width > 120 && height > 120) {
+          shrinks++;
+          width = Math.round(width * 0.75);
+          height = Math.round(height * 0.75);
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
           base64String = canvas.toDataURL("image/jpeg", 0.5);
+          sizeMB = (base64String.length * 0.75) / (1024 * 1024);
         }
-        
+
         resolve(base64String.split(",")[1]);
       };
       img.onerror = reject;
