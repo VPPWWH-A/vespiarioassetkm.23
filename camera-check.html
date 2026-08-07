@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ตรวจกล้อง — Asset KM.23</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f172a; color: #e2e8f0;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 16px; font-size: 13px; color: #94a3b8; }
+  video { width: 100%; border-radius: 10px; background: #000; display: block; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  button {
+    flex: 1 1 auto; min-width: 110px; padding: 12px 10px;
+    border: 1px solid #334155; border-radius: 8px;
+    background: #1e293b; color: #e2e8f0; font-size: 14px; cursor: pointer;
+  }
+  button.primary { background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 600; }
+  button:disabled { opacity: .5; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; margin: 18px 0 6px; }
+  pre {
+    background: #020617; border: 1px solid #1e293b; border-radius: 8px;
+    padding: 12px; font-size: 12px; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word; margin: 0;
+  }
+  .hint { font-size: 12px; color: #64748b; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<h1>ตรวจกล้องบนเครื่องนี้</h1>
+<p class="sub">หน้านี้ไม่เกี่ยวกับระบบตรวจนับ ใช้ดูอย่างเดียวว่ากล้องของเครื่องให้ค่าอะไรกลับมาบ้าง</p>
+
+<video id="preview" playsinline autoplay muted></video>
+
+<div class="row">
+  <button class="primary" onclick="startCamera()">เริ่มกล้อง</button>
+  <button onclick="stopCamera()">หยุด</button>
+</div>
+
+<h2>ลองความละเอียดต่างกัน</h2>
+<div class="row">
+  <button onclick="startCamera(null)">ไม่ระบุ</button>
+  <button onclick="startCamera({width:{ideal:1280},height:{ideal:720}})">1280×720</button>
+  <button onclick="startCamera({width:{ideal:1920},height:{ideal:1080}})">1920×1080</button>
+  <button onclick="startCamera({width:{ideal:2560},height:{ideal:1440}})">2560×1440</button>
+</div>
+
+<h2>กล้องที่เครื่องนี้มี</h2>
+<div class="row" id="camera-buttons"></div>
+
+<h2>ผลตรวจ</h2>
+<pre id="output">ยังไม่ได้เริ่มกล้อง</pre>
+
+<div class="row">
+  <button onclick="copyReport()">คัดลอกผล</button>
+</div>
+
+<p class="hint">
+  วิธีใช้: กด "เริ่มกล้อง" แล้วส่องบาร์โค้ดที่ระยะต่าง ๆ ดูว่าภาพคมที่ระยะไหน
+  จากนั้นลองปุ่มความละเอียดแต่ละอัน เทียบว่าอันไหนโฟกัสใกล้ได้ดีที่สุด
+  แล้วกด "คัดลอกผล" ส่งกลับมา
+</p>
+
+<script>
+let stream = null;
+let report = {};
+
+function show(obj) {
+  report = obj;
+  document.getElementById("output").textContent = JSON.stringify(obj, null, 2);
+}
+
+async function listCameras() {
+  const box = document.getElementById("camera-buttons");
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter(d => d.kind === "videoinput");
+    box.innerHTML = "";
+    if (!cams.length) { box.textContent = "ยังไม่เห็นรายชื่อกล้อง (ต้องอนุญาตกล้องก่อน)"; return cams; }
+    cams.forEach((cam, i) => {
+      const btn = document.createElement("button");
+      // Safari ไม่ให้ label จนกว่าจะได้สิทธิ์กล้อง จึงต้องมีชื่อสำรอง
+      btn.textContent = cam.label || ("กล้อง " + (i + 1));
+      btn.onclick = () => startCamera({ deviceId: { exact: cam.deviceId } });
+      box.appendChild(btn);
+    });
+    return cams;
+  } catch (err) {
+    box.textContent = "อ่านรายชื่อกล้องไม่ได้: " + err.message;
+    return [];
+  }
+}
+
+function stopCamera() {
+  if (!stream) return;
+  stream.getTracks().forEach(t => t.stop());
+  stream = null;
+  document.getElementById("preview").srcObject = null;
+}
+
+async function startCamera(extra) {
+  stopCamera();
+  const video = { facingMode: { ideal: "environment" } };
+  if (extra) Object.assign(video, extra);
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: video, audio: false });
+  } catch (err) {
+    show({ ขอกล้องไม่สำเร็จ: err.name + ": " + err.message, constraintsที่ขอ: video });
+    return;
+  }
+
+  const el = document.getElementById("preview");
+  el.srcObject = stream;
+
+  const track = stream.getVideoTracks()[0];
+  const settings = typeof track.getSettings === "function" ? track.getSettings() : null;
+
+  // Safari ไม่ implement getCapabilities เลย ค่าที่ได้ตรงนี้จึงบอกได้ว่าเครื่องคุมกล้องได้แค่ไหน
+  let capabilities = "ไม่รองรับ getCapabilities";
+  if (typeof track.getCapabilities === "function") {
+    try { capabilities = track.getCapabilities(); } catch (e) { capabilities = "เรียกแล้ว error: " + e.message; }
+  }
+
+  const cams = await listCameras();
+
+  await new Promise(r => {
+    if (el.readyState >= 2) return r();
+    el.onloadedmetadata = r;
+    setTimeout(r, 1500);
+  });
+
+  show({
+    เครื่อง: navigator.userAgent,
+    constraintsที่ขอ: video,
+    ภาพที่ได้จริง: el.videoWidth + "×" + el.videoHeight,
+    settings: settings,
+    รองรับapplyConstraints: typeof track.applyConstraints === "function",
+    capabilities: capabilities,
+    คุมโฟกัสได้: !!(capabilities && capabilities.focusMode && capabilities.focusMode.length),
+    คุมซูมได้: !!(capabilities && capabilities.zoom),
+    มีBarcodeDetector: ("BarcodeDetector" in window),
+    จำนวนกล้อง: cams.length,
+    รายชื่อกล้อง: cams.map(c => c.label || "(ไม่มีชื่อ)")
+  });
+}
+
+function copyReport() {
+  const text = JSON.stringify(report, null, 2);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(
+      () => alert("คัดลอกแล้ว"),
+      () => alert("คัดลอกไม่สำเร็จ ให้ลากเลือกข้อความในกล่องแทน")
+    );
+  } else {
+    alert("เบราว์เซอร์นี้คัดลอกอัตโนมัติไม่ได้ ให้ลากเลือกข้อความในกล่องแทน");
+  }
+}
+
+listCameras();
+</script>
+
+</body>
+</html>

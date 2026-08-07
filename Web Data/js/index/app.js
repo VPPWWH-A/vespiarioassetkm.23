@@ -1018,10 +1018,11 @@ async function startScanner() {
 
     // ไล่ลองจาก config ที่ดีที่สุดไปจนถึงแบบหลวมที่สุด เพราะกล้อง/เบราว์เซอร์บางรุ่น (โดยเฉพาะรุ่นเก่า)
     // ปฏิเสธ constraint บางตัว เช่น aspectRatio แบบ hard-fail แม้ permission จะอนุญาตแล้วก็ตาม
-    // ขอความละเอียดสูงไว้ก่อน เพราะกล้อง iPhone โฟกัสใกล้กว่า ~10 ซม. ไม่ลง ผู้ใช้ต้องถือห่าง
-    // บาร์โค้ดจึงเล็กลงในเฟรม ยิ่งพิกเซลเยอะยิ่งมีโอกาสอ่านเส้นบางๆ ออก
-    // ถ้ากล้องให้ไม่ถึง constraint แบบ ideal จะลดให้เองอัตโนมัติ ไม่ทำให้ start ล้ม
-    const highRes = { width: { ideal: 2560 }, height: { ideal: 1440 } };
+    // อย่าขอความละเอียดสูงเกิน 1080p บน iPhone
+    // เคยลอง 2560x1440 แล้วสแกนแย่ลง เพราะ iOS ไปเลือก stream คนละตัวของเซนเซอร์
+    // ซึ่งในหลายรุ่นคือโหมด crop 2x ที่ระยะโฟกัสต่ำสุดไกลกว่าเดิม ยิ่งถือใกล้ยิ่งเบลอ
+    // 1080p คือค่าที่กล้องให้จากโหมดปกติได้ทุกรุ่น ไม่ไปกระตุ้นให้สลับโหมด
+    const highRes = { width: { ideal: 1920 }, height: { ideal: 1080 } };
     const attempts = [
       { label: "environment + aspectRatio", target: { facingMode: { ideal: "environment" }, ...highRes }, config: getScannerConfig(true) },
       { label: "environment (no aspectRatio)", target: { facingMode: { ideal: "environment" }, ...highRes }, config: getScannerConfig(false) },
